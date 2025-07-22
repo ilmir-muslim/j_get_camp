@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Лиды</h1>
+<a href="{% url 'lead_create' %}" class="btn btn-success mb-3">Добавить лид</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Статус</th>
+            <th>Источник</th>
+            <th>Дата добавления</th>
+            <th>Телефон</th>
+            <th>Имя родителя</th>
+            <th>Интерес</th>
+            <th>Комментарий</th>
+            <th>Перезвонить</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lead in leads %}
+        <tr>
+            <td>{{ lead.id }}</td>
+            <td>{{ lead.get_status_display }}</td>
+            <td>{{ lead.get_source_display }}</td>
+            <td>{{ lead.added_date }}</td>
+            <td>{{ lead.phone }}</td>
+            <td>{{ lead.parent_name }}</td>
+            <td>{{ lead.interest }}</td>
+            <td>{{ lead.comment }}</td>
+            <td>{{ lead.callback_date|default:"—" }}</td>
+            <td>
+                <a href="{% url 'lead_edit' lead.pk %}" class="btn btn-sm btn-primary">Редактировать</a>
+                <a href="{% url 'lead_delete' lead.pk %}" class="btn btn-sm btn-danger">Удалить</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+

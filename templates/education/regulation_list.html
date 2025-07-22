@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Обучение и регламенты</h1>
+
+<a href="{% url 'regulation_create' %}" class="btn btn-success mb-3">Добавить материал</a>
+
+<div class="row">
+    {% for regulation in regulations %}
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ regulation.title }}</h5>
+
+                <a href="{{ regulation.file.url }}" class="btn btn-primary" target="_blank">Скачать</a>
+                <a href="{% url 'regulation_edit' regulation.pk %}" class="btn btn-secondary btn-sm">Редактировать</a>
+                <a href="{% url 'regulation_delete' regulation.pk %}" class="btn btn-danger btn-sm">Удалить</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

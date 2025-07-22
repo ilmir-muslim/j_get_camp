@@ -1,0 +1,55 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Зарплаты</h1>
+<a href="{% url 'salary_create' %}" class="btn btn-success mb-3">Добавить зарплату</a>
+
+{% if show_unpaid %}
+    <a href="{% url 'salary_list' %}" class="btn btn-secondary mb-3">Показать все</a>
+{% else %}
+    <a href="{% url 'salary_list' %}?unpaid=1" class="btn btn-warning mb-3">Только невыплаченные</a>
+{% endif %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Сотрудник</th>
+      <th>Смена</th>
+      <th>Тип выплаты</th>
+      <th>Дней отработано</th>
+      <th>Ставка за день</th>
+      <th>% от оплаты</th>
+      <th>Итоговая сумма</th>
+      <th>Выплачено</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for salary in salaries %}
+    <tr>
+        <td>{{ salary.id }}</td>
+        <td>{{ salary.employee }}</td>
+        <td>{{ salary.schedule }}</td>
+        <td>{{ salary.get_payment_type_display }}</td>
+        <td>{{ salary.days_worked }}</td>
+        <td>{{ salary.daily_rate }}</td>
+        <td>{{ salary.percent_rate }}</td>
+        <td>{{ salary.total_payment }}</td>
+        <td>
+            {% if salary.is_paid %}
+                ✅ Выплачено
+            {% else %}
+                ❌ Не выплачено
+            {% endif %}
+        </td>
+        <td>
+            <a href="{% url 'salary_edit' salary.pk %}" class="btn btn-sm btn-primary">Редактировать</a>
+            <a href="{% url 'salary_delete' salary.pk %}" class="btn btn-sm btn-danger">Удалить</a>
+        </td>
+
+    </tr>
+    {% endfor %}
+</tbody>
+
+</table>
+<p><strong>Итого зарплат:</strong> {{ total_salary }} руб.</p>
+{% endblock %}
+
+

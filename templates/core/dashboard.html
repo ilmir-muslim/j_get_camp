@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Главная панель управления</h1>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'schedule_calendar' %}" class="btn btn-outline-primary btn-lg btn-block">Календарь смен</a>
+    </div>
+    
+    {% if role in "manager admin camp_head lab_head" %}
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'employee_list' %}" class="btn btn-outline-primary btn-lg btn-block">Сотрудники</a>
+    </div>
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'student_list' %}" class="btn btn-outline-primary btn-lg btn-block">Ученики</a>
+    </div>
+    {% endif %}
+    
+    {% if role in "manager admin" %}
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'lead_list' %}" class="btn btn-outline-primary btn-lg btn-block">Лиды</a>
+    </div>
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'expense_list' %}" class="btn btn-outline-primary btn-lg btn-block">Учёт расходов</a>
+    </div>
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'salary_list' %}" class="btn btn-outline-primary btn-lg btn-block">Зарплаты</a>
+    </div>
+    {% endif %}
+    
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'regulation_list' %}" class="btn btn-outline-primary btn-lg btn-block">Обучение и регламенты</a>
+    </div>
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'branch_list' %}" class="btn btn-outline-primary btn-lg btn-block">Филиалы</a>
+    </div>
+    {% if role == "manager" or role == "admin" %}
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'analytics_dashboard' %}" class="btn btn-outline-primary btn-lg btn-block">Аналитика</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

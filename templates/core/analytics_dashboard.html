@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Аналитика</h1>
+
+<ul class="list-group">
+    <li class="list-group-item">Количество смен: {{ stats.schedule_count }}</li>
+    <li class="list-group-item">Количество сотрудников: {{ stats.employee_count }}</li>
+    <li class="list-group-item">Количество учеников: {{ stats.student_count }}</li>
+    <li class="list-group-item">Общая сумма расходов: {{ stats.total_expenses }} руб.</li>
+    <li class="list-group-item">Общая сумма зарплат: {{ stats.total_salaries }} руб.</li>
+</ul>
+{% endblock %}
+
+

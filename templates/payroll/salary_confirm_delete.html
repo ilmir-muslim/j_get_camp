@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Удалить зарплату</h1>
+
+<p>Вы уверены, что хотите удалить зарплату для {{ salary.employee }} на сумму {{ salary.total_payment }} руб.?</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a href="{% url 'salary_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

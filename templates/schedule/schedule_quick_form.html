@@ -1,0 +1,20 @@
+<div class="modal-header">
+    <h5 class="modal-title">
+        {% if form.instance.pk %}Редактирование смены{% else %}Создание новой смены{% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form id="schedule-quick-form" method="post" 
+        action="{% if form.instance.pk %}{% url 'schedule_quick_edit' form.instance.pk %}{% else %}{% url 'schedule_quick_create' %}{% endif %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+    </form>
+</div>
+<div class="modal-footer">
+    {% if form.instance.pk %}
+    <button type="button" class="btn btn-danger" id="delete-schedule">Удалить</button>
+    {% endif %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    <button type="submit" class="btn btn-primary" form="schedule-quick-form">Сохранить</button>
+</div>

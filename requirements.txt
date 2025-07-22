@@ -1,0 +1,14 @@
+Django==5.2.4
+django-ninja==1.4.3
+mysqlclient==2.2.7
+openpyxl==3.1.5
+weasyprint==65.1
+python-dotenv==1.1.1
+asgiref==3.9.1
+sqlparse==0.5.3
+pydantic==2.11.7
+pydantic_core==2.33.2
+pillow==11.3.0
+fonttools==4.59.0
+cffi==1.17.1
+Brotli==1.1.0

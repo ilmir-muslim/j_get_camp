@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 4px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Список учеников</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Телефон</th>
+                <th>Родитель</th>
+                <th>Смена</th>
+                <th>Тип посещения</th>
+                <th>Индивидуальная цена</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.full_name }}</td>
+                <td>{{ student.phone }}</td>
+                <td>{{ student.parent_name }}</td>
+                <td>{{ student.schedule }}</td>
+                <td>{{ student.get_attendance_type_display }}</td>
+                <td>{{ student.individual_price|default:student.default_price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+
+

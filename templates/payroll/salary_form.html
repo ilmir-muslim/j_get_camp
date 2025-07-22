@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Редактировать зарплату{% else %}Добавить зарплату{% endif %}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    <a href="{% url 'salary_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}
+
+
