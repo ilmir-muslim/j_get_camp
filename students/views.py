@@ -47,13 +47,13 @@ def student_edit(request, pk):
 
 @role_required(['manager', 'admin'])
 def student_delete(request, pk):
-    """
-    Представление для удаления студента.
-    Доступно только менеджеру и администратору.
-    """
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == 'POST':
+        # Удаляем все связанные объекты перед удалением студента
+        student.attendance_set.all().delete()
+        student.payments.all().delete()
+        
         student.delete()
         return redirect('student_list')
 

@@ -60,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "ninja.compatibility.files.fix_request_files_middleware",
 ]
 
 ROOT_URLCONF = "jget_crm.urls"

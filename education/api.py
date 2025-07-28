@@ -1,5 +1,8 @@
-from ninja import Router
+from ninja import File, Form, Router
+from ninja.files import UploadedFile
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from typing import Optional
 from .models import Regulation
 from .schemas import RegulationSchema, RegulationCreateSchema
 
@@ -36,17 +39,39 @@ def get_regulation(request, regulation_id: int):
         "uploaded_at": obj.uploaded_at.isoformat(),
     }
 
+
 @router.post("/regulations/", response=RegulationSchema)
-def create_regulation(request, data: RegulationCreateSchema):
-    regulation = Regulation.objects.create(**data.dict())
-    return regulation
+def create_regulation(request):
+    """
+    Загрузить новое положение (multipart).
+    """
+    title = request.POST.get("title")
+    file = request.FILES.get("file")
+
+    if not title or not file:
+        return JsonResponse({"error": "Missing title or file"}, status=400)
+
+    regulation = Regulation.objects.create(title=title, file=file)
+    return {
+        "id": regulation.id,
+        "title": regulation.title,
+        "file": regulation.file.url if regulation.file else "",
+        "uploaded_at": regulation.uploaded_at.isoformat(),
+    }
 
 
-@router.put("/regulations/{regulation_id}/", response=RegulationSchema)
-def update_regulation(request, regulation_id: int, data: RegulationCreateSchema):
+@router.patch("/regulations/{regulation_id}/", response=RegulationSchema)
+def partial_update_regulation(
+    request,
+    regulation_id: int,
+    title: Optional[str] = Form(None),
+    file: Optional[UploadedFile] = File(None),
+):
     regulation = Regulation.objects.get(id=regulation_id)
-    for attr, value in data.dict().items():
-        setattr(regulation, attr, value)
+    if title is not None:
+        regulation.title = title
+    if file is not None:
+        regulation.file.save(file.name, file.file)
     regulation.save()
     return regulation
 

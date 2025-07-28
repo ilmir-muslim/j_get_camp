@@ -1,4 +1,6 @@
 from django import forms
+
+from students.models import Payment
 from .models import Expense, Salary
 
 class SalaryForm(forms.ModelForm):
@@ -33,4 +35,12 @@ class ExpenseForm(forms.ModelForm):
             'category': 'Категория',
             'comment': 'Комментарий',
             'amount': 'Сумма',
+        }
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ['student', 'amount', 'date', 'comment']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
         }

@@ -1,6 +1,8 @@
 from ninja import Router
 from .models import Branch
 from .schemas import BranchSchema, BranchCreateSchema
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 
 router = Router(tags=["Branches"])
 
@@ -10,8 +12,10 @@ def list_branches(request):
 
 @router.get("/{branch_id}/", response=BranchSchema)
 def get_branch(request, branch_id: int):
-    branch = Branch.objects.get(id=branch_id)
-    return branch
+    try:
+        return Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return JsonResponse({"error": "Branch not found"}, status=404)
 
 @router.post("/", response=BranchSchema)
 def create_branch(request, data: BranchCreateSchema):
@@ -28,5 +32,14 @@ def update_branch(request, branch_id: int, data: BranchCreateSchema):
 
 @router.delete("/{branch_id}/")
 def delete_branch(request, branch_id: int):
-    Branch.objects.filter(id=branch_id).delete()
+    branch = get_object_or_404(Branch, id=branch_id)
+    
+    # Проверка наличия связанных объектов
+    if branch.schedule.exists():
+        return JsonResponse(
+            {"success": False, "error": "Cannot delete branch with active schedules"},
+            status=400
+        )
+    
+    branch.delete()
     return {"success": True}

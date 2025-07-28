@@ -3,6 +3,8 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+from django.core.exceptions import ValidationError
 
 from ninja import NinjaAPI
 
@@ -12,22 +14,26 @@ api = NinjaAPI(title="J-GET CAMP API", csrf=False)
 # Импортируем все API-роутеры
 from core.api import router as core_router
 from students.api import router as students_router
-from employees.api import router as employees_router
+from employees.api import employees_router
+from employees.api import attendances_router
 from leads.api import router as leads_router
 from payroll.api import router as payroll_router
 from branches.api import router as branches_router
 from education.api import router as education_router
 from schedule.api import router as schedule_router
+from schedule.api import filters_router
 
 # Подключаем роутеры 
 api.add_router("", core_router) 
 api.add_router("students/", students_router)
 api.add_router("employees/", employees_router)
+api.add_router("/employees/attendances/", attendances_router)
 api.add_router("leads/", leads_router)
 api.add_router("payroll/", payroll_router)
 api.add_router("branches/", branches_router)
 api.add_router("education/", education_router)
 api.add_router("schedule/", schedule_router)
+api.add_router("schedule/filters/", filters_router)
 
 # Основные URL-паттерны
 urlpatterns = [
@@ -49,3 +55,11 @@ urlpatterns = [
 
 # Статические файлы
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+@api.exception_handler(ValidationError)
+def validation_errors(request, exc):
+    return JsonResponse({"error": exc.errors}, status=400)
+
+@api.exception_handler(Exception)
+def server_error(request, exc):
+    return JsonResponse({"error": "Internal server error"}, status=500)

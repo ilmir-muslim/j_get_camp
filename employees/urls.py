@@ -13,5 +13,6 @@ urlpatterns += [
     path('attendances/create/', views.employee_attendance_create, name='employee_attendance_create'),
     path('attendances/edit/<int:pk>/', views.employee_attendance_edit, name='employee_attendance_edit'),
     path('attendances/delete/<int:pk>/', views.employee_attendance_delete, name='employee_attendance_delete'),
+    path('attendances/toggle/', views.toggle_employee_attendance, name='toggle_employee_attendance'),
 ]
 

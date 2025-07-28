@@ -9,7 +9,7 @@ class ScheduleSchema(Schema):
     start_date: date
     end_date: date
     theme: str
-    color: str 
+    color: str
 
 class ScheduleCreateSchema(Schema):
     name: str
@@ -17,4 +17,4 @@ class ScheduleCreateSchema(Schema):
     start_date: date
     end_date: date
     theme: str
-    color: Optional[str] = None  # Необязательный параметр
+    color: Optional[str] = None

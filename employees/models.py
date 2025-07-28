@@ -44,6 +44,7 @@ class EmployeeAttendance(models.Model):
         related_name="attendances",
         verbose_name="Сотрудник",
     )
+    present = models.BooleanField(default=True, verbose_name="Присутствовал") 
     date = models.DateField(verbose_name="Дата посещения")
     comment = models.CharField(max_length=255, blank=True, verbose_name="Комментарий")
 

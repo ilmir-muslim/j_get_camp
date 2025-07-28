@@ -11,6 +11,7 @@ class CustomUser(AbstractUser):
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name="Роль")
     branch = models.ForeignKey('branches.Branch', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Филиал")
+    schedules = models.ManyToManyField('schedule.Schedule', blank=True, verbose_name="Закрепленные смены")
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"

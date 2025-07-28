@@ -1,58 +1,65 @@
 from ninja import Router
+from django.shortcuts import get_object_or_404
 from employees.models import Employee, EmployeeAttendance
 from employees.schemas import (
+    EmployeeAttendanceUpdateSchema,
     EmployeeSchema,
     EmployeeCreateSchema,
     EmployeeAttendanceSchema,
     EmployeeAttendanceCreateSchema,
 )
 
-router = Router(tags=["Employees"])
+employees_router = Router(tags=["Employees"])
+attendances_router = Router(tags=["Attendances"])
 
-@router.get("/", response=list[EmployeeSchema])
+@employees_router.get("/", response=list[EmployeeSchema])
 def employee_list(request):
     return Employee.objects.all()
 
-@router.get("/{employee_id}/", response=EmployeeSchema)
+@employees_router.get("/{employee_id}/", response=EmployeeSchema)
 def employee_detail(request, employee_id: int):
     return Employee.objects.get(id=employee_id)
 
-@router.post("/", response=EmployeeSchema)
+@employees_router.post("/", response=EmployeeSchema)
 def employee_create(request, data: EmployeeCreateSchema):
     employee = Employee.objects.create(**data.dict())
     return employee
 
-@router.put("/{employee_id}/", response=EmployeeSchema)
-def employee_update(request, employee_id: int, data: EmployeeCreateSchema):
-    employee = Employee.objects.get(id=employee_id)
-    for attr, value in data.dict().items():
-        setattr(employee, attr, value)
-    employee.save()
-    return employee
 
-@router.delete("/{employee_id}/")
+@employees_router.delete("/{employee_id}/")
 def employee_delete(request, employee_id: int):
     Employee.objects.filter(id=employee_id).delete()
     return {"success": True}
 
-@router.get("/attendances/", response=list[EmployeeAttendanceSchema])
+@attendances_router.get("/attendances/", response=list[EmployeeAttendanceSchema])
 def attendance_list(request):
     return EmployeeAttendance.objects.all()
 
-@router.post("/attendances/", response=EmployeeAttendanceSchema)
+@attendances_router.post("/attendances/create/", response=EmployeeAttendanceSchema)
 def attendance_create(request, data: EmployeeAttendanceCreateSchema):
-    attendance = EmployeeAttendance.objects.create(**data.dict())
+    employee = get_object_or_404(Employee, id=data.employee_id)
+    attendance = EmployeeAttendance.objects.create(
+        employee=employee,
+        date=data.date,
+        present=data.present,
+        comment=data.comment
+    )
     return attendance
 
-@router.put("/attendances/{attendance_id}/", response=EmployeeAttendanceSchema)
-def attendance_update(request, attendance_id: int, data: EmployeeAttendanceCreateSchema):
-    attendance = EmployeeAttendance.objects.get(id=attendance_id)
-    for attr, value in data.dict().items():
+@attendances_router.get("/attendances/{attendance_id}/", response=EmployeeAttendanceSchema)
+def attendance_detail(request, attendance_id: int):
+    return get_object_or_404(EmployeeAttendance, id=attendance_id)
+
+@attendances_router.patch("/attendances/{attendance_id}/", response=EmployeeAttendanceSchema)
+def attendance_update(request, attendance_id: int, data: EmployeeAttendanceUpdateSchema):
+    attendance = get_object_or_404(EmployeeAttendance, id=attendance_id)
+    for attr, value in data.dict(exclude_unset=True).items():
         setattr(attendance, attr, value)
     attendance.save()
     return attendance
 
-@router.delete("/attendances/{attendance_id}/")
+@attendances_router.delete("/attendances/{attendance_id}/")
 def attendance_delete(request, attendance_id: int):
-    EmployeeAttendance.objects.filter(id=attendance_id).delete()
+    attendance = get_object_or_404(EmployeeAttendance, id=attendance_id)
+    attendance.delete()
     return {"success": True}

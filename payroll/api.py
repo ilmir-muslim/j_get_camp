@@ -1,4 +1,9 @@
 from ninja import Router
+
+from django.shortcuts import get_object_or_404
+from django.db.models import Sum
+
+from students.models import Payment
 from .models import Expense, Salary
 from .schemas import ExpenseSchema, ExpenseCreateSchema, SalarySchema, SalaryCreateSchema
 from employees.models import Employee
@@ -28,41 +33,33 @@ def list_salaries(request):
 
 @router.post("/salaries/", response=SalarySchema)
 def create_salary(request, data: SalaryCreateSchema):
-    # Calculate total payment based on payment type
-    employee = Employee.objects.get(id=data.employee_id)
-    schedule = Schedule.objects.get(id=data.schedule_id)
+    employee = get_object_or_404(Employee, id=data.employee_id)
+    schedule = get_object_or_404(Schedule, id=data.schedule_id)
     
-    salary_data = data.dict()
-    if data.payment_type == "fixed":
-        salary_data["total_payment"] = data.days_worked * data.daily_rate
-    elif data.payment_type == "percent":
-        # Percent calculation would require additional business logic
-        salary_data["total_payment"] = data.percent_rate
-    elif data.payment_type == "combined":
-        salary_data["total_payment"] = (data.days_worked * data.daily_rate) + data.percent_rate
-    
-    salary = Salary.objects.create(
+    # Создаем объект без сохранения
+    salary = Salary(
         employee=employee,
         schedule=schedule,
-        **salary_data
+        **data.dict()
     )
+    
+    # Вызываем кастомный метод расчета
+    salary.calculate_total_payment()
+    
+    # Сохраняем объект
+    salary.save()
     return salary
 
 @router.put("/salaries/{salary_id}/", response=SalarySchema)
 def update_salary(request, salary_id: int, data: SalaryCreateSchema):
-    salary = Salary.objects.get(id=salary_id)
+    salary = get_object_or_404(Salary, id=salary_id)
+    
+    # Обновляем поля
     for attr, value in data.dict().items():
-        if attr not in ["employee_id", "schedule_id"]:
-            setattr(salary, attr, value)
+        setattr(salary, attr, value)
     
-    # Recalculate if needed
-    if data.payment_type == "fixed":
-        salary.total_payment = data.days_worked * data.daily_rate
-    elif data.payment_type == "percent":
-        salary.total_payment = data.percent_rate
-    elif data.payment_type == "combined":
-        salary.total_payment = (data.days_worked * data.daily_rate) + data.percent_rate
-    
+    # Пересчитываем платеж
+    salary.calculate_total_payment()
     salary.save()
     return salary
 

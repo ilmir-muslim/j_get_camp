@@ -1,6 +1,11 @@
-{% extends 'base.html' %} {% load schedule_extras %} {% block extra_head %}
+{% extends 'base.html' %}
+{% load schedule_extras %}
+
+{% block extra_head %}
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" />
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block content %}
   <div class="container mt-4">
     <div class="calendar-header">
       <h1 class="calendar-title">Календарь смен</h1>
@@ -8,9 +13,7 @@
 
     <div class="month-navigation">
       <a href="?month={{ prev_month }}" class="nav-btn"><i class="bi bi-arrow-left-circle"></i> Предыдущий месяц</a>
-
       <div class="month-title">{{ current_date|date:'F Y' }}</div>
-
       <a href="?month={{ next_month }}" class="nav-btn">Следующий месяц <i class="bi bi-arrow-right-circle"></i></a>
     </div>
 
@@ -37,6 +40,9 @@
                           <h6>{{ sched.name }}</h6>
                           <div class="schedule-dates">
                             <div class="schedule-theme">{{ sched.theme }}</div>
+                            <a href="{% url 'schedule_detail' sched.id %}" class="btn btn-sm btn-primary mt-2">
+                              Детали
+                            </a>
                           </div>
                         </div>
                       {% endfor %}
@@ -62,6 +68,7 @@
     </div>
   </div>
 {% endblock %}
+
 {% block extra_scripts %}
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -71,7 +78,7 @@
         const branchId = $(cell).data('branch')
         const weekStart = $(cell).data('week-start')
         const weekEnd = $(cell).data('week-end')
-    
+
         if ($(cell).find('.schedule-card').length > 0) {
           const scheduleId = $(cell).find('.schedule-card').first().data('id')
           editSchedule(scheduleId)
@@ -79,20 +86,19 @@
           createNewSchedule(branchId, weekStart, weekEnd)
         }
       }
-    
+
       function createNewSchedule(branchId, weekStart, weekEnd) {
         const url = "{% url 'schedule_quick_create' %}?branch=" + branchId + '&week_start=' + weekStart + '&week_end=' + weekEnd
-    
+
         $('#modal-content').load(url, function () {
           $('#scheduleModal').modal('show')
         })
       }
-    
+
       function editSchedule(scheduleId) {
         const url = "{% url 'schedule_quick_edit' 0 %}".replace('0', scheduleId)
-    
+
         $('#modal-content').load(url, function () {
-          // Важно — назначаем обработчик удаления только после загрузки формы
           $('#delete-schedule').click(function () {
             if (confirm('Вы уверены, что хотите удалить эту смену?')) {
               $.post(
@@ -107,12 +113,11 @@
               )
             }
           })
-    
+
           $('#scheduleModal').modal('show')
         })
       }
-    
-      // Обработка отправки формы создания/редактирования
+
       $('body').on('submit', '#schedule-quick-form', function (e) {
         e.preventDefault()
         const form = $(this)
@@ -129,17 +134,17 @@
           }
         })
       })
-    
+
       $('body').on('click', '.calendar-cell', function (e) {
         if ($(e.target).hasClass('calendar-cell')) {
           handleCellClick(this)
         }
       })
-    
+
       $('body').on('click', '.empty-cell', function (e) {
         handleCellClick($(this).closest('.calendar-cell')[0])
       })
-    
+
       $('body').on('click', '.schedule-card', function (e) {
         e.stopPropagation()
         const scheduleId = $(this).data('id')

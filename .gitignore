@@ -1,5 +1,9 @@
-save_all_save_all_files.sh
+save_all_files.sh
 restore_backup.sh
 .env
 .vscode/
 venv/
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+mok_data_fixtures/initial_data.json

@@ -9,6 +9,38 @@
     <button type="submit" class="btn btn-success">Сохранить</button>
     <a href="{% url 'lead_list' %}" class="btn btn-secondary">Отмена</a>
 </form>
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateField = document.querySelector('input[type="date"]');
+    const timeField = document.querySelector('input[type="time"]');
+    
+    // Если нет отдельных полей, значит используется datetime-local
+    const datetimeField = document.querySelector('input[type="datetime-local"]');
+    
+    if (datetimeField) {
+        // Для поля datetime-local: при изменении даты устанавливаем время по умолчанию
+        datetimeField.addEventListener('change', function() {
+            if (this.value && !this.value.includes('T')) {
+                // Добавляем время по умолчанию (текущее время)
+                const now = new Date();
+                const timeString = now.toTimeString().substring(0, 5);
+                this.value = this.value + 'T' + timeString;
+            }
+        });
+    }
+    else if (dateField && timeField) {
+        // Для раздельных полей: при изменении даты устанавливаем время
+        dateField.addEventListener('change', function() {
+            if (this.value && !timeField.value) {
+                const now = new Date();
+                timeField.value = now.toTimeString().substring(0, 5);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 
-
+{% endblock %}

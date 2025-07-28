@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load custom_tags %} 
+
+{% block content %}
+<div class="container mt-4">
+    <a href="{% url 'employee_list' %}" class="btn btn-secondary mb-3">
+        &larr; Назад к списку сотрудников
+    </a>
+
+    <h1>Посещения сотрудников</h1>
+    
+    <!-- Форма выбора периода -->
+    <form method="get" class="row g-3 mb-4 p-3 bg-light rounded">
+        <div class="col-md-4">
+            <label for="start_date" class="form-label">Начало периода</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" 
+                   value="{{ selected_start_date }}">
+        </div>
+        <div class="col-md-4">
+            <label for="end_date" class="form-label">Конец периода</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" 
+                   value="{{ selected_end_date }}">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">Применить</button>
+        </div>
+    </form>
+
+    <h4>{{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}</h4>
+
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered attendance-table">
+            <thead>
+                <tr>
+                    <th class="employee-column">Сотрудник</th>
+                    {% for date in dates %}
+                        <th class="text-center">
+                            <div class="date-header">
+                                {{ date|date:"d.m" }}
+                            </div>
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                    <tr>
+                        <td class="employee-column">{{ employee.full_name }}</td>
+                        {% for date in dates %}
+                            {% with attendance=attendance_matrix|get_item:employee.id|get_item:date %}
+                                <td>
+                                    <div class="attendance-cell text-center {% if attendance and attendance.present %}bg-success{% else %}bg-danger{% endif %}" 
+                                        data-employee-id="{{ employee.id }}"
+                                        data-date="{{ date|date:'Y-m-d' }}">
+                                        {% if attendance and attendance.present %}
+                                            <i class="bi bi-check-lg text-white"></i>
+                                        {% else %}
+                                            <i class="bi bi-x-lg text-white"></i>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.attendance-table th, .attendance-table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.attendance-cell {
+    cursor: pointer;
+    min-width: 50px;
+    height: 50px;
+    transition: all 0.3s;
+}
+
+.attendance-cell.bg-success {
+    background-color: #51cf66 !important;
+}
+
+.attendance-cell.bg-danger {
+    background-color: #ff6b6b !important;
+}
+
+.attendance-cell i {
+    font-size: 1.5rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка кликов по ячейкам
+    document.querySelectorAll('.attendance-cell').forEach(cell => {
+        cell.addEventListener('click', function() {
+            const employeeId = this.dataset.employeeId;
+            const dateStr = this.dataset.date;
+            
+            // Отправка AJAX запроса
+            fetch("{% url 'toggle_employee_attendance' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    employee_id: employeeId,
+                    date: dateStr
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Обновление визуального состояния
+                    if (data.present) {
+                        this.classList.remove('bg-danger');
+                        this.classList.add('bg-success');
+                        this.innerHTML = '<i class="bi bi-check-lg text-white"></i>';
+                    } else {
+                        this.classList.remove('bg-success');
+                        this.classList.add('bg-danger');
+                        this.innerHTML = '<i class="bi bi-x-lg text-white"></i>';
+                    }
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -20,7 +20,13 @@
 
 ## Описание
 
-Система предназначена для автоматизации процессов управления сменами, сотрудниками, учениками, лидами, расходами и обучающими материалами. Поддерживает роли пользователей, разграничение доступа, экспорт данных, работу с календарём смен и многое другое.
+Система предназначена для автоматизации процессов управления сменами, сотрудниками, учениками, лидами, расходами и обучающими материалами. Поддерживает роли пользователей, разграничение доступа, экспорт данных, работу с календарём смен, а также:
+
+- Учёт индивидуальных и групповых посещений учеников
+- Расчёт зарплат по фиксированной ставке, проценту или комбинированной модели
+- Учёт посещаемости сотрудников с комментариями
+- API-авторизация с базовой аутентификацией
+- Экспорт учеников в Excel и PDF
 
 ---
 
@@ -53,12 +59,8 @@
     python manage.py migrate
     ```
 
-5. (Опционально) Загрузите тестовые данные:
-    ```bash
-    python manage.py loaddata mok_data_fixtures/mock_data.json
-    ```
 
-6. Создайте суперпользователя:
+5. Создайте суперпользователя:
     ```bash
     python manage.py createsuperuser
     ```
@@ -70,6 +72,8 @@
 ```bash
 python manage.py runserver
 ```
+
+---
 
 ## Структура проекта
 
@@ -85,6 +89,8 @@ python manage.py runserver
 - static/
 - manage.py
 - requirements.txt
+
+---
 
 ## Основные эндпойнты API
 
@@ -108,18 +114,20 @@ python manage.py runserver
 - `GET /api/schedule/{id}/` — **Получить смену по ID**
 - `PUT /api/schedule/{id}/` — **Обновить смену**
 - `DELETE /api/schedule/{id}/` — **Удалить смену**
+- `GET /api/schedule/filters/branch/{branch_id}/` — **Смены по филиалу**
+- `GET /api/schedule/filters/period/` — **Смены в определённый период**
 
 ### Сотрудники
 - `GET /api/employees/` — **Получить список сотрудников**
 - `POST /api/employees/` — **Создать сотрудника**
 - `GET /api/employees/{id}/` — **Получить сотрудника по ID**
-- `PUT /api/employees/{id}/` — **Обновить сотрудника**
 - `DELETE /api/employees/{id}/` — **Удалить сотрудника**
 
 #### Посещения сотрудников
 - `GET /api/employees/attendances/` — **Получить список посещений**
-- `POST /api/employees/attendances/` — **Добавить посещение**
-- `PUT /api/employees/attendances/{id}/` — **Обновить посещение**
+- `POST /api/employees/attendances/create/` — **Добавить посещение**
+- `GET /api/employees/attendances/{id}/` — **Получить посещение**
+- `PATCH /api/employees/attendances/{id}/` — **Обновить посещение**
 - `DELETE /api/employees/attendances/{id}/` — **Удалить посещение**
 
 ### Ученики
@@ -128,6 +136,14 @@ python manage.py runserver
 - `GET /api/students/{id}/` — **Получить ученика по ID**
 - `PATCH /api/students/{id}/` — **Частично обновить ученика**
 - `DELETE /api/students/{id}/` — **Удалить ученика**
+- `GET /api/students/{id}/attendance/` — **Посещения ученика**
+- `POST /api/students/{id}/attendance/` — **Добавить посещение**
+- `PATCH /api/students/attendance/{id}/` — **Обновить посещение**
+- `DELETE /api/students/attendance/{id}/` — **Удалить посещение**
+- `GET /api/students/{id}/payments/` — **Платежи ученика**
+- `POST /api/students/{id}/payments/` — **Добавить платёж**
+- `PATCH /api/students/{id}/payments/{id}/` — **Обновить платёж**
+- `DELETE /api/students/{id}/payments/{id}/` — **Удалить платёж**
 
 ### Лиды
 - `GET /api/leads/` — **Получить список лидов**
@@ -152,14 +168,13 @@ python manage.py runserver
 - `PUT /api/education/regulations/{id}/` — **Обновить регламент**
 - `DELETE /api/education/regulations/{id}/` — **Удалить регламент**
 
+---
+
 ## Примеры запросов
 
 ### Пример: Создание смены с цветом
-
 ```bash
-curl -X POST http://localhost:8000/api/schedule/ \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -X POST http://localhost:8000/api/schedule/   -u root:root   -H "Content-Type: application/json"   -d '{
     "name": "Летняя смена",
     "branch_id": 1,
     "start_date": "2025-07-01",
@@ -171,15 +186,15 @@ curl -X POST http://localhost:8000/api/schedule/ \
 
 ### Пример: Получить список сотрудников
 ```bash
-curl -X GET http://localhost:8000/api/employees/
+curl -X GET http://localhost:8000/api/employees/ -u root:root
 ```
 
 ### Пример: Авторизация
 ```bash
-curl -X POST http://localhost:8000/api/auth/login/ \
-  -H "Content-Type: application/json" \
-  -d '{"username": "manager", "password": "password"}'
+curl -X POST http://localhost:8000/api/auth/login/   -H "Content-Type: application/json"   -d '{"username": "root", "password": "root"}'
 ```
+
+---
 
 ## Скриншоты
 
@@ -198,3 +213,9 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - Ученики
 
 ![alt text](media/screenshots/image-2.png)
+
+---
+
+## Лицензия
+
+Проект предоставляется на условиях внутреннего использования. Все права защищены.
