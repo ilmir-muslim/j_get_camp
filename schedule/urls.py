@@ -33,4 +33,5 @@ urlpatterns += [
         views.export_schedule_students_pdf,
         name="export_schedule_students_pdf",
     ),
+    path("list/", views.schedule_list, name="schedule_list"),
 ]

@@ -27,7 +27,7 @@
 .btn-lg.btn-block:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background-color: #228be6;
+  background-color: #1c7ed6;
 }
 
 .btn-lg.btn-block:active {
@@ -258,7 +258,7 @@ a.btn:not(.btn-danger):not(.btn-primary):not(.btn-sm) {
 .btn-success:hover,
 .btn-secondary:hover,
 a.btn:not(.btn-danger):not(.btn-primary):not(.btn-sm):hover {
-  background-color: #228be6;
+  background-color: #339af0;
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
   color: white;
@@ -266,11 +266,11 @@ a.btn:not(.btn-danger):not(.btn-primary):not(.btn-sm):hover {
 
 /* Кнопки "Редактировать" */
 .btn-primary {
-  background-color: #228be6;
+  background-color: #339af0;
   color: white;
 }
 .btn-primary:hover {
-  background-color: #1864ab;
+  background-color: #339af0;
   transform: translateY(-2px);
 }
 
@@ -293,8 +293,8 @@ a.btn:not(.btn-danger):not(.btn-primary):not(.btn-sm):hover {
 
 /* Navbar */
 .navbar.bg-dark {
-  background-color: #18314a !important;
-  border-bottom: 2px solid #228be6;
+  background-color: #2b5885 !important;
+  border-bottom: 2px solid #339af0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -452,4 +452,19 @@ input[type="date"].form-control {
     width: 100%;
     height: 100%;
     padding: 5px 0 !important;
+}
+
+.clickable-cell {
+  cursor: pointer;
+  transition: background-color 0.25s, box-shadow 0.25s;
+  font-weight: 500;
+}
+
+.clickable-cell:hover {
+  background-color: #f1f3f5;
+  box-shadow: inset 0 0 0 1px #adb5bd;
+}
+
+.bg-primary {
+    background-color: #339af0 !important;
 }

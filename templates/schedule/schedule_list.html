@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Список смен</h1>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Название группы</th>
+                <th>Преподаватель</th>
+                <th>Тематика</th>
+                <th>Расписание</th>
+                <th>Филиал</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in schedule_data %}
+            <tr>
+                <td class="clickable-cell" data-url="{% url 'schedule_detail' item.id %}">
+                    {{ item.name }}
+                </td>
+                <td>{{ item.teacher }}</td>
+                <td>{{ item.theme }}</td>
+                <td>{{ item.dates }}</td>
+                <td>{{ item.branch }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.clickable-cell').forEach(function (cell) {
+            cell.addEventListener('click', function () {
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

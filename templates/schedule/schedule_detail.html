@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load custom_tags %}
+{% load custom_tags %} 
 
 {% block content %}
 <div class="container mt-4">
@@ -170,9 +170,9 @@
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="attendance-body">
                         {% for student in students %}
-                            <tr>
+                            <tr data-student-id="{{ student.id }}">
                                 <td class="student-column">{{ student.full_name }}</td>
                                 {% for date in dates %}
                                     {% with key=student.id|stringformat:"s"|add:"_"|add:date.isoformat %}
@@ -199,10 +199,17 @@
     
     <!-- Платежи -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
             <h3>Платежи</h3>
+            <div>
+                <button id="reset-payment-filters" class="btn btn-sm btn-light">
+                    <i class="bi bi-arrow-clockwise"></i> Сбросить фильтры
+                </button>
+            </div>
         </div>
-        <div class="card-body">
+    </div>
+    <div class="card-body">
             <form method="post" class="mb-4" id="payment-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_payment">
@@ -230,9 +237,34 @@
                     </div>
                 </div>
             </form>
+
+            <!-- Фильтры -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <input type="text" id="student-filter" class="form-control" placeholder="Фильтр по ученику">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" id="date-from" class="form-control" placeholder="Дата от">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" id="date-to" class="form-control" placeholder="Дата до">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" id="comment-filter" class="form-control" placeholder="Фильтр по комментарию">
+                </div>
+                <div class="col-md-2">
+                    <select id="sort-payments" class="form-select">
+                        <option value="">Сортировать по...</option>
+                        <option value="student-asc">Ученик (А-Я)</option>
+                        <option value="student-desc">Ученик (Я-А)</option>
+                        <option value="date-asc">Дата (старые)</option>
+                        <option value="date-desc">Дата (новые)</option>
+                    </select>
+                </div>
+            </div>
                         
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped" id="payments-table">
                     <thead>
                         <tr>
                             <th>Ученик</th>
@@ -241,12 +273,12 @@
                             <th>Комментарий</th>
                         </tr>
                     </thead>
-                    <tbody id="payments-table">
+                    <tbody id="payments-body">
                         {% for payment in payments %}
                         <tr>
                             <td>{{ payment.student.full_name }}</td>
-                            <td>{{ payment.amount }} руб.</td>
-                            <td>{{ payment.date }}</td>
+                            <td data-value="{{ payment.amount }}">{{ payment.amount }} руб.</td>
+                            <td data-value="{{ payment.date|date:'Y-m-d' }}">{{ payment.date }}</td>
                             <td>{{ payment.comment }}</td>
                         </tr>
                         {% empty %}
@@ -255,6 +287,15 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <!-- Строка с итогами -->
+                    <tfoot class="table-group-divider">
+                        <tr>
+                            <th>Итого:</th>
+                            <th id="total-amount">{{ total_payments }} руб.</th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -272,9 +313,16 @@
 </div>
 
 <script>
+// Преобразуем даты в формат, понятный JavaScript
+const attendanceDates = [
+    {% for date in dates %}
+        "{{ date|date:'Y-m-d' }}",
+    {% endfor %}
+];
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка кликов по ячейкам посещаемости
-    document.querySelectorAll('.attendance-cell').forEach(cell => {
+    // Функция для настройки обработчика ячейки посещаемости
+    function setupAttendanceCell(cell) {
         cell.addEventListener('click', function() {
             const studentId = this.dataset.studentId;
             const date = this.dataset.date;
@@ -319,7 +367,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    });
+    }
+    
+    // Инициализация всех ячеек посещаемости
+    document.querySelectorAll('.attendance-cell').forEach(setupAttendanceCell);
     
     // Общая функция для отправки форм
     function setupAjaxForm(formId, successCallback) {
@@ -355,6 +406,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         }
+    }
+    
+    // Функция для обновления таблицы посещаемости при добавлении ученика
+    function updateAttendanceTable(student, dates) {
+        const attendanceBody = document.getElementById('attendance-body');
+        
+        // Создаем новую строку для ученика
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-student-id', student.id);
+        newRow.innerHTML = `<td class="student-column">${student.full_name}</td>`;
+        
+        // Добавляем ячейки для каждой даты
+        dates.forEach(date => {
+            newRow.innerHTML += `
+                <td>
+                    <div class="attendance-cell text-center bg-danger" 
+                        data-student-id="${student.id}"
+                        data-date="${date}">
+                        <i class="bi bi-x-lg text-white"></i>
+                    </div>
+                </td>
+            `;
+        });
+        
+        // Добавляем строку в таблицу посещаемости
+        attendanceBody.appendChild(newRow);
+        
+        // Настраиваем обработчики для новых ячеек
+        newRow.querySelectorAll('.attendance-cell').forEach(setupAttendanceCell);
     }
     
     // Обработка формы сотрудников
@@ -417,6 +497,9 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         table.appendChild(newRow);
+        
+        // Обновляем таблицу посещаемости
+        updateAttendanceTable(data.student, attendanceDates);
     });
     
     // Обработка формы платежей
@@ -439,6 +522,9 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         table.prepend(newRow);
+        
+        // Обновляем итоговую сумму
+        updatePaymentSummary();
     });
     
     // Обработка удаления сотрудников
@@ -502,8 +588,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Удаляем из таблицы учеников
                         const row = document.getElementById(`student-${studentId}`);
                         if (row) row.remove();
+                        
+                        // Удаляем из таблицы посещаемости
+                        const attendanceRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                        if (attendanceRow) attendanceRow.remove();
                         
                         // Если учеников не осталось, добавляем сообщение
                         if (document.querySelectorAll('#students-table tr').length === 0) {
@@ -533,6 +624,93 @@ document.addEventListener('DOMContentLoaded', function() {
         
         toast.show();
     }
+    
+    // Функция для пересчета и отображения итоговой суммы платежей
+    function updatePaymentSummary() {
+        let total = 0;
+        const rows = document.querySelectorAll('#payments-body tr:not([style*="display: none"])');
+        
+        rows.forEach(row => {
+            const amountCell = row.querySelector('td:nth-child(2)');
+            if (amountCell) {
+                const amountValue = parseFloat(amountCell.dataset.value);
+                if (!isNaN(amountValue)) {
+                    total += amountValue;
+                }
+            }
+        });
+        
+        document.getElementById('total-amount').textContent = total.toFixed(2) + ' руб.';
+    }
+    
+    // Функция для фильтрации платежей
+function filterPayments() {
+        const studentFilter = document.getElementById('student-filter').value.toLowerCase();
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo = document.getElementById('date-to').value;
+        const commentFilter = document.getElementById('comment-filter').value.toLowerCase();
+        
+        const rows = document.querySelectorAll('#payments-body tr');
+        
+        rows.forEach(row => {
+            const studentCell = row.querySelector('td:nth-child(1)');
+            const dateCell = row.querySelector('td:nth-child(3)');
+            const commentCell = row.querySelector('td:nth-child(4)');
+            
+            const student = studentCell ? studentCell.textContent.toLowerCase() : '';
+            const dateValue = dateCell ? dateCell.dataset.value : '';
+            const comment = commentCell ? commentCell.textContent.toLowerCase() : '';
+            
+            // Проверка дат
+            let dateInRange = true;
+            if (dateFrom && dateValue < dateFrom) dateInRange = false;
+            if (dateTo && dateValue > dateTo) dateInRange = false;
+            
+            const showRow = 
+                student.includes(studentFilter) &&
+                dateInRange &&
+                comment.includes(commentFilter);
+                
+            row.style.display = showRow ? '' : 'none';
+        });
+        
+        updatePaymentSummary();
+    }
+    
+    // Обработчики событий для фильтрации платежей
+    document.getElementById('student-filter').addEventListener('input', filterPayments);
+    document.getElementById('date-from').addEventListener('input', filterPayments);
+    document.getElementById('date-to').addEventListener('input', filterPayments);
+    document.getElementById('comment-filter').addEventListener('input', filterPayments);
+    
+    // Обработчик сортировки
+    document.getElementById('sort-payments').addEventListener('change', function() {
+        const value = this.value;
+        let sortConfig = { column: 1, direction: 1 };
+        
+        switch(value) {
+            case 'student-asc': sortConfig = { column: 1, direction: 1 }; break;
+            case 'student-desc': sortConfig = { column: 1, direction: -1 }; break;
+            case 'date-asc': sortConfig = { column: 3, direction: 1 }; break;
+            case 'date-desc': sortConfig = { column: 3, direction: -1 }; break;
+        }
+        
+        sortPayments(sortConfig);
+    });
+    
+    // Обработчик сброса фильтров
+    document.getElementById('reset-payment-filters').addEventListener('click', function() {
+        document.getElementById('student-filter').value = '';
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        document.getElementById('comment-filter').value = '';
+        document.getElementById('sort-payments').value = '';
+        
+        const rows = document.querySelectorAll('#payments-body tr');
+        rows.forEach(row => row.style.display = '');
+        
+        updatePaymentSummary();
+    });
 });
 </script>
 {% endblock %}

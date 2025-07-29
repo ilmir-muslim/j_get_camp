@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.db.models import Sum
 
 from branches.models import Branch
 from core.utils import role_required
@@ -20,7 +21,6 @@ from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
 
 from .models import COLOR_CHOICES, Schedule
-
 
 @role_required(["manager", "admin"])
 def schedule_create(request):
@@ -209,6 +209,7 @@ def schedule_detail(request, pk):
 
     # Платежи
     payments = Payment.objects.filter(schedule=schedule)
+    total_payments = payments.aggregate(total=Sum('amount'))['total'] or 0
     payment_form = PaymentForm()
     payment_form.fields["student"].queryset = students
 
@@ -347,6 +348,7 @@ def schedule_detail(request, pk):
         "employees": employees,
         "students": students,
         "payments": payments,
+        "total_payments": total_payments,
         "dates": dates,
         "attendance": attendance,
         "all_employees": all_employees,
@@ -450,3 +452,28 @@ def export_schedule_students_pdf(request, pk):
     html.write_pdf(response)
 
     return response
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def schedule_list(request):
+    """
+    Отображает список всех смен с основной информацией.
+    """
+    schedules = Schedule.objects.select_related('branch').all()
+    
+    # Формируем данные для таблицы
+    schedule_data = []
+    for schedule in schedules:
+        # Находим преподавателей в смене
+        teachers = schedule.employee_set.filter(position='teacher')
+        teacher_names = ", ".join([t.full_name for t in teachers]) if teachers.exists() else "—"
+        
+        schedule_data.append({
+            'id': schedule.id,
+            'name': schedule.name,
+            'teacher': teacher_names,
+            'theme': schedule.theme,
+            'dates': f"{schedule.start_date.strftime('%d.%m.%Y')} – {schedule.end_date.strftime('%d.%m.%Y')}",
+            'branch': schedule.branch.name,
+        })
+
+    return render(request, 'schedule/schedule_list.html', {'schedule_data': schedule_data})
