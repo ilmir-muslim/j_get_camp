@@ -1,0 +1,2155 @@
+[
+{
+  "model": "core.customuser",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$260000$...",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "manager_anna",
+    "first_name": "Анна",
+    "last_name": "Иванова",
+    "email": "anna@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2023-05-10T08:00:00Z",
+    "role": "manager",
+    "branch": 1,
+    "groups": [],
+    "user_permissions": [],
+    "schedules": [
+      1,
+      3
+    ]
+  }
+},
+{
+  "model": "core.customuser",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$260000$...",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "camp_head_max",
+    "first_name": "Максим",
+    "last_name": "Петров",
+    "email": "max@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2023-04-15T08:00:00Z",
+    "role": "camp_head",
+    "branch": 2,
+    "groups": [],
+    "user_permissions": [],
+    "schedules": [
+      2
+    ]
+  }
+},
+{
+  "model": "core.customuser",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$yBgqEym6xSzi3d7YeLE7Z2$tdt5vE58kj31ShIXkdkfPkq2BePVnSY0wTJj2W5zqY4=",
+    "last_login": "2025-07-30T04:47:30.841Z",
+    "is_superuser": true,
+    "username": "root",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-07-27T12:17:13Z",
+    "role": "manager",
+    "branch": null,
+    "groups": [],
+    "user_permissions": [],
+    "schedules": []
+  }
+},
+{
+  "model": "schedule.schedule",
+  "pk": 1,
+  "fields": {
+    "name": "Летняя смена 2023",
+    "branch": 1,
+    "start_date": "2023-06-01",
+    "end_date": "2023-06-14",
+    "theme": "Космические приключения",
+    "color": "#339af0"
+  }
+},
+{
+  "model": "schedule.schedule",
+  "pk": 2,
+  "fields": {
+    "name": "Осенняя смена 2023",
+    "branch": 2,
+    "start_date": "2023-10-15",
+    "end_date": "2023-10-28",
+    "theme": "Тайны океана",
+    "color": "#20c997"
+  }
+},
+{
+  "model": "schedule.schedule",
+  "pk": 3,
+  "fields": {
+    "name": "Зимняя лаборатория",
+    "branch": 1,
+    "start_date": "2024-01-05",
+    "end_date": "2024-01-10",
+    "theme": "Научные эксперименты",
+    "color": "#ff922b"
+  }
+},
+{
+  "model": "schedule.schedule",
+  "pk": 4,
+  "fields": {
+    "name": "asdfas",
+    "branch": 1,
+    "start_date": "2025-06-30",
+    "end_date": "2025-07-26",
+    "theme": "23123",
+    "color": "#ff6b6b"
+  }
+},
+{
+  "model": "schedule.schedule",
+  "pk": 5,
+  "fields": {
+    "name": "sadfasf",
+    "branch": 2,
+    "start_date": "2025-05-01",
+    "end_date": "2025-05-31",
+    "theme": "sdeefg",
+    "color": "#ff6b6b"
+  }
+},
+{
+  "model": "employees.employee",
+  "pk": 1,
+  "fields": {
+    "full_name": "Васильева Екатерина Сергеевна",
+    "position": "teacher",
+    "branch": 1,
+    "schedule": 4,
+    "rate_per_day": "1500.00"
+  }
+},
+{
+  "model": "employees.employee",
+  "pk": 2,
+  "fields": {
+    "full_name": "Николаев Дмитрий Алексеевич",
+    "position": "camp_head",
+    "branch": 2,
+    "schedule": null,
+    "rate_per_day": "2000.00"
+  }
+},
+{
+  "model": "employees.employee",
+  "pk": 3,
+  "fields": {
+    "full_name": "Фёдорова Марина Игоревна",
+    "position": "admin",
+    "branch": 1,
+    "schedule": 4,
+    "rate_per_day": "1800.00"
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 1,
+  "fields": {
+    "employee": 1,
+    "present": true,
+    "date": "2023-06-01",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 2,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2023-06-02",
+    "comment": "Больничный"
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 3,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2023-10-15",
+    "comment": "Дополнительные часы"
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 4,
+  "fields": {
+    "employee": 1,
+    "present": true,
+    "date": "2025-07-29",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 5,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2025-07-28",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 6,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2025-07-30",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 7,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2025-07-31",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 8,
+  "fields": {
+    "employee": 1,
+    "present": true,
+    "date": "2025-08-01",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 9,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2025-08-02",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 10,
+  "fields": {
+    "employee": 1,
+    "present": false,
+    "date": "2025-08-03",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 11,
+  "fields": {
+    "employee": 3,
+    "present": true,
+    "date": "2025-07-28",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 12,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2025-07-29",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 14,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2025-07-28",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 15,
+  "fields": {
+    "employee": 3,
+    "present": true,
+    "date": "2025-07-29",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 16,
+  "fields": {
+    "employee": 3,
+    "present": true,
+    "date": "2025-07-30",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 17,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2025-07-30",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 18,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2025-07-31",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 19,
+  "fields": {
+    "employee": 3,
+    "present": true,
+    "date": "2025-07-31",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 20,
+  "fields": {
+    "employee": 3,
+    "present": false,
+    "date": "2025-08-01",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 21,
+  "fields": {
+    "employee": 2,
+    "present": true,
+    "date": "2025-08-01",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 22,
+  "fields": {
+    "employee": 2,
+    "present": false,
+    "date": "2025-08-02",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 23,
+  "fields": {
+    "employee": 3,
+    "present": false,
+    "date": "2025-08-02",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 24,
+  "fields": {
+    "employee": 3,
+    "present": false,
+    "date": "2025-08-03",
+    "comment": ""
+  }
+},
+{
+  "model": "employees.employeeattendance",
+  "pk": 25,
+  "fields": {
+    "employee": 2,
+    "present": false,
+    "date": "2025-08-03",
+    "comment": ""
+  }
+},
+{
+  "model": "students.student",
+  "pk": 2,
+  "fields": {
+    "full_name": "Козлова София Андреевна",
+    "phone": "+79266543210",
+    "parent_name": "Козлов Андрей Иванович",
+    "schedule": 4,
+    "attendance_type": "full_day",
+    "attendance_dates": [
+      "2023-10-15",
+      "2023-10-20",
+      "2023-10-25"
+    ],
+    "default_price": "11400.00",
+    "individual_price": null,
+    "price_comment": ""
+  }
+},
+{
+  "model": "students.student",
+  "pk": 4,
+  "fields": {
+    "full_name": "Петров Иван Сергеевич",
+    "phone": "+79991112233",
+    "parent_name": "Петрова Светлана Викторовна",
+    "schedule": 4,
+    "attendance_type": "camp",
+    "attendance_dates": [],
+    "default_price": "9000.00",
+    "individual_price": "8500.00",
+    "price_comment": "Скидка за друга"
+  }
+},
+{
+  "model": "students.payment",
+  "pk": 3,
+  "fields": {
+    "student": 2,
+    "schedule": 2,
+    "amount": "11400.00",
+    "date": "2023-10-10",
+    "comment": "Полная оплата"
+  }
+},
+{
+  "model": "students.payment",
+  "pk": 5,
+  "fields": {
+    "student": 2,
+    "schedule": 4,
+    "amount": "654.00",
+    "date": "2025-07-24",
+    "comment": "ждлощр"
+  }
+},
+{
+  "model": "students.payment",
+  "pk": 7,
+  "fields": {
+    "student": 2,
+    "schedule": 4,
+    "amount": "1234134.00",
+    "date": "2025-07-22",
+    "comment": "asfd"
+  }
+},
+{
+  "model": "students.payment",
+  "pk": 10,
+  "fields": {
+    "student": 2,
+    "schedule": 4,
+    "amount": "233452.00",
+    "date": "2025-07-09",
+    "comment": "sdfas"
+  }
+},
+{
+  "model": "students.payment",
+  "pk": 12,
+  "fields": {
+    "student": 2,
+    "schedule": 4,
+    "amount": "65546.00",
+    "date": "2025-07-14",
+    "comment": "щзооп"
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 3,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-15",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 9,
+  "fields": {
+    "student": 2,
+    "date": "2025-06-30",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 10,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-01",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 11,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-02",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 12,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-03",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 13,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-04",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 41,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-05",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 42,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-06",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 43,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-07",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 44,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-08",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 45,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-09",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 46,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-10",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 47,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-11",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 48,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-12",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 49,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-13",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 50,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-14",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 51,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-15",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 52,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-16",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 53,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-17",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 54,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-18",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 55,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-19",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 56,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-20",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 57,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-21",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 58,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-22",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 59,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-23",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 60,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-24",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 61,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-25",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 62,
+  "fields": {
+    "student": 2,
+    "date": "2025-07-26",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 86,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-01",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 87,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-02",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 88,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-03",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 89,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-04",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 90,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-05",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 91,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-06",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 92,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-07",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 93,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-08",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 94,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-09",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 95,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-10",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 96,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-11",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 97,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-12",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 98,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-13",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 99,
+  "fields": {
+    "student": 4,
+    "date": "2023-06-14",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 100,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-16",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 101,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-17",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 102,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-18",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 103,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-19",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 104,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-20",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 105,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-21",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 106,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-22",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 107,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-23",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 108,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-24",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 109,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-25",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 110,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-26",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 111,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-27",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 112,
+  "fields": {
+    "student": 2,
+    "date": "2023-10-28",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 113,
+  "fields": {
+    "student": 4,
+    "date": "2025-06-30",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 114,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-01",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 115,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-02",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 116,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-03",
+    "present": true
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 117,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-04",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 118,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-05",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 119,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-06",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 120,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-07",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 121,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-08",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 122,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-09",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 123,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-10",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 124,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-11",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 125,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-12",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 126,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-13",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 127,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-14",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 128,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-15",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 129,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-16",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 130,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-17",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 131,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-18",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 132,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-19",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 133,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-20",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 134,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-21",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 135,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-22",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 136,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-23",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 137,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-24",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 138,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-25",
+    "present": false
+  }
+},
+{
+  "model": "students.attendance",
+  "pk": 139,
+  "fields": {
+    "student": 4,
+    "date": "2025-07-26",
+    "present": false
+  }
+},
+{
+  "model": "branches.branch",
+  "pk": 1,
+  "fields": {
+    "name": "Центральный филиал",
+    "address": "г. Москва, ул. Пушкина, д. 10"
+  }
+},
+{
+  "model": "branches.branch",
+  "pk": 2,
+  "fields": {
+    "name": "Северный филиал",
+    "address": "г. Санкт-Петербург, Невский пр-т, д. 25"
+  }
+},
+{
+  "model": "branches.branch",
+  "pk": 3,
+  "fields": {
+    "name": "Южный филиал",
+    "address": "г. Сочи, ул. Приморская, д. 5"
+  }
+},
+{
+  "model": "leads.lead",
+  "pk": 1,
+  "fields": {
+    "status": "approved",
+    "source": "instagram",
+    "added_date": "2023-05-15",
+    "phone": "+79167778899",
+    "parent_name": "Кузнецов Сергей Владимирович",
+    "interest": "Летний лагерь для ребенка 10 лет",
+    "comment": "Интересует смена в июле",
+    "callback_date": "2023-05-16T14:00:00Z"
+  }
+},
+{
+  "model": "leads.lead",
+  "pk": 2,
+  "fields": {
+    "status": "no_answer",
+    "source": "website",
+    "added_date": "2023-05-20",
+    "phone": "+79035554466",
+    "parent_name": "Михайлова Анна Дмитриевна",
+    "interest": "Лаборатория программирования",
+    "comment": "Оставила заявку на сайте",
+    "callback_date": "2023-05-21T11:00:00Z"
+  }
+},
+{
+  "model": "leads.lead",
+  "pk": 3,
+  "fields": {
+    "status": "rejected",
+    "source": "telegram",
+    "added_date": "2023-05-25",
+    "phone": "+79261112233",
+    "parent_name": "Соколов Павел Игоревич",
+    "interest": "Полный день на осень",
+    "comment": "Не подходит возраст ребенка",
+    "callback_date": null
+  }
+},
+{
+  "model": "payroll.expense",
+  "pk": 1,
+  "fields": {
+    "schedule": 1,
+    "category": "food",
+    "comment": "Обеды на 14 дней",
+    "amount": "35000.00"
+  }
+},
+{
+  "model": "payroll.expense",
+  "pk": 2,
+  "fields": {
+    "schedule": 1,
+    "category": "materials",
+    "comment": "Канцтовары для мастер-классов",
+    "amount": "12000.00"
+  }
+},
+{
+  "model": "payroll.expense",
+  "pk": 3,
+  "fields": {
+    "schedule": 2,
+    "category": "transport",
+    "comment": "Экскурсионный автобус",
+    "amount": "8000.00"
+  }
+},
+{
+  "model": "payroll.salary",
+  "pk": 1,
+  "fields": {
+    "employee": 1,
+    "schedule": 1,
+    "payment_type": "fixed",
+    "days_worked": 10,
+    "daily_rate": "1500.00",
+    "percent_rate": "0.00",
+    "total_payment": "15000.00",
+    "is_paid": true
+  }
+},
+{
+  "model": "payroll.salary",
+  "pk": 2,
+  "fields": {
+    "employee": 2,
+    "schedule": 2,
+    "payment_type": "combined",
+    "days_worked": 12,
+    "daily_rate": "1500.00",
+    "percent_rate": "5.00",
+    "total_payment": "23000.00",
+    "is_paid": false
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 1,
+  "fields": {
+    "action_time": "2025-07-27T12:56:28.958Z",
+    "user": 3,
+    "content_type": 1,
+    "object_id": "3",
+    "object_repr": "root (Менеджер)",
+    "action_flag": 2,
+    "change_message": "[{\"changed\": {\"fields\": [\"\\u0420\\u043e\\u043b\\u044c\"]}}]"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 1,
+  "fields": {
+    "name": "Can add Пользователь",
+    "content_type": 1,
+    "codename": "add_customuser"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 2,
+  "fields": {
+    "name": "Can change Пользователь",
+    "content_type": 1,
+    "codename": "change_customuser"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 3,
+  "fields": {
+    "name": "Can delete Пользователь",
+    "content_type": 1,
+    "codename": "delete_customuser"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 4,
+  "fields": {
+    "name": "Can view Пользователь",
+    "content_type": 1,
+    "codename": "view_customuser"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 5,
+  "fields": {
+    "name": "Can add Смена",
+    "content_type": 2,
+    "codename": "add_schedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 6,
+  "fields": {
+    "name": "Can change Смена",
+    "content_type": 2,
+    "codename": "change_schedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 7,
+  "fields": {
+    "name": "Can delete Смена",
+    "content_type": 2,
+    "codename": "delete_schedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 8,
+  "fields": {
+    "name": "Can view Смена",
+    "content_type": 2,
+    "codename": "view_schedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 9,
+  "fields": {
+    "name": "Can add Сотрудник",
+    "content_type": 3,
+    "codename": "add_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 10,
+  "fields": {
+    "name": "Can change Сотрудник",
+    "content_type": 3,
+    "codename": "change_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 11,
+  "fields": {
+    "name": "Can delete Сотрудник",
+    "content_type": 3,
+    "codename": "delete_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 12,
+  "fields": {
+    "name": "Can view Сотрудник",
+    "content_type": 3,
+    "codename": "view_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 13,
+  "fields": {
+    "name": "Can add Посещение сотрудника",
+    "content_type": 4,
+    "codename": "add_employeeattendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 14,
+  "fields": {
+    "name": "Can change Посещение сотрудника",
+    "content_type": 4,
+    "codename": "change_employeeattendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 15,
+  "fields": {
+    "name": "Can delete Посещение сотрудника",
+    "content_type": 4,
+    "codename": "delete_employeeattendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 16,
+  "fields": {
+    "name": "Can view Посещение сотрудника",
+    "content_type": 4,
+    "codename": "view_employeeattendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 17,
+  "fields": {
+    "name": "Can add Ученик",
+    "content_type": 5,
+    "codename": "add_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 18,
+  "fields": {
+    "name": "Can change Ученик",
+    "content_type": 5,
+    "codename": "change_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 19,
+  "fields": {
+    "name": "Can delete Ученик",
+    "content_type": 5,
+    "codename": "delete_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 20,
+  "fields": {
+    "name": "Can view Ученик",
+    "content_type": 5,
+    "codename": "view_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 21,
+  "fields": {
+    "name": "Can add Платеж",
+    "content_type": 6,
+    "codename": "add_payment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 22,
+  "fields": {
+    "name": "Can change Платеж",
+    "content_type": 6,
+    "codename": "change_payment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 23,
+  "fields": {
+    "name": "Can delete Платеж",
+    "content_type": 6,
+    "codename": "delete_payment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 24,
+  "fields": {
+    "name": "Can view Платеж",
+    "content_type": 6,
+    "codename": "view_payment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 25,
+  "fields": {
+    "name": "Can add Посещение",
+    "content_type": 7,
+    "codename": "add_attendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 26,
+  "fields": {
+    "name": "Can change Посещение",
+    "content_type": 7,
+    "codename": "change_attendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 27,
+  "fields": {
+    "name": "Can delete Посещение",
+    "content_type": 7,
+    "codename": "delete_attendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 28,
+  "fields": {
+    "name": "Can view Посещение",
+    "content_type": 7,
+    "codename": "view_attendance"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 29,
+  "fields": {
+    "name": "Can add Филиал",
+    "content_type": 8,
+    "codename": "add_branch"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 30,
+  "fields": {
+    "name": "Can change Филиал",
+    "content_type": 8,
+    "codename": "change_branch"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 31,
+  "fields": {
+    "name": "Can delete Филиал",
+    "content_type": 8,
+    "codename": "delete_branch"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 32,
+  "fields": {
+    "name": "Can view Филиал",
+    "content_type": 8,
+    "codename": "view_branch"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 33,
+  "fields": {
+    "name": "Can add Лид",
+    "content_type": 9,
+    "codename": "add_lead"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 34,
+  "fields": {
+    "name": "Can change Лид",
+    "content_type": 9,
+    "codename": "change_lead"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 35,
+  "fields": {
+    "name": "Can delete Лид",
+    "content_type": 9,
+    "codename": "delete_lead"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 36,
+  "fields": {
+    "name": "Can view Лид",
+    "content_type": 9,
+    "codename": "view_lead"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 37,
+  "fields": {
+    "name": "Can add expense",
+    "content_type": 10,
+    "codename": "add_expense"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 38,
+  "fields": {
+    "name": "Can change expense",
+    "content_type": 10,
+    "codename": "change_expense"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 39,
+  "fields": {
+    "name": "Can delete expense",
+    "content_type": 10,
+    "codename": "delete_expense"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 40,
+  "fields": {
+    "name": "Can view expense",
+    "content_type": 10,
+    "codename": "view_expense"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 41,
+  "fields": {
+    "name": "Can add Зарплата сотрудника",
+    "content_type": 11,
+    "codename": "add_salary"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 42,
+  "fields": {
+    "name": "Can change Зарплата сотрудника",
+    "content_type": 11,
+    "codename": "change_salary"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 43,
+  "fields": {
+    "name": "Can delete Зарплата сотрудника",
+    "content_type": 11,
+    "codename": "delete_salary"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 44,
+  "fields": {
+    "name": "Can view Зарплата сотрудника",
+    "content_type": 11,
+    "codename": "view_salary"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 45,
+  "fields": {
+    "name": "Can add Регламент",
+    "content_type": 12,
+    "codename": "add_regulation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 46,
+  "fields": {
+    "name": "Can change Регламент",
+    "content_type": 12,
+    "codename": "change_regulation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 47,
+  "fields": {
+    "name": "Can delete Регламент",
+    "content_type": 12,
+    "codename": "delete_regulation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 48,
+  "fields": {
+    "name": "Can view Регламент",
+    "content_type": 12,
+    "codename": "view_regulation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 49,
+  "fields": {
+    "name": "Can add log entry",
+    "content_type": 13,
+    "codename": "add_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 50,
+  "fields": {
+    "name": "Can change log entry",
+    "content_type": 13,
+    "codename": "change_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 51,
+  "fields": {
+    "name": "Can delete log entry",
+    "content_type": 13,
+    "codename": "delete_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 52,
+  "fields": {
+    "name": "Can view log entry",
+    "content_type": 13,
+    "codename": "view_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 53,
+  "fields": {
+    "name": "Can add permission",
+    "content_type": 14,
+    "codename": "add_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 54,
+  "fields": {
+    "name": "Can change permission",
+    "content_type": 14,
+    "codename": "change_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 55,
+  "fields": {
+    "name": "Can delete permission",
+    "content_type": 14,
+    "codename": "delete_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 56,
+  "fields": {
+    "name": "Can view permission",
+    "content_type": 14,
+    "codename": "view_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 57,
+  "fields": {
+    "name": "Can add group",
+    "content_type": 15,
+    "codename": "add_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 58,
+  "fields": {
+    "name": "Can change group",
+    "content_type": 15,
+    "codename": "change_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 59,
+  "fields": {
+    "name": "Can delete group",
+    "content_type": 15,
+    "codename": "delete_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 60,
+  "fields": {
+    "name": "Can view group",
+    "content_type": 15,
+    "codename": "view_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 61,
+  "fields": {
+    "name": "Can add content type",
+    "content_type": 16,
+    "codename": "add_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 62,
+  "fields": {
+    "name": "Can change content type",
+    "content_type": 16,
+    "codename": "change_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 63,
+  "fields": {
+    "name": "Can delete content type",
+    "content_type": 16,
+    "codename": "delete_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 64,
+  "fields": {
+    "name": "Can view content type",
+    "content_type": 16,
+    "codename": "view_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 65,
+  "fields": {
+    "name": "Can add session",
+    "content_type": 17,
+    "codename": "add_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 66,
+  "fields": {
+    "name": "Can change session",
+    "content_type": 17,
+    "codename": "change_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 67,
+  "fields": {
+    "name": "Can delete session",
+    "content_type": 17,
+    "codename": "delete_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 68,
+  "fields": {
+    "name": "Can view session",
+    "content_type": 17,
+    "codename": "view_session"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 1,
+  "fields": {
+    "app_label": "core",
+    "model": "customuser"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 2,
+  "fields": {
+    "app_label": "schedule",
+    "model": "schedule"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 3,
+  "fields": {
+    "app_label": "employees",
+    "model": "employee"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 4,
+  "fields": {
+    "app_label": "employees",
+    "model": "employeeattendance"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 5,
+  "fields": {
+    "app_label": "students",
+    "model": "student"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 6,
+  "fields": {
+    "app_label": "students",
+    "model": "payment"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 7,
+  "fields": {
+    "app_label": "students",
+    "model": "attendance"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 8,
+  "fields": {
+    "app_label": "branches",
+    "model": "branch"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 9,
+  "fields": {
+    "app_label": "leads",
+    "model": "lead"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 10,
+  "fields": {
+    "app_label": "payroll",
+    "model": "expense"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 11,
+  "fields": {
+    "app_label": "payroll",
+    "model": "salary"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 12,
+  "fields": {
+    "app_label": "education",
+    "model": "regulation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 13,
+  "fields": {
+    "app_label": "admin",
+    "model": "logentry"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 14,
+  "fields": {
+    "app_label": "auth",
+    "model": "permission"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 15,
+  "fields": {
+    "app_label": "auth",
+    "model": "group"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 16,
+  "fields": {
+    "app_label": "contenttypes",
+    "model": "contenttype"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 17,
+  "fields": {
+    "app_label": "sessions",
+    "model": "session"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3ts0o0okhgq12ndlt63qloyv5x6xz85j",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4aAK68evfsNZIFFqgaS0p6M_26a9KDXmcm8IdC21rANXsKcYQKE0y-LlJ7cdpEf1O5dpN7WZY5iT8Rhh7j1zK_r0f4NKo0KEziUbFXJ7AslE4shg06j0RSdksRWJW299y4zGqV9JKcuRUdMzJrkGT5f70w4FA:1ugyiw:u0-984zr2IsQ7qo7_m4V0ZWPCqq3iU3Yrmmj-UD8uio",
+    "expire_date": "2025-08-13T04:47:30.866Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "9pwm1jhxwccf3t83m90d3rd28mdpgm1s",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4aAK68evfsNZIFFqgaS0p6M_26a9KDXmcm8IdC21rANXsKcYQKE0y-LlJ7cdpEf1O5dpN7WZY5iT8Rhh7j1zK_r0f4NKo0KEziUbFXJ7AslE4shg06j0RSdksRWJW299y4zGqV9JKcuRUdMzJrkGT5f70w4FA:1ugdJ9:oxB6fwlUUUpu4Y74YvBZcXuywuer1ZS01zSyv42ejqk",
+    "expire_date": "2025-08-12T05:55:27.332Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "c326ssn7ygb64eegioj8ixtbgr29ww1s",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4aAK68evfsNZIFFqgaS0p6M_26a9KDXmcm8IdC21rANXsKcYQKE0y-LlJ7cdpEf1O5dpN7WZY5iT8Rhh7j1zK_r0f4NKo0KEziUbFXJ7AslE4shg06j0RSdksRWJW299y4zGqV9JKcuRUdMzJrkGT5f70w4FA:1ug0v9:j5QxvRsm5FxIWLngDq_OUmoJWz2DfU8xB6vK1fF-5yc",
+    "expire_date": "2025-08-10T12:56:07.059Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "hk1ugpi677xtja3ikqejturoa34i6t5k",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4aAK68evfsNZIFFqgaS0p6M_26a9KDXmcm8IdC21rANXsKcYQKE0y-LlJ7cdpEf1O5dpN7WZY5iT8Rhh7j1zK_r0f4NKo0KEziUbFXJ7AslE4shg06j0RSdksRWJW299y4zGqV9JKcuRUdMzJrkGT5f70w4FA:1ugH4P:tNdNNqcZ6SAVlTSpK2m6-92bbehIu9KPq5EDF_mVo78",
+    "expire_date": "2025-08-11T06:10:45.893Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "y5v9i5e8r8zwxg28prukn0i39hujre9y",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4aAK68evfsNZIFFqgaS0p6M_26a9KDXmcm8IdC21rANXsKcYQKE0y-LlJ7cdpEf1O5dpN7WZY5iT8Rhh7j1zK_r0f4NKo0KEziUbFXJ7AslE4shg06j0RSdksRWJW299y4zGqV9JKcuRUdMzJrkGT5f70w4FA:1ugFo7:O9qAtxmw1p_Pwklg8UFSDyFEGgRNsI4FG6dDJPxmeeM",
+    "expire_date": "2025-08-11T04:49:51.431Z"
+  }
+}
+]
