@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Отдаём статику и медиа напрямую
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^(static/.*)$ - [L]
+    RewriteRule ^(media/.*)$ - [L]
+
+    # Всё остальное отдаём Django через Passenger
+    RewriteRule ^(.*)$ passenger_wsgi.py [QSA,L]
+</IfModule>
+
+
+
