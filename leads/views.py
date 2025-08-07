@@ -53,5 +53,3 @@ def lead_delete(request, pk):
         return redirect('lead_list')
 
     return render(request, 'leads/lead_confirm_delete.html', {'lead': lead})
-
-

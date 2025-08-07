@@ -14,5 +14,7 @@ urlpatterns += [
     path('attendances/edit/<int:pk>/', views.employee_attendance_edit, name='employee_attendance_edit'),
     path('attendances/delete/<int:pk>/', views.employee_attendance_delete, name='employee_attendance_delete'),
     path('attendances/toggle/', views.toggle_employee_attendance, name='toggle_employee_attendance'),
+    path('<int:pk>/quick_edit/', views.employee_quick_edit, name='employee_quick_edit'),
+    path('create/ajax/', views.employee_create_ajax, name='employee_create_ajax'),
 ]
 

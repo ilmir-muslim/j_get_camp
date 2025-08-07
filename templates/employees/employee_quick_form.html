@@ -1,0 +1,18 @@
+<div class="modal-header">
+  <h5 class="modal-title">Редактирование сотрудника</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <form id="employee-quick-edit-form" method="post" action="{% url 'employee_quick_edit' employee.id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="d-flex justify-content-between">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <button type="button" class="btn btn-danger" 
+              id="delete-employee-btn" 
+              data-employee-id="{{ employee.id }}">
+        Удалить
+      </button>
+    </div>
+  </form>
+</div>

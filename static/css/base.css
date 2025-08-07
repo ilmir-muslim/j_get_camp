@@ -1,0 +1,57 @@
+/* Общие стили для всего сайта */
+body {
+  font-family: 'DejaVu Sans', sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.page-title {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #339af0;
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  padding: 15px;
+  z-index: 1050;
+}
+
+/* Стили для навигации */
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+
+.navbar-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.navbar.bg-dark {
+  background-color: #2b5885 !important;
+  border-bottom: 2px solid #339af0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.4rem;
+  color: #eef0f2 !important;
+  text-shadow: 0 1px 2px rgba(49, 53, 86, 0.3);
+}
+
+.navbar-buttons .btn {
+  border-radius: 10px;
+  font-weight: 500;
+}

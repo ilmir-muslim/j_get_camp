@@ -25,7 +25,7 @@ class Student(models.Model):
         default=list, blank=True, verbose_name="Даты посещений"
     )
     default_price = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0, verbose_name="Цена по умолчанию"
+        max_digits=10, decimal_places=2, default=15000, verbose_name="Базовая цена"
     )
     individual_price = models.DecimalField(
         max_digits=10,
@@ -76,7 +76,8 @@ class Payment(models.Model):
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date = models.DateField()
-    present = models.BooleanField(default=False)
+    present = models.BooleanField(default=False, verbose_name="Присутствовал")
+    excused = models.BooleanField(default=False, verbose_name="По уважительной причине")
 
     class Meta:
         unique_together = ("student", "date")
@@ -84,4 +85,10 @@ class Attendance(models.Model):
         verbose_name_plural = "Посещения"
 
     def __str__(self):
-        return f"{self.student} - {self.date} - {'Присутствовал' if self.present else 'Отсутствовал'}"
+        if self.present:
+            status = "Присутствовал"
+        elif self.excused:
+            status = "По уважительной причине"
+        else:
+            status = "Отсутствовал"
+        return f"{self.student} - {self.date} - {status}"

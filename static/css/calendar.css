@@ -1,0 +1,156 @@
+/* Календарь и расписание */
+.calendar-table td {
+  padding: 0;
+  border: 1px solid #dee2e6;
+  vertical-align: top;
+  height: 120px;
+  position: relative;
+  background-color: #e7f5ff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.calendar-table td:hover {
+  background-color: #d0ebff;
+  transform: translateY(-3px);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.branch-name {
+  background: #e7f5ff;
+  font-weight: bold;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: 200px;
+  border-right: 2px solid #dee2e6;
+  cursor: default;
+  text-align: center;
+  vertical-align: middle !important;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.schedule-card {
+  border-left: 4px solid #339af0;
+  padding: 8px;
+  margin: 4px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: calc(100% - 8px);
+}
+
+.schedule-card:hover {
+  transform: translateX(3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f1f3f5;
+}
+
+.schedule-card h6 {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.schedule-dates {
+  font-size: 0.8em;
+  color: #495057;
+  display: block;
+}
+
+.empty-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6c757d;
+  text-align: center;
+  padding: 10px;
+  font-style: italic;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.empty-cell:hover {
+  background-color: #d0ebff;
+  color: #228be6;
+}
+
+.calendar-table th {
+  min-width: 150px;
+  text-align: center;
+  background-color: #339af0 !important; ;
+  color: white;
+  vertical-align: middle;
+  padding: 15px;
+  font-weight: 600;
+  border: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.calendar-container {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-top: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+.month-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.month-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.calendar-cell {
+  cursor: pointer;
+  position: relative;
+}
+
+.calendar-cell:hover {
+  background-color: #d0ebff !important;
+  box-shadow: inset 0 0 0 2px #228be6;
+}
+
+.branch-header {
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background-color: #339af0;
+  color: white;
+  min-width: 200px;
+  text-align: center;
+  vertical-align: middle !important;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 15px 20px;
+  border: none;
+}
+
+.date-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 150px;
+  vertical-align: middle;
+}

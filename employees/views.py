@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 import json
 
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.http import JsonResponse
 from employees.forms import EmployeeAttendanceForm, EmployeeForm
 from core.utils import role_required
 from .models import Employee, EmployeeAttendance
-
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def employee_list(request):
@@ -64,14 +64,14 @@ def employee_edit(request, pk):
 
 @role_required(['manager', 'admin'])
 def employee_delete(request, pk):
-    """
-    Представление для удаления сотрудника.
-    Доступно только менеджеру и администратору.
-    """
     employee = get_object_or_404(Employee, pk=pk)
 
     if request.method == 'POST':
         employee.delete()
+        
+        # Возвращаем JSON-ответ для AJAX
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         return redirect('employee_list')
 
     return render(request, 'employees/employee_confirm_delete.html', {'employee': employee})
@@ -215,3 +215,55 @@ def toggle_employee_attendance(request):
             }, status=400)
     
     return JsonResponse({'status': 'error'}, status=400)
+
+def employee_quick_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST, instance=employee)
+        if form.is_valid():
+            employee = form.save()
+            return JsonResponse({
+                'success': True,
+                'employee': {
+                    'id': employee.id,
+                    'full_name': employee.full_name,
+                    'position_display': employee.get_position_display(),
+                    'rate_per_day': employee.rate_per_day,
+                }
+            })
+        return JsonResponse({'success': False, 'errors': form.errors})
+
+    # GET-запрос — отрисовать форму
+    form = EmployeeForm(instance=employee)
+    return render(request, 'employees/employee_quick_form.html', {
+        'form': form,
+        'employee': employee
+    })
+
+@require_POST
+@role_required(['manager', 'admin'])
+def employee_create_ajax(request):
+    try:
+        data = json.loads(request.body)
+        form = EmployeeForm(data)
+        if form.is_valid():
+            employee = form.save()
+            return JsonResponse({
+                'success': True,
+                'employee': {
+                    'id': employee.id,
+                    'full_name': employee.full_name,
+                    'position': employee.position,
+                    'position_display': employee.get_position_display()
+                }
+            })
+        return JsonResponse({
+            'success': False,
+            'error': form.errors.as_json()
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)

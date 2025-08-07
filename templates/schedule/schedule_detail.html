@@ -1,24 +1,37 @@
 {% extends 'base.html' %}
-{% load custom_tags %} 
+{% load custom_tags %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/schedule_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/attendance_table.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Кнопка Назад -->
-    <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
-        &larr; Назад к календарю
-    </a>
-    
-    <h1>{{ schedule.name }}</h1>
-    <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
-    <p><strong>Тематика:</strong> {{ schedule.theme }}</p>
-    
+    <div class="container page-container">
+        <!-- Кнопка Назад -->
+        <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
+            &larr; Назад к календарю
+        </a>
+        
+        <h1>{{ schedule.name }}</h1>
+        <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
+        <p><strong>Тематика:</strong> {{ schedule.theme }}</p>
+        <!-- Универсальное модальное окно для форм -->
+    <div class="modal fade" id="universalFormModal" tabindex="-1" aria-labelledby="universalFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="universalFormModalContent">
+        <!-- Сюда будет загружаться контент -->
+        </div>
+    </div>
+    </div>
     <!-- Сотрудники группы - на всю ширину -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
             <h3>Сотрудники группы</h3>
         </div>
         <div class="card-body">
-            <form method="post" class="mb-4" id="employee-form">
+            <form method="post" class="mb-4" id="employee-form" action="{% url 'schedule_detail' pk=schedule.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_employee">
                 <div class="row g-3 align-items-end">
@@ -26,13 +39,16 @@
                         <label class="form-label">Добавить сотрудника</label>
                         <select name="employee" class="form-select" required>
                             <option value="">Выберите сотрудника</option>
-                            {% for emp in all_employees %}
+                            {% for emp in available_employees %}
                                 <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.get_position_display }})</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 d-flex align-items-end gap-2">
                         <button type="submit" class="btn btn-success">Добавить</button>
+                            <button type="button" class="btn btn-primary mt-2" id="create-employee-btn">
+                                Создать
+                            </button>
                     </div>
                 </div>
             </form>
@@ -56,6 +72,7 @@
                             <td>
                                 <button class="btn btn-sm btn-danger remove-employee" 
                                         data-employee-id="{{ employee.id }}"
+                                        data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
                                         data-schedule-id="{{ schedule.id }}">
                                     Удалить
                                 </button>
@@ -72,116 +89,124 @@
         </div>
     </div>
     
-    <!-- Ученики группы - на всю ширину -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h3>Ученики группы</h3>
-        </div>
-        <div class="card-body">
-            <form method="post" class="mb-4" id="student-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_student">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-8">
-                        <label class="form-label">Добавить ученика</label>
-                        <select name="student" class="form-select" required>
-                            <option value="">Выберите ученика</option>
-                            {% for student in all_students %}
-                                <option value="{{ student.id }}">{{ student.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-success">Добавить</button>
-                    </div>
-                </div>
-            </form>
-            
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ФИО</th>
-                            <th>Посещения</th>
-                            <th>Тип</th>
-                            <th>Цена</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody id="students-table">
-                        {% for student in students %}
-                        <tr id="student-{{ student.id }}">
-                            <td>{{ student.full_name }}</td>
-                            <td>
-                                <span class="badge bg-info">{{ student.attendance_set.count }} дней</span>
-                            </td>
-                            <td>{{ student.get_attendance_type_display }}</td>
-                            <td>
-                                {{ student.individual_price|default:student.default_price }} руб.
-                                {% if student.price_comment %}
-                                    <br><small>{{ student.price_comment }}</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-danger remove-student" 
-                                        data-student-id="{{ student.id }}"
-                                        data-schedule-id="{{ schedule.id }}">
-                                    Удалить
-                                </button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center">Нет учеников</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="mt-3 d-flex justify-content-end">
-                <a href="{% url 'export_schedule_students_excel' schedule.id %}" class="btn btn-success me-2">
-                    Выгрузить в Excel
-                </a>
-                <a href="{% url 'export_schedule_students_pdf' schedule.id %}" class="btn btn-danger">
-                    Выгрузить в PDF
-                </a>
-            </div>
-        </div>
-    </div>
-    
     <!-- Таблица посещаемости -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
-            <h3>Посещаемость</h3>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3>Посещаемость</h3>
+                <div>
+                    <button id="reset-attendance-filters" class="btn btn-light btn-action">
+                        <i class="bi bi-arrow-clockwise"></i> Сбросить фильтры
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="card-body">
+            <!-- Форма добавления ученика -->
+            <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_student">
+                <div class="student-addition-form">
+                    <div class="row g-3 align-items-    end">
+                        <div class="col-md-8">
+                            <label class="form-label">Добавить ученика</label>
+                            <div class="flex-wrap-container">
+                                <div class="select-wrapper">
+                                    <select name="student" class="form-select" required id="student-select">
+                                        <option value="">Выберите ученика</option>
+                                        {% for student in available_students %}
+                                            <option value="{{ student.id }}">{{ student.full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success btn-action">
+                                    Добавить
+                                </button>
+                                <button type="button" class="btn btn-primary btn-action" id="create-student-btn">
+                                    Создать
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+        <!-- Фильтры -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Фильтр по ученику</label>
+                    <input type="text" id="attendance-student-filter" class="form-control" placeholder="ФИО ученика">
+                </div>
+                                
+                <div class="filter-group">
+                    <label>Тип</label>
+                    <select id="attendance-type-filter" class="form-select">
+                        <option value="">Все типы</option>
+                        <option value="camp">Лагерь</option>
+                        <option value="lab">Лаборатория</option>
+                        <option value="full_day">Полный день</option>
+                    </select>
+                </div>          
+
+                <div class="filter-group">
+                    <label>Сортировка</label>
+                    <select id="attendance-sort" class="form-select">
+                        <option value="">Сортировать по...</option>
+                        <option value="name-asc">Имя (А-Я)</option>
+                        <option value="name-desc">Имя (Я-А)</option>
+                        <option value="visits-asc">Посещения (↑)</option>
+                        <option value="visits-desc">Посещения (↓)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+            
             <div class="table-responsive">
                 <table class="table table-bordered attendance-table">
                     <thead>
                         <tr>
-                            <th class="student-column">Ученик</th>
+                            <th>№</th>
+                            <th>Стоимость</th>
+                            <th>Платежи</th>
+                            <th>Тип</th>
+                            <th>ФИО</th>
+                            <th>Посещения</th>
                             {% for date in dates %}
-                                <th class="text-center">
-                                    <div class="date-header">
-                                        {{ date|date:"d.m" }}
-                                    </div>
+                                <th class="text-center date-cell" data-date="{{ date|date:'Y-m-d' }}">
+                                    {{ date|date:"d.m" }}<br>
+                                    <small>{{ date|date:"D" }}</small>
                                 </th>
                             {% endfor %}
+                            <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody id="attendance-body">
                         {% for student in students %}
-                            <tr data-student-id="{{ student.id }}">
+                            <tr data-student-id="{{ student.id }}" data-visits="{{ student_attendance_counts|get_item:student.id }}"
+                            data-attendance-type="{{ student.attendance_type }}">
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ student.individual_price|default:student.default_price }}</td>
+                                <td>{{ student_total_payments|get_item:student.id }}</td>
+                                <td>{{ student.get_attendance_type_display }}</td>
                                 <td class="student-column">{{ student.full_name }}</td>
+                                <td class="text-center">{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}
                                     {% with key=student.id|stringformat:"s"|add:"_"|add:date.isoformat %}
-                                        <td>
-                                            <div class="attendance-cell text-center {% if attendance|get_item:key %}bg-success{% else %}bg-danger{% endif %}" 
+                                        <td class="date-cell" data-date="{{ date|date:'Y-m-d' }}">
+                                            <div class="attendance-cell text-center 
+                                                {% if attendance|get_item:key == 'present' %}bg-success
+                                                {% elif attendance|get_item:key == 'excused' %}bg-warning
+                                                {% else %}bg-danger
+                                                {% endif %}" 
                                                 data-student-id="{{ student.id }}"
-                                                data-date="{{ date|date:'Y-m-d' }}">
-                                                {% if attendance|get_item:key %}
+                                                data-date="{{ date|date:'Y-m-d' }}"
+                                                data-attendance-type="{% if attendance|get_item:key == 'present' %}present{% elif attendance|get_item:key == 'excused' %}excused{% else %}absent{% endif %}">
+                                                {% if attendance|get_item:key == 'present' %}
                                                     <i class="bi bi-check-lg text-white"></i>
+                                                {% elif attendance|get_item:key == 'excused' %}
+                                                    <i class="bi bi-exclamation-lg text-white"></i>
                                                 {% else %}
                                                     <i class="bi bi-x-lg text-white"></i>
                                                 {% endif %}
@@ -189,6 +214,14 @@
                                         </td>
                                     {% endwith %}
                                 {% endfor %}
+                                <td>
+                                    <button class="btn btn-sm btn-danger remove-student-attendance" 
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.full_name }}"
+                                            data-schedule-id="{{ schedule.id }}">
+                                        Удалить
+                                    </button>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -196,521 +229,101 @@
             </div>
         </div>
     </div>
-    
-    <!-- Платежи -->
-    <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <div class="d-flex justify-content-between align-items-center">
-            <h3>Платежи</h3>
-            <div>
-                <button id="reset-payment-filters" class="btn btn-sm btn-light">
-                    <i class="bi bi-arrow-clockwise"></i> Сбросить фильтры
-                </button>
+</div>
+
+<!-- Модальное окно для создания ученика -->
+<div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createStudentModalLabel">Создать нового ученика</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-    </div>
-    <div class="card-body">
-            <form method="post" class="mb-4" id="payment-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_payment">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Ученик</label>
-                        {{ payment_form.student }}
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Сумма</label>
-                        {{ payment_form.amount }}
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Дата</label>
-                        <div class="d-flex align-items-center">
-                            {{ payment_form.date }}
+                <div class="modal-body">
+                    <form id="create-student-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Комментарий</label>
-                        {{ payment_form.comment }}
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100">Добавить платеж</button>
-                    </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="parent_name" class="form-label">Родитель</label>
+                            <input type="text" class="form-control" id="parent_name" name="parent_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_price" class="form-label">Базовая цена</label>
+                            <input type="number" class="form-control" id="default_price" name="default_price" value="15000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="attendance_type" class="form-label">Тип посещения *</label>
+                            <select class="form-select" id="attendance_type" name="attendance_type" required>
+                                <option value="camp">Лагерь</option>
+                                <option value="lab">Лаборатория</option>
+                                <option value="full_day" selected>Полный день</option>
+                            </select>
+                        </div>
+                    </form>
                 </div>
-            </form>
 
-            <!-- Фильтры -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <input type="text" id="student-filter" class="form-control" placeholder="Фильтр по ученику">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" id="date-from" class="form-control" placeholder="Дата от">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" id="date-to" class="form-control" placeholder="Дата до">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" id="comment-filter" class="form-control" placeholder="Фильтр по комментарию">
-                </div>
-                <div class="col-md-2">
-                    <select id="sort-payments" class="form-select">
-                        <option value="">Сортировать по...</option>
-                        <option value="student-asc">Ученик (А-Я)</option>
-                        <option value="student-desc">Ученик (Я-А)</option>
-                        <option value="date-asc">Дата (старые)</option>
-                        <option value="date-desc">Дата (новые)</option>
-                    </select>
-                </div>
-            </div>
-                        
-            <div class="table-responsive">
-                <table class="table table-striped" id="payments-table">
-                    <thead>
-                        <tr>
-                            <th>Ученик</th>
-                            <th>Сумма</th>
-                            <th>Дата</th>
-                            <th>Комментарий</th>
-                        </tr>
-                    </thead>
-                    <tbody id="payments-body">
-                        {% for payment in payments %}
-                        <tr>
-                            <td>{{ payment.student.full_name }}</td>
-                            <td data-value="{{ payment.amount }}">{{ payment.amount }} руб.</td>
-                            <td data-value="{{ payment.date|date:'Y-m-d' }}">{{ payment.date }}</td>
-                            <td>{{ payment.comment }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет платежей</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <!-- Строка с итогами -->
-                    <tfoot class="table-group-divider">
-                        <tr>
-                            <th>Итого:</th>
-                            <th id="total-amount">{{ total_payments }} руб.</th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-student-btn">Сохранить</button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto">Уведомление</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+<div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-employee-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="employee_full_name" class="form-label">ФИО *</label>
+                        <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="position" class="form-label">Должность *</label>
+                        <select class="form-select" id="position" name="position" required>
+                            <option value="teacher">Преподаватель</option>
+                            <option value="assistant">Ассистент</option>
+                            <option value="camp_head">Начальник лагеря</option>
+                            <option value="lab_head">Начальник лаборатории</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rate_per_day" class="form-label">Ставка за день</label>
+                        <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
+            </div>
         </div>
-        <div class="toast-body"></div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-// Преобразуем даты в формат, понятный JavaScript
-const attendanceDates = [
-    {% for date in dates %}
-        "{{ date|date:'Y-m-d' }}",
-    {% endfor %}
-];
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Функция для настройки обработчика ячейки посещаемости
-    function setupAttendanceCell(cell) {
-        cell.addEventListener('click', function() {
-            const studentId = this.dataset.studentId;
-            const date = this.dataset.date;
-            const cellElement = this;
-            
-            // Отправка AJAX запроса
-            fetch("{% url 'schedule_detail' schedule.id %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    action: 'toggle_attendance',
-                    student_id: studentId,
-                    date: date
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Обновление визуального состояния
-                    if (data.present) {
-                        cellElement.classList.remove('bg-danger');
-                        cellElement.classList.add('bg-success');
-                        cellElement.innerHTML = '<i class="bi bi-check-lg text-white"></i>';
-                    } else {
-                        cellElement.classList.remove('bg-success');
-                        cellElement.classList.add('bg-danger');
-                        cellElement.innerHTML = '<i class="bi bi-x-lg text-white"></i>';
-                    }
-                    
-                    // Обновление счетчика посещений
-                    const row = cellElement.closest('tr');
-                    const badge = row.querySelector('.badge.bg-info');
-                    if (badge) {
-                        const currentCount = parseInt(badge.textContent);
-                        badge.textContent = data.present ? 
-                            (currentCount + 1) + ' дней' : 
-                            Math.max(0, currentCount - 1) + ' дней';
-                    }
-                }
-            });
-        });
-    }
-    
-    // Инициализация всех ячеек посещаемости
-    document.querySelectorAll('.attendance-cell').forEach(setupAttendanceCell);
-    
-    // Общая функция для отправки форм
-    function setupAjaxForm(formId, successCallback) {
-        const form = document.getElementById(formId);
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                
-                fetch("{% url 'schedule_detail' schedule.id %}", {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Очистка формы
-                        form.reset();
-                        successCallback(data);
-                        showToast('Операция выполнена успешно!', 'success');
-                    } else {
-                        const errorMsg = data.error || data.errors || 'Ошибка сервера';
-                        showToast('Ошибка: ' + JSON.stringify(errorMsg), 'danger');
-                    }
-                })
-                .catch(error => {
-                    showToast('Ошибка сети: ' + error, 'danger');
-                });
-            });
-        }
-    }
-    
-    // Функция для обновления таблицы посещаемости при добавлении ученика
-    function updateAttendanceTable(student, dates) {
-        const attendanceBody = document.getElementById('attendance-body');
-        
-        // Создаем новую строку для ученика
-        const newRow = document.createElement('tr');
-        newRow.setAttribute('data-student-id', student.id);
-        newRow.innerHTML = `<td class="student-column">${student.full_name}</td>`;
-        
-        // Добавляем ячейки для каждой даты
-        dates.forEach(date => {
-            newRow.innerHTML += `
-                <td>
-                    <div class="attendance-cell text-center bg-danger" 
-                        data-student-id="${student.id}"
-                        data-date="${date}">
-                        <i class="bi bi-x-lg text-white"></i>
-                    </div>
-                </td>
-            `;
-        });
-        
-        // Добавляем строку в таблицу посещаемости
-        attendanceBody.appendChild(newRow);
-        
-        // Настраиваем обработчики для новых ячеек
-        newRow.querySelectorAll('.attendance-cell').forEach(setupAttendanceCell);
-    }
-    
-    // Обработка формы сотрудников
-    setupAjaxForm('employee-form', function(data) {
-        const table = document.getElementById('employees-table');
-        
-        // Удаляем сообщение "Нет сотрудников" если оно есть
-        const emptyRow = table.querySelector('tr td[colspan]');
-        if (emptyRow) {
-            emptyRow.closest('tr').remove();
-        }
-        
-        // Создаем новую строку
-        const newRow = document.createElement('tr');
-        newRow.id = `employee-${data.employee.id}`;
-        newRow.innerHTML = `
-            <td>${data.employee.full_name}</td>
-            <td>${data.employee.position}</td>
-            <td>${data.employee.rate_per_day} руб./день</td>
-            <td>
-                <button class="btn btn-sm btn-danger remove-employee" 
-                        data-employee-id="${data.employee.id}"
-                        data-schedule-id="{{ schedule.id }}">
-                    Удалить
-                </button>
-            </td>
-        `;
-        
-        table.appendChild(newRow);
-    });
-    
-    // Обработка формы учеников
-    setupAjaxForm('student-form', function(data) {
-        const table = document.getElementById('students-table');
-        
-        // Удаляем сообщение "Нет учеников" если оно есть
-        const emptyRow = table.querySelector('tr td[colspan]');
-        if (emptyRow) {
-            emptyRow.closest('tr').remove();
-        }
-        
-        // Создаем новую строку
-        const newRow = document.createElement('tr');
-        newRow.id = `student-${data.student.id}`;
-        newRow.innerHTML = `
-            <td>${data.student.full_name}</td>
-            <td><span class="badge bg-info">${data.student.attendance_count} дней</span></td>
-            <td>${data.student.attendance_type}</td>
-            <td>
-                ${data.student.price} руб.
-                ${data.student.price_comment ? '<br><small>' + data.student.price_comment + '</small>' : ''}
-            </td>
-            <td>
-                <button class="btn btn-sm btn-danger remove-student" 
-                        data-student-id="${data.student.id}"
-                        data-schedule-id="{{ schedule.id }}">
-                    Удалить
-                </button>
-            </td>
-        `;
-        
-        table.appendChild(newRow);
-        
-        // Обновляем таблицу посещаемости
-        updateAttendanceTable(data.student, attendanceDates);
-    });
-    
-    // Обработка формы платежей
-    setupAjaxForm('payment-form', function(data) {
-        const table = document.getElementById('payments-table');
-        
-        // Удаляем сообщение "Нет платежей" если оно есть
-        const emptyRow = table.querySelector('tr td[colspan]');
-        if (emptyRow) {
-            emptyRow.closest('tr').remove();
-        }
-        
-        // Создаем новую строку
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td>${data.payment.student_full_name}</td>
-            <td>${data.payment.amount} руб.</td>
-            <td>${data.payment.date}</td>
-            <td>${data.payment.comment}</td>
-        `;
-        
-        table.prepend(newRow);
-        
-        // Обновляем итоговую сумму
-        updatePaymentSummary();
-    });
-    
-    // Обработка удаления сотрудников
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-employee')) {
-            const button = e.target;
-            const employeeId = button.dataset.employeeId;
-            const scheduleId = button.dataset.scheduleId;
-            
-            if (confirm('Удалить сотрудника из смены?')) {
-                fetch("{% url 'schedule_detail' schedule.id %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        action: 'remove_employee',
-                        employee_id: employeeId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const row = document.getElementById(`employee-${employeeId}`);
-                        if (row) row.remove();
-                        
-                        // Если сотрудников не осталось, добавляем сообщение
-                        if (document.querySelectorAll('#employees-table tr').length === 0) {
-                            const emptyRow = document.createElement('tr');
-                            emptyRow.innerHTML = '<td colspan="4" class="text-center">Нет сотрудников</td>';
-                            document.getElementById('employees-table').appendChild(emptyRow);
-                        }
-                        
-                        showToast('Сотрудник удален из смены', 'success');
-                    }
-                });
-            }
-        }
-    });
-    
-    // Обработка удаления учеников
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-student')) {
-            const button = e.target;
-            const studentId = button.dataset.studentId;
-            const scheduleId = button.dataset.scheduleId;
-            
-            if (confirm('Удалить ученика из смены?')) {
-                fetch("{% url 'schedule_detail' schedule.id %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        action: 'remove_student',
-                        student_id: studentId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Удаляем из таблицы учеников
-                        const row = document.getElementById(`student-${studentId}`);
-                        if (row) row.remove();
-                        
-                        // Удаляем из таблицы посещаемости
-                        const attendanceRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
-                        if (attendanceRow) attendanceRow.remove();
-                        
-                        // Если учеников не осталось, добавляем сообщение
-                        if (document.querySelectorAll('#students-table tr').length === 0) {
-                            const emptyRow = document.createElement('tr');
-                            emptyRow.innerHTML = '<td colspan="5" class="text-center">Нет учеников</td>';
-                            document.getElementById('students-table').appendChild(emptyRow);
-                        }
-                        
-                        showToast('Ученик удален из смены', 'success');
-                    }
-                });
-            }
-        }
-    });
-    
-    // Функция показа уведомлений
-    function showToast(message, type) {
-        const toastEl = document.getElementById('liveToast');
-        const toastBody = toastEl.querySelector('.toast-body');
-        const toast = new bootstrap.Toast(toastEl);
-        
-        toastEl.classList.remove('bg-success', 'bg-danger');
-        toastBody.textContent = message;
-        
-        if (type === 'success') toastEl.classList.add('bg-success', 'text-white');
-        if (type === 'danger') toastEl.classList.add('bg-danger', 'text-white');
-        
-        toast.show();
-    }
-    
-    // Функция для пересчета и отображения итоговой суммы платежей
-    function updatePaymentSummary() {
-        let total = 0;
-        const rows = document.querySelectorAll('#payments-body tr:not([style*="display: none"])');
-        
-        rows.forEach(row => {
-            const amountCell = row.querySelector('td:nth-child(2)');
-            if (amountCell) {
-                const amountValue = parseFloat(amountCell.dataset.value);
-                if (!isNaN(amountValue)) {
-                    total += amountValue;
-                }
-            }
-        });
-        
-        document.getElementById('total-amount').textContent = total.toFixed(2) + ' руб.';
-    }
-    
-    // Функция для фильтрации платежей
-function filterPayments() {
-        const studentFilter = document.getElementById('student-filter').value.toLowerCase();
-        const dateFrom = document.getElementById('date-from').value;
-        const dateTo = document.getElementById('date-to').value;
-        const commentFilter = document.getElementById('comment-filter').value.toLowerCase();
-        
-        const rows = document.querySelectorAll('#payments-body tr');
-        
-        rows.forEach(row => {
-            const studentCell = row.querySelector('td:nth-child(1)');
-            const dateCell = row.querySelector('td:nth-child(3)');
-            const commentCell = row.querySelector('td:nth-child(4)');
-            
-            const student = studentCell ? studentCell.textContent.toLowerCase() : '';
-            const dateValue = dateCell ? dateCell.dataset.value : '';
-            const comment = commentCell ? commentCell.textContent.toLowerCase() : '';
-            
-            // Проверка дат
-            let dateInRange = true;
-            if (dateFrom && dateValue < dateFrom) dateInRange = false;
-            if (dateTo && dateValue > dateTo) dateInRange = false;
-            
-            const showRow = 
-                student.includes(studentFilter) &&
-                dateInRange &&
-                comment.includes(commentFilter);
-                
-            row.style.display = showRow ? '' : 'none';
-        });
-        
-        updatePaymentSummary();
-    }
-    
-    // Обработчики событий для фильтрации платежей
-    document.getElementById('student-filter').addEventListener('input', filterPayments);
-    document.getElementById('date-from').addEventListener('input', filterPayments);
-    document.getElementById('date-to').addEventListener('input', filterPayments);
-    document.getElementById('comment-filter').addEventListener('input', filterPayments);
-    
-    // Обработчик сортировки
-    document.getElementById('sort-payments').addEventListener('change', function() {
-        const value = this.value;
-        let sortConfig = { column: 1, direction: 1 };
-        
-        switch(value) {
-            case 'student-asc': sortConfig = { column: 1, direction: 1 }; break;
-            case 'student-desc': sortConfig = { column: 1, direction: -1 }; break;
-            case 'date-asc': sortConfig = { column: 3, direction: 1 }; break;
-            case 'date-desc': sortConfig = { column: 3, direction: -1 }; break;
-        }
-        
-        sortPayments(sortConfig);
-    });
-    
-    // Обработчик сброса фильтров
-    document.getElementById('reset-payment-filters').addEventListener('click', function() {
-        document.getElementById('student-filter').value = '';
-        document.getElementById('date-from').value = '';
-        document.getElementById('date-to').value = '';
-        document.getElementById('comment-filter').value = '';
-        document.getElementById('sort-payments').value = '';
-        
-        const rows = document.querySelectorAll('#payments-body tr');
-        rows.forEach(row => row.style.display = '');
-        
-        updatePaymentSummary();
-    });
-});
+  // Глобальные переменные для использования в JS
+  const SCHEDULE_ID = "{{ schedule.id }}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
+  const DATES_JSON = JSON.stringify([
+    {% for date in dates %}"{{ date|date:'Y-m-d' }}",{% endfor %}
+  ]);
 </script>
+<script src="{% static 'js/schedule_detail.js' %}"></script>
 {% endblock %}

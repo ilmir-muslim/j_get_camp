@@ -11,12 +11,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.db.models import Sum
+from django.views.decorators.http import require_POST
 
 from branches.models import Branch
 from core.utils import role_required
 from employees.models import Employee
 from payroll.forms import PaymentForm
-from students.models import Payment
+from students.models import Payment, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
 
@@ -26,7 +27,6 @@ from .models import COLOR_CHOICES, Schedule
 def schedule_create(request):
     initial = {}
 
-    # Предзаполняем данные из параметров URL
     if "branch" in request.GET:
         try:
             initial["branch"] = Branch.objects.get(pk=request.GET["branch"])
@@ -50,15 +50,16 @@ def schedule_create(request):
 
 @role_required(["manager", "admin"])
 def schedule_delete(request, pk):
-    """
-    Представление для удаления смены.
-    Доступно только менеджеру и администратору.
-    """
     schedule_obj = get_object_or_404(Schedule, pk=pk)
 
     if request.method == "POST":
         schedule_obj.delete()
-        return redirect("schedule_calendar")
+        
+        # Поддержка AJAX-запросов
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
+        else:
+            return redirect("schedule_calendar")
 
     return render(
         request, "schedule/schedule_confirm_delete.html", {"schedule": schedule_obj}
@@ -67,7 +68,6 @@ def schedule_delete(request, pk):
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def schedule_calendar(request):
-    # Определяем месяц для отображения
     month = request.GET.get("month")
     if month:
         try:
@@ -77,7 +77,6 @@ def schedule_calendar(request):
     else:
         current_date = timezone.now().date()
 
-    # Рассчитываем первый и последний день месяца
     first_day = current_date.replace(day=1)
     if first_day.month == 12:
         next_month = first_day.replace(year=first_day.year + 1, month=1, day=1)
@@ -85,34 +84,19 @@ def schedule_calendar(request):
         next_month = first_day.replace(month=first_day.month + 1, day=1)
     last_day = next_month - timedelta(days=1)
 
-    # Рассчитываем предыдущий и следующий месяц
     prev_month = (first_day - timedelta(days=1)).strftime("%Y-%m")
     next_month = next_month.strftime("%Y-%m")
 
-    # Создаем список недель (понедельник-пятница)
     weeks = []
-    current = first_day
+    current = first_day - timedelta(days=first_day.weekday())
+
     while current <= last_day:
-        # Находим понедельник текущей недели
-        if current.weekday() == 0:  # 0 = понедельник
-            monday = current
-        else:
-            monday = current - timedelta(days=current.weekday())
+        friday = current + timedelta(days=4)
+        weeks.append((current, friday))
+        current += timedelta(days=7)
 
-        # Пятница - через 4 дня от понедельника
-        friday = monday + timedelta(days=4)
-        if friday > last_day:
-            friday = last_day
-
-        weeks.append((monday, friday))
-
-        # Переходим к следующей неделе
-        current = friday + timedelta(days=3)  # Пропускаем выходные
-
-    # Получаем филиалы
     branches = Branch.objects.all()
 
-    # Создаем матрицу расписаний: {branch_id: {week_start: [schedule1, schedule2]}}
     matrix = {}
     for branch in branches:
         branch_schedules = {}
@@ -123,7 +107,6 @@ def schedule_calendar(request):
             branch_schedules[week_start] = schedules
         matrix[branch.id] = branch_schedules
 
-    # Создаем список заголовков для столбцов (недели)
     week_headers = []
     for week_start, week_end in weeks:
         week_headers.append(
@@ -135,7 +118,7 @@ def schedule_calendar(request):
         "prev_month": prev_month,
         "next_month": next_month,
         "weeks": weeks,
-        "week_headers": week_headers,  # Добавлено
+        "week_headers": week_headers,
         "branches": branches,
         "matrix": matrix,
         "color_choices": COLOR_CHOICES,
@@ -149,17 +132,20 @@ def schedule_quick_edit(request, pk=None):
     if request.method == "POST":
         form = ScheduleForm(request.POST, instance=schedule)
         if form.is_valid():
-            form.save()
-            return HttpResponse(status=200)
+            schedule = form.save()
+            return JsonResponse({'success': True})
         else:
-            return render(request, "schedule/schedule_quick_form.html", {"form": form})
-
-    # GET-запрос: создаём форму
+            # Возвращаем форму с ошибками
+            form_html = render_to_string("schedule/schedule_quick_form.html", {
+                "form": form,
+                "schedule": schedule
+            }, request=request)
+            return JsonResponse({'success': False, 'html': form_html})
+    
+    # GET-запрос: отображаем форму
     if schedule:
-        # Существующая смена — только instance
         form = ScheduleForm(instance=schedule)
     else:
-        # Новая смена — используем initial
         initial = {}
         if request.GET.get("branch"):
             initial["branch"] = request.GET["branch"]
@@ -168,54 +154,73 @@ def schedule_quick_edit(request, pk=None):
             initial["end_date"] = request.GET["week_end"]
         form = ScheduleForm(initial=initial)
 
-    return render(request, "schedule/schedule_quick_form.html", {"form": form})
-
+    return render(request, "schedule/schedule_quick_form.html", {"form": form, "schedule": schedule})
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def schedule_detail(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
     user = request.user
 
-    # Проверка прав доступа
     if (
         user.role in ["camp_head", "lab_head"]
         and schedule not in user.schedule_set.all()
     ):
         raise PermissionDenied
 
-    # Генерация списка дат смены
     dates = []
     current_date = schedule.start_date
     while current_date <= schedule.end_date:
         dates.append(current_date)
         current_date += timedelta(days=1)
 
-    # Сотрудники смены
     employees = Employee.objects.filter(schedule=schedule)
-
-    # Ученики смены
     students = Student.objects.filter(schedule=schedule).order_by("full_name")
 
-    # Сбор данных о посещаемости
     attendance = {}
     for student in students:
         for date in dates:
-            # Используем get_or_create для получения или создания записи
             att, created = Attendance.objects.get_or_create(
-                student=student, date=date, defaults={"present": False}
+                student=student, 
+                date=date, 
+                defaults={"present": False, "excused": False}
             )
             key = f"{student.id}_{date}"
-            attendance[key] = att.present
+            if att.present:
+                status = 'present'
+            elif att.excused:
+                status = 'excused'
+            else:
+                status = 'absent'
+            attendance[key] = status
 
-    # Платежи
+    student_attendance_counts = {}
+    for student in students:
+        count = Attendance.objects.filter(
+            student=student, 
+            date__in=dates,
+            present=True
+        ).count()
+        student_attendance_counts[student.id] = count
+
+    student_total_payments = {}
+    for student in students:
+        total = Payment.objects.filter(
+            schedule=schedule, 
+            student=student
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        student_total_payments[student.id] = total
+
     payments = Payment.objects.filter(schedule=schedule)
     total_payments = payments.aggregate(total=Sum('amount'))['total'] or 0
     payment_form = PaymentForm()
     payment_form.fields["student"].queryset = students
 
-    # Обработка форм
+    available_employees = Employee.objects.exclude(schedule=schedule)
+    available_students = Student.objects.exclude(schedule=schedule)
+
     if request.method == "POST":
-        # Проверяем content-type для обработки JSON
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         if request.content_type == "application/json":
             try:
                 data = json.loads(request.body)
@@ -230,50 +235,55 @@ def schedule_detail(request, pk):
                     att, created = Attendance.objects.get_or_create(
                         student=student, 
                         date=date_obj, 
-                        defaults={"present": False}
+                        defaults={"present": False, "excused": False}
                     )
-                    att.present = not att.present
+                    
+                    if not att.present and not att.excused:
+                        att.present = True
+                        status = 'present'
+                    elif att.present:
+                        att.present = False
+                        att.excused = True
+                        status = 'excused'
+                    else:
+                        att.excused = False
+                        status = 'absent'
                     att.save()
                     
-                    # Обновляем кеш посещаемости
                     key = f"{student_id}_{date_str}"
-                    attendance[key] = att.present
+                    attendance[key] = status
+                    
+                    total_attendance = Attendance.objects.filter(
+                        student=student,
+                        date__in=dates,
+                        present=True
+                    ).count()
                     
                     return JsonResponse({
                         "status": "success",
                         "present": att.present,
+                        "excused": att.excused,
+                        "total_attendance": total_attendance,
                         "student_id": student_id,
                         "date": date_str,
                     })
-                elif action == "remove_employee":
-                    employee_id = data.get("employee_id")
-                    employee = get_object_or_404(Employee, id=employee_id)
-                    
-                    if employee.schedule == schedule:
-                        employee.schedule = None
-                        employee.save()
-                    
-                    return JsonResponse({"success": True})
-                elif action == "remove_student":
-                    student_id = data.get("student_id")
-                    student = get_object_or_404(Student, id=student_id)
-                    
-                    if student.schedule == schedule:
-                        student.schedule = None
-                        student.save()
-                    
-                    return JsonResponse({"success": True})
             except Exception as e:
                 return JsonResponse({"status": "error", "message": str(e)})
         
-        else:  # Обработка обычных POST-запросов
+        else:
             action = request.POST.get("action")
-            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
             if action == "add_employee":
                 employee_id = request.POST.get("employee")
                 if employee_id:
                     employee = get_object_or_404(Employee, id=employee_id)
+                    
+                    # Проверка, что сотрудник не добавлен
+                    if employee in employees:
+                        if is_ajax:
+                            return JsonResponse({'success': False, 'error': 'Сотрудник уже добавлен'})
+                        return redirect("schedule_detail", pk=pk)
+                    
                     employee.schedule = schedule
                     employee.save()
                     
@@ -287,6 +297,8 @@ def schedule_detail(request, pk):
                                 'rate_per_day': employee.rate_per_day,
                             }
                         })
+                    return redirect("schedule_detail", pk=pk)
+                
                 if is_ajax:
                     return JsonResponse({'success': False, 'error': 'Сотрудник не выбран'})
                 return redirect("schedule_detail", pk=pk)
@@ -295,8 +307,23 @@ def schedule_detail(request, pk):
                 student_id = request.POST.get("student")
                 if student_id:
                     student = get_object_or_404(Student, id=student_id)
+                    
+                    # Проверка, что студент не добавлен
+                    if student in students:
+                        if is_ajax:
+                            return JsonResponse({'success': False, 'error': 'Студент уже добавлен'})
+                        return redirect("schedule_detail", pk=pk)
+                    
                     student.schedule = schedule
                     student.save()
+                    
+                    # Создание записей посещаемости
+                    for date in dates:
+                        Attendance.objects.get_or_create(
+                            student=student, 
+                            date=date, 
+                            defaults={"present": False, "excused": False}
+                        )
                     
                     if is_ajax:
                         return JsonResponse({
@@ -304,12 +331,12 @@ def schedule_detail(request, pk):
                             'student': {
                                 'id': student.id,
                                 'full_name': student.full_name,
-                                'attendance_count': student.attendance_set.count(),
                                 'attendance_type': student.get_attendance_type_display(),
                                 'price': student.individual_price or student.default_price,
-                                'price_comment': student.price_comment or '',
                             }
                         })
+                    return redirect("schedule_detail", pk=pk)
+                
                 if is_ajax:
                     return JsonResponse({'success': False, 'error': 'Ученик не выбран'})
                 return redirect("schedule_detail", pk=pk)
@@ -339,10 +366,6 @@ def schedule_detail(request, pk):
                     
                 return redirect("schedule_detail", pk=pk)
 
-    # Получим всех доступных сотрудников и учеников
-    all_employees = Employee.objects.all()
-    all_students = Student.objects.all()
-
     context = {
         "schedule": schedule,
         "employees": employees,
@@ -351,51 +374,51 @@ def schedule_detail(request, pk):
         "total_payments": total_payments,
         "dates": dates,
         "attendance": attendance,
-        "all_employees": all_employees,
-        "all_students": all_students,
+        "available_employees": available_employees,
+        "available_students": available_students,
         "payment_form": payment_form,
+        "student_attendance_counts": student_attendance_counts,
+        "student_total_payments": student_total_payments,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
+@require_POST
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def remove_employee_from_schedule(request, schedule_id, employee_id):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     employee = get_object_or_404(Employee, pk=employee_id)
 
-    # Проверка прав
     user = request.user
     if (
         user.role in ["camp_head", "lab_head"]
         and schedule not in user.schedule_set.all()
     ):
-        raise PermissionDenied
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
 
     if employee.schedule == schedule:
         employee.schedule = None
         employee.save()
 
-    return redirect("schedule_detail", pk=schedule_id)
+    return JsonResponse({'success': True})
 
-
+@require_POST
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def remove_student_from_schedule(request, schedule_id, student_id):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     student = get_object_or_404(Student, pk=student_id)
 
-    # Проверка прав
     user = request.user
     if (
         user.role in ["camp_head", "lab_head"]
         and schedule not in user.schedule_set.all()
     ):
-        raise PermissionDenied
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
 
     if student.schedule == schedule:
         student.schedule = None
         student.save()
 
-    return redirect("schedule_detail", pk=schedule_id)
-
+    return JsonResponse({'success': True})
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_students_excel(request, pk):
@@ -455,15 +478,10 @@ def export_schedule_students_pdf(request, pk):
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def schedule_list(request):
-    """
-    Отображает список всех смен с основной информацией.
-    """
     schedules = Schedule.objects.select_related('branch').all()
     
-    # Формируем данные для таблицы
     schedule_data = []
     for schedule in schedules:
-        # Находим преподавателей в смене
         teachers = schedule.employee_set.filter(position='teacher')
         teacher_names = ", ".join([t.full_name for t in teachers]) if teachers.exists() else "—"
         
@@ -477,3 +495,56 @@ def schedule_list(request):
         })
 
     return render(request, 'schedule/schedule_list.html', {'schedule_data': schedule_data})
+
+@require_POST
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def toggle_attendance(request, schedule_id):
+    schedule = get_object_or_404(Schedule, pk=schedule_id)
+    user = request.user
+    
+    if user.role in ["camp_head", "lab_head"] and schedule not in user.schedule_set.all():
+        return JsonResponse({"status": "error", "message": "Permission denied"}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        student_id = data.get("student_id")
+        date_str = data.get("date")
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        
+        student = get_object_or_404(Student, id=student_id)
+        att, created = Attendance.objects.get_or_create(
+            student=student, 
+            date=date_obj, 
+            defaults={"present": False, "excused": False}
+        )
+        
+        # Циклическое переключение: отсутствует -> присутствует -> по уважительной -> отсутствует
+        if not att.present and not att.excused:
+            att.present = True
+            status = 'present'
+        elif att.present:
+            att.present = False
+            att.excused = True
+            status = 'excused'
+        else:  # excused: True
+            att.excused = False
+            status = 'absent'
+        att.save()
+        
+        # Пересчитываем общее количество посещений
+        total_attendance = Attendance.objects.filter(
+            student=student,
+            date__range=(schedule.start_date, schedule.end_date),
+            present=True
+        ).count()
+        
+        return JsonResponse({
+            "status": "success",
+            "present": att.present,
+            "excused": att.excused,
+            "total_attendance": total_attendance,
+            "student_id": student_id,
+            "date": date_str,
+        })
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)

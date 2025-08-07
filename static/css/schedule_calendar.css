@@ -1,0 +1,53 @@
+/* Стили для календаря смен */
+.calendar-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.calendar-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calendar-table {
+  min-width: 1200px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.calendar-table th.branch-header {
+  min-width: 220px;
+  font-size: 1.1rem;
+  padding: 15px 20px;
+}
+
+.schedule-card {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.schedule-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.schedule-card h6 {
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.schedule-theme {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.edit-schedule-btn {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}

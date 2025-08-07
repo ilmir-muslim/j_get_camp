@@ -1,0 +1,37 @@
+/* Стили для лидов */
+.lead-status-new {
+  background-color: #e7f5ff;
+  color: #339af0;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.lead-status-contacted {
+  background-color: #fff9db;
+  color: #e67700;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.lead-status-converted {
+  background-color: #d3f9d8;
+  color: #2b8a3e;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.lead-status-lost {
+  background-color: #ffe3e3;
+  color: #c92a2a;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.callback-indicator {
+  color: #fa5252;
+  font-weight: 600;
+}

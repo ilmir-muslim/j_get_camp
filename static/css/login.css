@@ -1,0 +1,66 @@
+/* Стили для страницы входа */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1c7ed6 0%, #339af0 100%);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.login-header {
+  background-color: #2b5885;
+  color: white;
+  padding: 25px 30px;
+  text-align: center;
+}
+
+.login-header h2 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.login-body {
+  background-color: white;
+  padding: 30px;
+}
+
+.login-form .form-group {
+  margin-bottom: 20px;
+}
+
+.login-form .form-control {
+  height: 48px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.login-btn {
+  height: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 8px;
+  background-color: #339af0;
+  border: none;
+  transition: all 0.3s;
+}
+
+.login-btn:hover {
+  background-color: #1c7ed6;
+  transform: translateY(-2px);
+}
+
+.login-footer {
+  text-align: center;
+  padding-top: 20px;
+  font-size: 14px;
+  color: #6c757d;
+}

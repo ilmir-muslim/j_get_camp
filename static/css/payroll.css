@@ -1,0 +1,35 @@
+/* Стили для зарплат и расходов */
+.payroll-summary {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-left: 4px solid #339af0;
+}
+
+.summary-item {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.summary-value {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.payroll-status-paid {
+  color: #51cf66;
+  font-weight: 600;
+}
+
+.payroll-status-unpaid {
+  color: #ff6b6b;
+  font-weight: 600;
+}

@@ -1,0 +1,23 @@
+/* Стили для карточек */
+.card {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  border: none;
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0 !important;
+  padding: 15px 20px;
+  background-color: #339af0;
+  color: white;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.card-body {
+  padding: 20px;
+}

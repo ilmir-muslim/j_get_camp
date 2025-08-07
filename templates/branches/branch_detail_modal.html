@@ -1,0 +1,42 @@
+<div class="modal-header">
+  <h5 class="modal-title">Детали филиала: {{ branch.name }}</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <div class="mb-3">
+    <p><strong>Адрес:</strong> {{ branch.address }}</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header" style="background-color: #3597b5ff;">
+      <h6 class="mb-0">Сотрудники филиала</h6>
+    </div>
+    <div class="card-body p-0">
+      {% if employees %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr style="background-color: #e7f5ff;">
+                <th>ФИО</th>
+                <th>Должность</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for employee in employees %}
+              <tr>
+                <td>{{ employee.full_name }}</td>
+                <td>{{ employee.get_position_display }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted p-3">Нет сотрудников</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+</div>

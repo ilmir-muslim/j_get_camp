@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
-{% load custom_tags %} 
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/employee_attendance.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -67,70 +71,8 @@
         </table>
     </div>
 </div>
+{% endblock %}
 
-<style>
-.attendance-table th, .attendance-table td {
-    vertical-align: middle;
-    text-align: center;
-}
-
-.attendance-cell {
-    cursor: pointer;
-    min-width: 50px;
-    height: 50px;
-    transition: all 0.3s;
-}
-
-.attendance-cell.bg-success {
-    background-color: #51cf66 !important;
-}
-
-.attendance-cell.bg-danger {
-    background-color: #ff6b6b !important;
-}
-
-.attendance-cell i {
-    font-size: 1.5rem;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Обработка кликов по ячейкам
-    document.querySelectorAll('.attendance-cell').forEach(cell => {
-        cell.addEventListener('click', function() {
-            const employeeId = this.dataset.employeeId;
-            const dateStr = this.dataset.date;
-            
-            // Отправка AJAX запроса
-            fetch("{% url 'toggle_employee_attendance' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    employee_id: employeeId,
-                    date: dateStr
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Обновление визуального состояния
-                    if (data.present) {
-                        this.classList.remove('bg-danger');
-                        this.classList.add('bg-success');
-                        this.innerHTML = '<i class="bi bi-check-lg text-white"></i>';
-                    } else {
-                        this.classList.remove('bg-success');
-                        this.classList.add('bg-danger');
-                        this.innerHTML = '<i class="bi bi-x-lg text-white"></i>';
-                    }
-                }
-            });
-        });
-    });
-});
-</script>
+{% block extra_scripts %}
+<script src="{% static 'js/employee_attendance.js' %}"></script>
 {% endblock %}

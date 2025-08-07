@@ -1,0 +1,37 @@
+/* Стили для посещаемости сотрудников */
+.attendance-table th, .attendance-table td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.attendance-cell {
+  cursor: pointer;
+  min-width: 50px;
+  height: 50px;
+  transition: all 0.3s;
+  border-radius: 8px;
+}
+
+.attendance-cell.bg-success {
+  background-color: #51cf66 !important;
+}
+
+.attendance-cell.bg-danger {
+  background-color: #ff6b6b !important;
+}
+
+.attendance-cell i {
+  font-size: 1.5rem;
+}
+
+.employee-column {
+  font-weight: 600;
+  min-width: 200px;
+  text-align: left;
+  padding-left: 20px !important;
+}
+
+.date-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+}

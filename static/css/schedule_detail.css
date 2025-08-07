@@ -1,0 +1,147 @@
+/* Стили для страницы деталей смены */
+.page-container {
+  margin-bottom: 100px;
+}
+
+.schedule-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #339af0;
+}
+
+.schedule-header h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.schedule-meta {
+  font-size: 1.1rem;
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.employee-column {
+  font-weight: 600;
+  min-width: 200px;
+}
+
+.student-column {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
+}
+
+.date-cell.today {
+  background-color: #e7f5ff;
+  border: 1px solid #339af0;
+}
+
+.date-cell.today .attendance-cell {
+  box-shadow: 0 0 0 2px #339af0;
+}
+
+.filter-control {
+  margin-bottom: 15px;
+}
+
+.filter-control label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  display: block;
+}
+
+#employees-table tr:last-child td {
+  border-bottom: none;
+}
+
+#attendance-body tr {
+  transition: all 0.3s ease;
+}
+
+#attendance-body tr:hover {
+  background-color: #f1f3f5;
+}
+
+/* Стили для формы добавления ученика */
+.student-addition-form {
+    margin-top: 20px;
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.flex-wrap-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.select-wrapper {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.btn-action {
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 100px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Стили для фильтров */
+.filter-section {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #495057;
+}
+
+@media (max-width: 768px) {
+    .flex-wrap-container {
+        flex-direction: column;
+    }
+    
+    .select-wrapper, .btn-action {
+        width: 100%;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .filter-row {
+        gap: 15px;
+    }
+}

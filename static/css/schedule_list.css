@@ -1,0 +1,48 @@
+/* Стили для списка смен */
+.schedule-list-container {
+  padding: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #339af0;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.schedule-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 15px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.schedule-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.schedule-table tr:hover {
+  background-color: #f1f3f5;
+}
+
+.clickable-cell {
+  cursor: pointer;
+  color: #339af0;
+  font-weight: 500;
+}
+
+.clickable-cell:hover {
+  text-decoration: underline;
+}
