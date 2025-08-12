@@ -85,7 +85,7 @@ class Attendance(models.Model):
         verbose_name_plural = "Посещения"
 
     def __str__(self):
-        if self.present:
+        if self.present:    
             status = "Присутствовал"
         elif self.excused:
             status = "По уважительной причине"

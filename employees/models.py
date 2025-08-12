@@ -44,13 +44,20 @@ class EmployeeAttendance(models.Model):
         related_name="attendances",
         verbose_name="Сотрудник",
     )
-    present = models.BooleanField(default=True, verbose_name="Присутствовал") 
     date = models.DateField(verbose_name="Дата посещения")
-    comment = models.CharField(max_length=255, blank=True, verbose_name="Комментарий")
+    present = models.BooleanField(default=True, verbose_name="Присутствовал") 
+    excused = models.BooleanField(default=False, verbose_name="По уважительной причине")
 
     class Meta:
-        verbose_name = "Посещение сотрудника"
-        verbose_name_plural = "Посещения сотрудников"
+        unique_together = ("employee", "date")
+        verbose_name = "Посещение"
+        verbose_name_plural = "Посещения"
 
     def __str__(self):
-        return f"{self.employee.full_name} — {self.date}"
+        if self.present:    
+            status = "Присутствовал"
+        elif self.excused:
+            status = "По уважительной причине"
+        else:
+            status = "Отсутствовал"
+        return f"{self.employee} - {self.date} - {status}"

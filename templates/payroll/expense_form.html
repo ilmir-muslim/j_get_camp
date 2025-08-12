@@ -1,10 +1,28 @@
-{% extends 'base.html' %}
-{% block content %}
-<h1>Добавить расход</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Сохранить</button>
-    <a href="{% url 'expense_list' %}" class="btn btn-secondary">Отмена</a>
-</form>
-{% endblock %}
+<div class="modal-header">
+    <h5 class="modal-title">{% if expense %}Редактирование расхода{% else %}Добавить расход{% endif %}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form id="expense-form" method="post" 
+          action="{% if expense %}{% url 'expense_edit' expense.pk %}{% else %}{% url 'expense_create' %}{% endif %}">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена</label>
+            {{ form.schedule }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.category.id_for_label }}" class="form-label">Категория</label>
+            {{ form.category }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.amount.id_for_label }}" class="form-label">Сумма (руб.)</label>
+            {{ form.amount }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.comment.id_for_label }}" class="form-label">Комментарий</label>
+            {{ form.comment }}
+        </div>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </form>
+</div>

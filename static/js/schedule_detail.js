@@ -15,6 +15,28 @@ document.addEventListener('DOMContentLoaded', function () {
     toast.show();
   }
 
+  // Функция для загрузки формы в модальное окно
+  function loadFormIntoModal(url) {
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('universalFormModalContent').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('universalFormModal'));
+        modal.show();
+      });
+  }
+
+  // Функция для загрузки формы расхода
+  function loadExpenseForm(url) {
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('expense-modal-content').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('expenseModal'));
+        modal.show();
+      });
+  }
+
   // Функция для обработки кликов по ячейкам посещаемости
   function handleAttendanceClick(event) {
     const cell = event.target.closest('.attendance-cell');
@@ -132,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>
                         <button class="btn btn-sm btn-danger remove-employee" 
                                 data-employee-id="${data.employee.id}"
-                                data-employee-display="${selectedOption.textContent}" // Сохраняем полное представление
+                                data-employee-display="${selectedOption.textContent}" 
                                 data-schedule-id="${SCHEDULE_ID}">
                             Удалить
                         </button>
@@ -187,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // После успешного добавления перезагружаем страницу
             showToast('Ученик успешно добавлен в смену', 'success');
             setTimeout(() => {
               window.location.reload();
@@ -203,12 +224,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-
   // Удаление сотрудника
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('remove-employee')) {
       const employeeId = e.target.dataset.employeeId;
-      const employeeDisplay = e.target.dataset.employeeDisplay; // Получаем полное представление
+      const employeeDisplay = e.target.dataset.employeeDisplay;
       const scheduleId = e.target.dataset.scheduleId;
 
       if (confirm('Удалить сотрудника из смены?')) {
@@ -261,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-
   // Удаление ученика
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('remove-student-attendance')) {
@@ -295,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Сортируем варианты
                 const options = Array.from(select.options);
-                options.sort((a, b) => a.text.localeCompare(b.text, 'ru')); // кириллица
+                options.sort((a, b) => a.text.localeCompare(b.text, 'ru'));
                 select.innerHTML = '';
                 options.forEach(opt => select.appendChild(opt));
               }
@@ -310,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
-
 
   // Обработчик для кнопки создания ученика
   document.getElementById('create-student-btn')?.addEventListener('click', function () {
@@ -406,9 +424,6 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.disabled = false;
       });
   });
-
-
-
 
   // Фильтрация таблицы посещаемости
   const filterInputs = [
@@ -507,45 +522,33 @@ document.addEventListener('DOMContentLoaded', function () {
       tableBody.appendChild(row);
     });
   }
-});
 
-function loadFormIntoModal(url, modalId) {
-  fetch(url)
-    .then(response => response.text())
-    .then(html => {
-      document.getElementById('universalFormModalContent').innerHTML = html;
-      const modal = new bootstrap.Modal(document.getElementById('universalFormModal'));
-      modal.show();
+  // Обработчики для открытия форм редактирования по клику на строке
+
+  // Для сотрудников
+  document.querySelectorAll('#employees-table tr[id^="employee-"]').forEach(row => {
+    row.addEventListener('click', function (e) {
+      // Игнорируем клики на кнопке удаления
+      if (e.target.closest('.remove-employee')) return;
+
+      const employeeId = this.id.split('-')[1];
+      loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
     });
-}
-
-// Обработчики для открытия форм редактирования по клику на строке
-
-// Для сотрудников
-document.querySelectorAll('#employees-table tr[id^="employee-"]').forEach(row => {
-  row.addEventListener('click', function (e) {
-    // Игнорируем клики на кнопке удаления
-    if (e.target.closest('.remove-employee')) return;
-
-    const employeeId = this.id.split('-')[1];
-    loadFormIntoModal(`/employees/${employeeId}/quick_edit/`, 'universalFormModal');
   });
-});
 
-// Для учеников
-document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
-  row.addEventListener('click', function (e) {
-    // Игнорируем клики на ячейках посещения и кнопке удаления
-    if (e.target.closest('.attendance-cell, .remove-student-attendance')) return;
+  // Для учеников
+  document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
+    row.addEventListener('click', function (e) {
+      // Игнорируем клики на ячейках посещения и кнопке удаления
+      if (e.target.closest('.attendance-cell, .remove-student-attendance')) return;
 
-    const studentId = this.dataset.studentId;
-    loadFormIntoModal(`/students/${studentId}/quick_edit/`, 'universalFormModal');
+      const studentId = this.dataset.studentId;
+      loadFormIntoModal(`/students/${studentId}/quick_edit/`);
+    });
   });
-});
-// Добавляем обработчики для форм быстрого редактирования
-document.addEventListener('DOMContentLoaded', function () {
-  // Обработчик для формы ученика
-  document.body.addEventListener('submit', function (e) {
+
+  // Добавляем обработчики для форм быстрого редактирования
+  document.addEventListener('submit', function (e) {
     if (e.target.id === 'student-quick-edit-form') {
       e.preventDefault();
       handleQuickFormSubmit(e.target, 'Ученик');
@@ -558,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Обработчик для кнопок удаления в модальных окнах
-  document.body.addEventListener('click', function (e) {
+  document.addEventListener('click', function (e) {
     if (e.target.id === 'delete-student-btn') {
       e.preventDefault();
       handleDeleteButtonClick(e.target, 'student');
@@ -569,193 +572,320 @@ document.addEventListener('DOMContentLoaded', function () {
       handleDeleteButtonClick(e.target, 'employee');
     }
   });
-});
-// Обновление данных сотрудника на странице
-function updateEmployeeRow(employee) {
-  const row = document.getElementById(`employee-${employee.id}`);
-  if (row) {
-    row.cells[0].textContent = employee.full_name;
-    row.cells[1].textContent = employee.position_display;
-    row.cells[2].textContent = `${employee.rate_per_day} руб./день`;
 
-    // Обновляем данные в кнопке удаления
-    const removeBtn = row.querySelector('.remove-employee');
-    if (removeBtn) {
-      removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display})`;
+  // Обновление данных сотрудника на странице
+  function updateEmployeeRow(employee) {
+    const row = document.getElementById(`employee-${employee.id}`);
+    if (row) {
+      row.cells[0].textContent = employee.full_name;
+      row.cells[1].textContent = employee.position_display;
+      row.cells[2].textContent = `${employee.rate_per_day} руб./день`;
+
+      // Обновляем данные в кнопке удаления
+      const removeBtn = row.querySelector('.remove-employee');
+      if (removeBtn) {
+        removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display})`;
+      }
     }
   }
-}
 
-// Обновление данных ученика на странице
-function updateStudentRow(student) {
-  const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
-  if (row) {
-    row.cells[1].textContent = student.individual_price || student.default_price;
-    row.cells[3].textContent = student.attendance_type_display;
-    row.cells[4].textContent = student.full_name;
+  // Обновление данных ученика на странице
+  function updateStudentRow(student) {
+    const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
+    if (row) {
+      row.cells[1].textContent = student.individual_price || student.default_price;
+      row.cells[3].textContent = student.attendance_type_display;
+      row.cells[4].textContent = student.full_name;
 
-    // Обновляем данные в кнопке удаления
-    const removeBtn = row.querySelector('.remove-student-attendance');
-    if (removeBtn) {
-      removeBtn.dataset.studentName = student.full_name;
+      // Обновляем данные в кнопке удаления
+      const removeBtn = row.querySelector('.remove-student-attendance');
+      if (removeBtn) {
+        removeBtn.dataset.studentName = student.full_name;
+      }
     }
   }
-}
 
-// Общая функция обработки отправки форм
-function handleQuickFormSubmit(form, entityName) {
-  const formData = new FormData(form);
-  const originalButton = form.querySelector('button[type="submit"]');
-  const originalButtonText = originalButton.innerHTML;
+  // Общая функция обработки отправки форм
+  function handleQuickFormSubmit(form, entityName) {
+    const formData = new FormData(form);
+    const originalButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = originalButton.innerHTML;
 
-  // Показываем индикатор загрузки
-  originalButton.disabled = true;
-  originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
+    // Показываем индикатор загрузки
+    originalButton.disabled = true;
+    originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
 
-  fetch(form.action, {
-    method: form.method,
-    body: formData,
-    headers: {
-      'X-CSRFToken': CSRF_TOKEN,
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Закрываем модальное окно
-        const modal = bootstrap.Modal.getInstance(document.getElementById('universalFormModal'));
-        modal.hide();
-        showToast(`${entityName} успешно сохранен`, 'success');
-
-        if (form.id === 'student-quick-edit-form' && data.student) {
-          updateStudentRow(data.student);
-        }
-        else if (form.id === 'employee-quick-edit-form' && data.employee) {
-          updateEmployeeRow(data.employee);
-        }
-        // Показываем уведомление об успехе
-      } else {
-        // Показываем ошибки
-        let errorMsg = 'Ошибка сохранения: ';
-        if (data.errors) {
-          for (let field in data.errors) {
-            errorMsg += data.errors[field].join(', ');
-          }
-        } else {
-          errorMsg += 'Неизвестная ошибка';
-        }
-        showToast(errorMsg, 'error');
+    fetch(form.action, {
+      method: form.method,
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
       }
     })
-    .catch(error => {
-      console.error('Error:', error);
-      showToast('Произошла ошибка при сохранении', 'error');
-    })
-    .finally(() => {
-      // Восстанавливаем кнопку
-      originalButton.disabled = false;
-      originalButton.innerHTML = originalButtonText;
-    });
-}
-
-// Общая функция обработки кнопок удаления
-function handleDeleteButtonClick(button, entityType) {
-    const entityId = button.dataset[`${entityType}Id`];
-    const url = `/${entityType === 'student' ? 'students' : 'employees'}/delete/${entityId}/`;
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': CSRF_TOKEN,
-            'X-Requested-With': 'XMLHttpRequest' // Добавляем заголовок
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        }
-        throw new Error('Network response was not ok');
-    })
-    .then(data => {
+      .then(response => response.json())
+      .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(
-                document.getElementById('universalFormModal')
-            );
-            modal.hide();
-            showToast(`${entityType === 'student' ? 'Ученик' : 'Сотрудник'} успешно удален`, 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при удалении', 'error');
-    });
-}
+          // Закрываем модальное окно
+          const modal = bootstrap.Modal.getInstance(document.getElementById('universalFormModal'));
+          modal.hide();
+          showToast(`${entityName} успешно сохранен`, 'success');
 
-document.getElementById('create-employee-btn')?.addEventListener('click', function() {
-    const modal = new bootstrap.Modal(document.getElementById('createEmployeeModal'));
-    modal.show();
+          if (form.id === 'student-quick-edit-form' && data.student) {
+            updateStudentRow(data.student);
+          }
+          else if (form.id === 'employee-quick-edit-form' && data.employee) {
+            updateEmployeeRow(data.employee);
+          }
+        } else {
+          // Показываем ошибки
+          let errorMsg = 'Ошибка сохранения: ';
+          if (data.errors) {
+            for (let field in data.errors) {
+              errorMsg += data.errors[field].join(', ');
+            }
+          } else {
+            errorMsg += 'Неизвестная ошибка';
+          }
+          showToast(errorMsg, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при сохранении', 'error');
+      })
+      .finally(() => {
+        // Восстанавливаем кнопку
+        originalButton.disabled = false;
+        originalButton.innerHTML = originalButtonText;
+      });
+  }
+
+  // Общая функция обработки кнопок удаления
+  function handleDeleteButtonClick(button, entityType) {
+      const entityId = button.dataset[`${entityType}Id`];
+      const url = `/${entityType === 'student' ? 'students' : 'employees'}/delete/${entityId}/`;
+
+      fetch(url, {
+          method: 'POST',
+          headers: {
+              'X-CSRFToken': CSRF_TOKEN,
+              'X-Requested-With': 'XMLHttpRequest'
+          }
+      })
+      .then(response => {
+          if (response.ok) {
+              return response.json();
+          }
+          throw new Error('Network response was not ok');
+      })
+      .then(data => {
+          if (data.success) {
+              const modal = bootstrap.Modal.getInstance(
+                  document.getElementById('universalFormModal')
+              );
+              modal.hide();
+              showToast(`${entityType === 'student' ? 'Ученик' : 'Сотрудник'} успешно удален`, 'success');
+              setTimeout(() => window.location.reload(), 1000);
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при удалении', 'error');
+      });
+  }
+
+  document.getElementById('create-employee-btn')?.addEventListener('click', function() {
+      const modal = new bootstrap.Modal(document.getElementById('createEmployeeModal'));
+      modal.show();
+  });
+
+  // Обработчик для кнопки сохранения нового сотрудника
+  document.getElementById('save-employee-btn')?.addEventListener('click', function() {
+      const btn = this;
+      const originalText = btn.innerHTML;
+      
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
+      btn.disabled = true;
+
+      const full_name = document.getElementById('employee_full_name').value;
+      const position = document.getElementById('position').value;
+      const rate_per_day = document.getElementById('rate_per_day').value;
+
+      if (!full_name) {
+          showToast('ФИО сотрудника обязательно', 'error');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          return;
+      }
+
+      fetch('/employees/create/ajax/', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': CSRF_TOKEN
+          },
+          body: JSON.stringify({
+              full_name: full_name,
+              position: position,
+              rate_per_day: rate_per_day
+          })
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              const modal = bootstrap.Modal.getInstance(document.getElementById('createEmployeeModal'));
+              modal.hide();
+              
+              // Обновляем выпадающий список
+              const select = document.querySelector('#employee-form select[name="employee"]');
+              const option = document.createElement('option');
+              option.value = data.employee.id;
+              option.textContent = `${data.employee.full_name} (${data.employee.get_position_display})`;
+              select.appendChild(option);
+              
+              // Автоматически выбираем нового сотрудника
+              select.value = data.employee.id;
+              
+              showToast('Сотрудник успешно создан', 'success');
+          } else {
+              showToast(data.error || 'Ошибка при создании сотрудника', 'error');
+          }
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при создании сотрудника', 'error');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      });
+  });
+
+  // Обработчики для расходов
+  // Кнопка добавления расхода
+  document.getElementById('add-expense-btn')?.addEventListener('click', function() {
+      loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
+  });
+
+// Обработчик кликов по строкам расходов
+document.addEventListener('click', function(e) {
+    const row = e.target.closest('tr.clickable-expense-row');
+    if (row && !e.target.classList.contains('delete-expense-btn')) {
+        const expenseId = row.dataset.expenseId;
+        loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
+    }
 });
 
-// Обработчик для кнопки сохранения нового сотрудника
-document.getElementById('save-employee-btn')?.addEventListener('click', function() {
-    const btn = this;
-    const originalText = btn.innerHTML;
-    
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
-    btn.disabled = true;
-
-    const full_name = document.getElementById('employee_full_name').value;
-    const position = document.getElementById('position').value;
-    const rate_per_day = document.getElementById('rate_per_day').value;
-
-    if (!full_name) {
-        showToast('ФИО сотрудника обязательно', 'error');
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        return;
-    }
-
-    fetch('/employees/create/ajax/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': CSRF_TOKEN
-        },
-        body: JSON.stringify({
-            full_name: full_name,
-            position: position,
-            rate_per_day: rate_per_day
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createEmployeeModal'));
-            modal.hide();
-            
-            // Обновляем выпадающий список
-            const select = document.querySelector('#employee-form select[name="employee"]');
-            const option = document.createElement('option');
-            option.value = data.employee.id;
-            option.textContent = `${data.employee.full_name} (${data.employee.position_display})`;
-            select.appendChild(option);
-            
-            // Автоматически выбираем нового сотрудника
-            select.value = data.employee.id;
-            
-            showToast('Сотрудник успешно создан', 'success');
-        } else {
-            showToast(data.error || 'Ошибка при создании сотрудника', 'error');
+  // Кнопки удаления расхода
+document.addEventListener('click', function(e) {
+    // Обработка кнопок удаления расходов
+    if (e.target.classList.contains('delete-expense-btn')) {
+        const expenseId = e.target.dataset.expenseId;
+        if (confirm('Удалить этот расход?')) {
+            fetch(`/payroll/expenses/delete/${expenseId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
+                    if (row) row.remove();
+                    
+                    // Обновляем таблицу если нет расходов
+                    if (!document.querySelector('#expenses-table-body tr')) {
+                        document.getElementById('expenses-table-body').innerHTML = 
+                            '<tr><td colspan="4" class="text-center">Нет расходов</td></tr>';
+                    }
+                    showToast('Расход успешно удален', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Произошла ошибка при удалении расхода', 'error');
+            });
         }
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при создании сотрудника', 'error');
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
+    }
+});
+
+// Обработчик отправки формы расхода
+document.addEventListener('submit', function(e) {
+    if (e.target.id === 'expense-form') {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const isEdit = form.action.includes('edit');
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
+                if (modal) modal.hide();
+                
+                // Обновляем таблицу расходов
+                const tableBody = document.getElementById('expenses-table-body');
+                const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
+                
+                if (expenseRow) {
+                    // Обновляем существующую строку
+                    expenseRow.innerHTML = `
+                        <td>${data.expense.category_display}</td>
+                        <td>${data.expense.comment || ''}</td>
+                        <td>${data.expense.amount} руб.</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger delete-expense-btn" 
+                                    data-expense-id="${data.expense.id}">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                } else {
+                    // Добавляем новую строку
+                    const emptyRow = tableBody.querySelector('tr td[colspan]');
+                    if (emptyRow) {
+                        emptyRow.closest('tr').remove();
+                    }
+                    
+                    const newRow = document.createElement('tr');
+                    newRow.dataset.expenseId = data.expense.id;
+                    newRow.className = 'clickable-expense-row';
+                    newRow.innerHTML = `
+                        <td>${data.expense.category_display}</td>
+                        <td>${data.expense.comment || ''}</td>
+                        <td>${data.expense.amount} руб.</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger delete-expense-btn" 
+                                    data-expense-id="${data.expense.id}">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(newRow);
+                }
+                
+                showToast('Расход успешно сохранен', 'success');
+            } else {
+                // Обновляем содержимое модального окна с ошибками
+                document.getElementById('expense-modal-content').innerHTML = data.html;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Произошла ошибка при сохранении расхода', 'error');
+        });
+    }
+});
 });

@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 
@@ -100,15 +102,39 @@ def expense_create(request):
     """
     Создание нового расхода.
     """
+    initial = {'schedule': request.GET.get('schedule')} if request.GET.get('schedule') else {}
+    
     if request.method == 'POST':
         form = ExpenseForm(request.POST)
         if form.is_valid():
-            form.save()
+            expense = form.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'expense': {
+                        'id': expense.id,
+                        'category_display': expense.get_category_display(),
+                        'amount': expense.amount,
+                        'comment': expense.comment
+                    }
+                })
             return redirect('expense_list')
     else:
-        form = ExpenseForm()
-
-    return render(request, 'payroll/expense_form.html', {'form': form})
+        form = ExpenseForm(initial=initial)
+    
+    # Для AJAX-запросов возвращаем только HTML формы
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        html = render_to_string('payroll/expense_form.html', {
+            'form': form,
+            'expense': None  # Указываем, что это создание
+        }, request=request)
+        return JsonResponse({'html': html})
+    
+    return render(request, 'payroll/expense_form.html', {
+        'form': form,
+        'expense': None
+    })
 
 @role_required(['manager', 'admin'])
 def expense_edit(request, pk):
@@ -120,12 +146,34 @@ def expense_edit(request, pk):
     if request.method == 'POST':
         form = ExpenseForm(request.POST, instance=expense)
         if form.is_valid():
-            form.save()
+            expense = form.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'expense': {
+                        'id': expense.id,
+                        'category_display': expense.get_category_display(),
+                        'amount': expense.amount,
+                        'comment': expense.comment
+                    }
+                })
             return redirect('expense_list')
     else:
         form = ExpenseForm(instance=expense)
 
-    return render(request, 'payroll/expense_form.html', {'form': form})
+    # Для AJAX-запросов
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        html = render_to_string('payroll/expense_form.html', {
+            'form': form,
+            'expense': expense
+        }, request=request)
+        return JsonResponse({'html': html})
+    
+    return render(request, 'payroll/expense_form.html', {
+        'form': form,
+        'expense': expense
+    })
 
 @role_required(['manager', 'admin'])
 def expense_delete(request, pk):
@@ -136,6 +184,10 @@ def expense_delete(request, pk):
 
     if request.method == 'POST':
         expense.delete()
-        return redirect('expense_list')
 
-    return render(request, 'payroll/expense_confirm_delete.html', {'expense': expense})
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest': 
+            return JsonResponse({'success': True})
+        return redirect('expense_list')
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest': 
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})

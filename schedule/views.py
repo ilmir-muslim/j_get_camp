@@ -17,6 +17,7 @@ from branches.models import Branch
 from core.utils import role_required
 from employees.models import Employee
 from payroll.forms import PaymentForm
+from payroll.models import Expense
 from students.models import Payment, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
@@ -217,6 +218,7 @@ def schedule_detail(request, pk):
 
     available_employees = Employee.objects.exclude(schedule=schedule)
     available_students = Student.objects.exclude(schedule=schedule)
+    expenses = Expense.objects.filter(schedule=schedule)
 
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -365,6 +367,7 @@ def schedule_detail(request, pk):
                     }, status=400)
                     
                 return redirect("schedule_detail", pk=pk)
+    
 
     context = {
         "schedule": schedule,
@@ -379,6 +382,7 @@ def schedule_detail(request, pk):
         "payment_form": payment_form,
         "student_attendance_counts": student_attendance_counts,
         "student_total_payments": student_total_payments,
+        "expenses": expenses,
     }
     return render(request, "schedule/schedule_detail.html", context)
 

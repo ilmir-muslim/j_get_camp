@@ -17,10 +17,9 @@ class EmployeeAttendanceForm(BaseDateForm):
     """
     class Meta:
         model = EmployeeAttendance
-        fields = ['employee', 'date', 'comment']
+        fields = ['employee', 'date']
         labels = {
             'employee': 'Сотрудник',
             'date': 'Дата посещения',
-            'comment': 'Комментарий',
         }
 
