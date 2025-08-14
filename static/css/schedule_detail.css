@@ -145,3 +145,33 @@
         gap: 15px;
     }
 }
+
+
+.card-header.bg-primary {
+  background-color: #489ee3 !important;
+}
+
+/* Добавьте в schedule_detail.css */
+.date-cell {
+    padding: 0 !important;
+    position: relative;
+}
+
+.attendance-cell {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.attendance-cell-wrapper {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+

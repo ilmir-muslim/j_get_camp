@@ -47,9 +47,4 @@ urlpatterns = [
         views.toggle_attendance,
         name="toggle_attendance",
     ),
-    #     path(
-    #     "<int:schedule_id>/employee_toggle_attendance/",
-    #     views.employee_toggle_attendance,
-    #     name="employee_toggle_attendance",
-    # ),
 ]

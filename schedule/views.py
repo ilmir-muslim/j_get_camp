@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 
 from branches.models import Branch
 from core.utils import role_required
-from employees.models import Employee
+from employees.models import Employee, EmployeeAttendance
 from payroll.forms import PaymentForm
 from payroll.models import Expense
 from students.models import Payment, Student
@@ -210,6 +210,28 @@ def schedule_detail(request, pk):
             student=student
         ).aggregate(total=Sum('amount'))['total'] or 0
         student_total_payments[student.id] = total
+    
+    employee_attendance = {}
+    employee_attendance_counts = {}
+    for employee in employees:
+        total = 0
+        for date in dates:
+            # Получаем или создаем запись посещаемости
+            att, created = EmployeeAttendance.objects.get_or_create(
+                employee=employee,
+                date=date,
+                defaults={"present": False, "excused": False}
+            )
+            key = f"{employee.id}_{date}"
+            if att.present:
+                status = 'present'
+                total += 1
+            elif att.excused:
+                status = 'excused'
+            else:
+                status = 'absent'
+            employee_attendance[key] = status
+        employee_attendance_counts[employee.id] = total
 
     payments = Payment.objects.filter(schedule=schedule)
     total_payments = payments.aggregate(total=Sum('amount'))['total'] or 0
@@ -269,6 +291,47 @@ def schedule_detail(request, pk):
                         "student_id": student_id,
                         "date": date_str,
                     })
+                
+                elif "employee_id" in data:
+                    employee_id = data.get("employee_id")
+                    date_str = data.get("date")
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    
+                    employee = get_object_or_404(Employee, id=employee_id)
+                    att, created = EmployeeAttendance.objects.get_or_create(
+                        employee=employee,
+                        date=date_obj,
+                        defaults={"present": False, "excused": False}
+                    )
+                    
+                    # Циклическое переключение статусов
+                    if not att.present and not att.excused:
+                        att.present = True
+                        status = 'present'
+                    elif att.present:
+                        att.present = False
+                        att.excused = True
+                        status = 'excused'
+                    else:  # excused: True
+                        att.excused = False
+                        status = 'absent'
+                    att.save()
+                    
+                    # Пересчет общего количества посещений
+                    total_attendance = EmployeeAttendance.objects.filter(
+                        employee=employee,
+                        date__in=dates,
+                        present=True
+                    ).count()
+                    
+                    return JsonResponse({
+                        "status": "success",
+                        "present": att.present,
+                        "excused": att.excused,
+                        "total_attendance": total_attendance,
+                        "employee_id": employee_id,
+                        "date": date_str,
+                    })
             except Exception as e:
                 return JsonResponse({"status": "error", "message": str(e)})
         
@@ -289,6 +352,25 @@ def schedule_detail(request, pk):
                     employee.schedule = schedule
                     employee.save()
                     
+                    # Создание записей посещаемости для каждого дня смены
+                    employee_attendance = {}
+                    total_attendance = 0
+                    for date in dates:
+                        att, created = EmployeeAttendance.objects.get_or_create(
+                            employee=employee,
+                            date=date,
+                            defaults={"present": False, "excused": False}
+                        )
+                        key = f"{employee.id}_{date}"
+                        if att.present:
+                            status = 'present'
+                            total_attendance += 1
+                        elif att.excused:
+                            status = 'excused'
+                        else:
+                            status = 'absent'
+                        employee_attendance[key] = status
+                    
                     if is_ajax:
                         return JsonResponse({
                             'success': True,
@@ -297,13 +379,11 @@ def schedule_detail(request, pk):
                                 'full_name': employee.full_name,
                                 'position': employee.get_position_display(),
                                 'rate_per_day': employee.rate_per_day,
+                                'attendance': employee_attendance,
+                                'total_attendance': total_attendance 
                             }
                         })
                     return redirect("schedule_detail", pk=pk)
-                
-                if is_ajax:
-                    return JsonResponse({'success': False, 'error': 'Сотрудник не выбран'})
-                return redirect("schedule_detail", pk=pk)
 
             elif action == "add_student":
                 student_id = request.POST.get("student")
@@ -383,6 +463,8 @@ def schedule_detail(request, pk):
         "student_attendance_counts": student_attendance_counts,
         "student_total_payments": student_total_payments,
         "expenses": expenses,
+        'employee_attendance': employee_attendance,
+        'employee_attendance_counts': employee_attendance_counts,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
@@ -511,44 +593,93 @@ def toggle_attendance(request, schedule_id):
     
     try:
         data = json.loads(request.body)
-        student_id = data.get("student_id")
-        date_str = data.get("date")
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
         
-        student = get_object_or_404(Student, id=student_id)
-        att, created = Attendance.objects.get_or_create(
-            student=student, 
-            date=date_obj, 
-            defaults={"present": False, "excused": False}
-        )
+        # Обработка учеников
+        if "student_id" in data:
+            student_id = data.get("student_id")
+            date_str = data.get("date")
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            
+            student = get_object_or_404(Student, id=student_id)
+            att, created = Attendance.objects.get_or_create(
+                student=student, 
+                date=date_obj, 
+                defaults={"present": False, "excused": False}
+            )
+            
+            # Циклическое переключение: отсутствует -> присутствует -> по уважительной -> отсутствует
+            if not att.present and not att.excused:
+                att.present = True
+                status = 'present'
+            elif att.present:
+                att.present = False
+                att.excused = True
+                status = 'excused'
+            else:  # excused: True
+                att.excused = False
+                status = 'absent'
+            att.save()
+            
+            # Пересчитываем общее количество посещений
+            total_attendance = Attendance.objects.filter(
+                student=student,
+                date__range=(schedule.start_date, schedule.end_date),
+                present=True
+            ).count()
+            
+            return JsonResponse({
+                "status": "success",
+                "present": att.present,
+                "excused": att.excused,
+                "total_attendance": total_attendance,
+                "student_id": student_id,
+                "date": date_str,
+            })
         
-        # Циклическое переключение: отсутствует -> присутствует -> по уважительной -> отсутствует
-        if not att.present and not att.excused:
-            att.present = True
-            status = 'present'
-        elif att.present:
-            att.present = False
-            att.excused = True
-            status = 'excused'
-        else:  # excused: True
-            att.excused = False
-            status = 'absent'
-        att.save()
+        # Обработка сотрудников
+        elif "employee_id" in data:
+            employee_id = data.get("employee_id")
+            date_str = data.get("date")
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            
+            employee = get_object_or_404(Employee, id=employee_id)
+            att, created = EmployeeAttendance.objects.get_or_create(
+                employee=employee,
+                date=date_obj,
+                defaults={"present": False, "excused": False}
+            )
+            
+            # Циклическое переключение статусов
+            if not att.present and not att.excused:
+                att.present = True
+                status = 'present'
+            elif att.present:
+                att.present = False
+                att.excused = True
+                status = 'excused'
+            else:  # excused: True
+                att.excused = False
+                status = 'absent'
+            att.save()
+            
+            # Пересчет общего количества посещений
+            total_attendance = EmployeeAttendance.objects.filter(
+                employee=employee,
+                date__range=(schedule.start_date, schedule.end_date),
+                present=True
+            ).count()
+            
+            return JsonResponse({
+                "status": "success",
+                "present": att.present,
+                "excused": att.excused,
+                "total_attendance": total_attendance,
+                "employee_id": employee_id,
+                "date": date_str,
+            })
         
-        # Пересчитываем общее количество посещений
-        total_attendance = Attendance.objects.filter(
-            student=student,
-            date__range=(schedule.start_date, schedule.end_date),
-            present=True
-        ).count()
-        
-        return JsonResponse({
-            "status": "success",
-            "present": att.present,
-            "excused": att.excused,
-            "total_attendance": total_attendance,
-            "student_id": student_id,
-            "date": date_str,
-        })
+        else:
+            return JsonResponse({"status": "error", "message": "Не указан student_id или employee_id"}, status=400)
+            
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)

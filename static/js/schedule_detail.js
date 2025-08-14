@@ -40,37 +40,80 @@ document.addEventListener('DOMContentLoaded', function () {
   // Функция для обработки кликов по ячейкам посещаемости
   function handleAttendanceClick(event) {
     const cell = event.target.closest('.attendance-cell');
-    if (!cell) return;
+  if (!cell) return;
 
+    // Проверяем, это сотрудник или ученик
+    const employeeId = cell.dataset.employeeId;
     const studentId = cell.dataset.studentId;
     const date = cell.dataset.date;
 
-    fetch(`/schedule/${SCHEDULE_ID}/toggle_attendance/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': CSRF_TOKEN
-      },
-      body: JSON.stringify({
-        student_id: studentId,
-        date: date
+    if (employeeId) {
+      // Обработка посещаемости сотрудника
+      fetch(`/schedule/${SCHEDULE_ID}/toggle_attendance/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+          employee_id: employeeId,
+          date: date
+        })
       })
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            updateAttendanceCell(cell, data);
+
+            // Обновляем счетчик посещений сотрудника
+            if (data.employee_id) {
+              const row = document.getElementById(`employee-${data.employee_id}`);
+              if (row) {
+                const countCell = row.querySelector('td:nth-child(5)');
+                if (countCell) {
+                  countCell.textContent = data.total_attendance;
+                }
+              }
+            }
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    else if (studentId) {
+      // Обработка посещаемости ученика
+      fetch(`/schedule/${SCHEDULE_ID}/toggle_attendance/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          date: date
+        })
       })
-      .then(data => {
-        if (data.status === 'success') {
-          updateAttendanceCell(cell, data);
-          updateAttendanceCounter(studentId, data.total_attendance);
-        } else {
-          console.error('Error:', data.message);
-        }
-      })
-      .catch(error => console.error('Error:', error));
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            updateAttendanceCell(cell, data);
+            updateAttendanceCounter(studentId, data.total_attendance);
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+  }
+
+  function generateAttendanceCells(employeeId) {
+    return DATES_JSON.map(date => `
+        <td class="date-cell" data-date="${date}">
+            <div class="attendance-cell text-center bg-danger"
+                data-employee-id="${employeeId}"
+                data-date="${date}"
+                data-attendance-type="absent">
+                <i class="bi bi-x-lg text-white"></i>
+            </div>
+        </td>
+    `).join('');
   }
 
   // Обновление внешнего вида ячейки
@@ -106,10 +149,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Вешаем обработчик на всю таблицу
-  const attendanceTable = document.querySelector('.attendance-table');
-  if (attendanceTable) {
-    attendanceTable.addEventListener('click', handleAttendanceClick);
+
+  // Вешаем обработчик на таблицу учеников
+const studentsTable = document.querySelector('#attendance-body');
+  if (studentsTable) {
+    studentsTable.addEventListener('click', handleAttendanceClick);
+  }
+
+  // Вешаем обработчик на таблицу сотрудников
+  const employeesTable = document.querySelector('#employees-table');
+  if (employeesTable) {
+    employeesTable.addEventListener('click', handleAttendanceClick);
+  }
+  function generateEmployeeAttendanceCells(employeeId, attendanceData) {
+    return DATES_JSON.map(date => {
+      const key = `${employeeId}_${date}`;
+      const status = attendanceData[key] || 'absent';
+
+      let bgClass, icon;
+      if (status === 'present') {
+        bgClass = 'bg-success';
+        icon = '<i class="bi bi-check-lg text-white"></i>';
+      } else if (status === 'excused') {
+        bgClass = 'bg-warning';
+        icon = '<i class="bi bi-exclamation-lg text-white"></i>';
+      } else {
+        bgClass = 'bg-danger';
+        icon = '<i class="bi bi-x-lg text-white"></i>';
+      }
+
+      return `
+            <td class="date-cell" data-date="${date}">
+                <div class="attendance-cell text-center ${bgClass}" 
+                    data-employee-id="${employeeId}"
+                    data-date="${date}"
+                    data-attendance-type="${status}">
+                    ${icon}
+                </div>
+            </td>
+        `;
+    }).join('');
   }
 
   // Добавление сотрудника
@@ -145,22 +224,43 @@ document.addEventListener('DOMContentLoaded', function () {
             const emptyRow = tableBody.querySelector('tr td[colspan]');
             if (emptyRow) emptyRow.closest('tr').remove();
 
+
+            // Генерируем ячейки посещаемости на основе данных с сервера
+            const attendanceCells = generateEmployeeAttendanceCells(
+              data.employee.id,
+              data.employee.attendance
+            );
+
+            const rowCount = tableBody.querySelectorAll('tr:not([style*="display: none"])').length;
+            const rowNumber = rowCount + 1;
+
             const newRow = document.createElement('tr');
             newRow.id = `employee-${data.employee.id}`;
             newRow.innerHTML = `
+                    <td>${rowNumber}</td>
                     <td>${data.employee.full_name}</td>
                     <td>${data.employee.position}</td>
-                    <td>${data.employee.rate_per_day} руб./день</td>
+                    <td>${data.employee.rate_per_day}</td>
+                    <td class="text-center">${data.employee.total_attendance}</td>
+                    ${attendanceCells}
                     <td>
                         <button class="btn btn-sm btn-danger remove-employee" 
                                 data-employee-id="${data.employee.id}"
-                                data-employee-display="${selectedOption.textContent}" 
+                                data-employee-display="${data.employee.full_name} (${data.employee.position})" 
                                 data-schedule-id="${SCHEDULE_ID}">
                             Удалить
                         </button>
                     </td>
                 `;
             tableBody.appendChild(newRow);
+            updateEmployeeRowNumbers();
+
+            function updateEmployeeRowNumbers() {
+              const rows = document.querySelectorAll('#employees-table tbody tr:not([style*="display: none"])');
+              rows.forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+              });
+            }
 
             if (selectedOption) {
               selectedOption.remove();
@@ -528,9 +628,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // Для сотрудников
   document.querySelectorAll('#employees-table tr[id^="employee-"]').forEach(row => {
     row.addEventListener('click', function (e) {
-      // Игнорируем клики на кнопке удаления
-      if (e.target.closest('.remove-employee')) return;
-
+      // Игнорируем клики на кнопке удаления и ячейках посещаемости
+      if (e.target.closest('.remove-employee') || e.target.closest('.attendance-cell')) {
+        return;
+      }
       const employeeId = this.id.split('-')[1];
       loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
     });
@@ -540,8 +641,9 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
     row.addEventListener('click', function (e) {
       // Игнорируем клики на ячейках посещения и кнопке удаления
-      if (e.target.closest('.attendance-cell, .remove-student-attendance')) return;
-
+      if (e.target.closest('.attendance-cell, .remove-student-attendance')) {
+        return;
+      }
       const studentId = this.dataset.studentId;
       loadFormIntoModal(`/students/${studentId}/quick_edit/`);
     });
@@ -663,229 +765,253 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Общая функция обработки кнопок удаления
   function handleDeleteButtonClick(button, entityType) {
-      const entityId = button.dataset[`${entityType}Id`];
-      const url = `/${entityType === 'student' ? 'students' : 'employees'}/delete/${entityId}/`;
+    const entityId = button.dataset[`${entityType}Id`];
+    const url = `/${entityType === 'student' ? 'students' : 'employees'}/delete/${entityId}/`;
 
-      fetch(url, {
-          method: 'POST',
-          headers: {
-              'X-CSRFToken': CSRF_TOKEN,
-              'X-Requested-With': 'XMLHttpRequest'
-          }
-      })
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
       .then(response => {
-          if (response.ok) {
-              return response.json();
-          }
-          throw new Error('Network response was not ok');
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Network response was not ok');
       })
       .then(data => {
-          if (data.success) {
-              const modal = bootstrap.Modal.getInstance(
-                  document.getElementById('universalFormModal')
-              );
-              modal.hide();
-              showToast(`${entityType === 'student' ? 'Ученик' : 'Сотрудник'} успешно удален`, 'success');
-              setTimeout(() => window.location.reload(), 1000);
-          }
+        if (data.success) {
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById('universalFormModal')
+          );
+          modal.hide();
+          showToast(`${entityType === 'student' ? 'Ученик' : 'Сотрудник'} успешно удален`, 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        }
       })
       .catch(error => {
-          console.error('Error:', error);
-          showToast('Произошла ошибка при удалении', 'error');
+        console.error('Error:', error);
+        showToast('Произошла ошибка при удалении', 'error');
       });
   }
 
-  document.getElementById('create-employee-btn')?.addEventListener('click', function() {
-      const modal = new bootstrap.Modal(document.getElementById('createEmployeeModal'));
-      modal.show();
+  document.getElementById('create-employee-btn')?.addEventListener('click', function () {
+    const modal = new bootstrap.Modal(document.getElementById('createEmployeeModal'));
+    modal.show();
   });
 
   // Обработчик для кнопки сохранения нового сотрудника
-  document.getElementById('save-employee-btn')?.addEventListener('click', function() {
-      const btn = this;
-      const originalText = btn.innerHTML;
-      
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
-      btn.disabled = true;
+  document.getElementById('save-employee-btn')?.addEventListener('click', function () {
+    const btn = this;
+    const originalText = btn.innerHTML;
 
-      const full_name = document.getElementById('employee_full_name').value;
-      const position = document.getElementById('position').value;
-      const rate_per_day = document.getElementById('rate_per_day').value;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
+    btn.disabled = true;
 
-      if (!full_name) {
-          showToast('ФИО сотрудника обязательно', 'error');
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          return;
-      }
+    const full_name = document.getElementById('employee_full_name').value;
+    const position = document.getElementById('position').value;
+    const rate_per_day = document.getElementById('rate_per_day').value;
 
-      fetch('/employees/create/ajax/', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': CSRF_TOKEN
-          },
-          body: JSON.stringify({
-              full_name: full_name,
-              position: position,
-              rate_per_day: rate_per_day
-          })
+    if (!full_name) {
+      showToast('ФИО сотрудника обязательно', 'error');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      return;
+    }
+
+    fetch('/employees/create/ajax/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN
+      },
+      body: JSON.stringify({
+        full_name: full_name,
+        position: position,
+        rate_per_day: rate_per_day
       })
+    })
       .then(response => response.json())
       .then(data => {
-          if (data.success) {
-              const modal = bootstrap.Modal.getInstance(document.getElementById('createEmployeeModal'));
-              modal.hide();
-              
-              // Обновляем выпадающий список
-              const select = document.querySelector('#employee-form select[name="employee"]');
-              const option = document.createElement('option');
-              option.value = data.employee.id;
-              option.textContent = `${data.employee.full_name} (${data.employee.get_position_display})`;
-              select.appendChild(option);
-              
-              // Автоматически выбираем нового сотрудника
-              select.value = data.employee.id;
-              
-              showToast('Сотрудник успешно создан', 'success');
-          } else {
-              showToast(data.error || 'Ошибка при создании сотрудника', 'error');
-          }
-          btn.innerHTML = originalText;
-          btn.disabled = false;
+        if (data.success) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('createEmployeeModal'));
+          modal.hide();
+
+          // Обновляем выпадающий список
+          const select = document.querySelector('#employee-form select[name="employee"]');
+          const option = document.createElement('option');
+          option.value = data.employee.id;
+          option.textContent = `${data.employee.full_name} (${data.employee.get_position_display})`;
+          select.appendChild(option);
+
+          // Автоматически выбираем нового сотрудника
+          select.value = data.employee.id;
+
+          showToast('Сотрудник успешно создан', 'success');
+        } else {
+          showToast(data.error || 'Ошибка при создании сотрудника', 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       })
       .catch(error => {
-          console.error('Error:', error);
-          showToast('Произошла ошибка при создании сотрудника', 'error');
-          btn.innerHTML = originalText;
-          btn.disabled = false;
+        console.error('Error:', error);
+        showToast('Произошла ошибка при создании сотрудника', 'error');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       });
   });
 
   // Обработчики для расходов
-  // Кнопка добавления расхода
-  document.getElementById('add-expense-btn')?.addEventListener('click', function() {
-      loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
-  });
-
-// Обработчик кликов по строкам расходов
-document.addEventListener('click', function(e) {
-    const row = e.target.closest('tr.clickable-expense-row');
-    if (row && !e.target.classList.contains('delete-expense-btn')) {
-        const expenseId = row.dataset.expenseId;
-        loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
+// Функция для обновления нумерации строк в таблице расходов
+function updateExpenseRowNumbers() {
+  const tableBody = document.getElementById('expenses-table-body');
+  const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
+  
+  rows.forEach((row, index) => {
+    // Пропускаем строку "Нет расходов"
+    if (!row.querySelector('td[colspan]')) {
+      const numberCell = row.querySelector('td:first-child');
+      if (numberCell) {
+        numberCell.textContent = index + 1;
+      }
     }
+  });
+}
+
+// Кнопка добавления расхода
+document.getElementById('add-expense-btn')?.addEventListener('click', function () {
+  loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
 });
 
-  // Кнопки удаления расхода
-document.addEventListener('click', function(e) {
-    // Обработка кнопок удаления расходов
-    if (e.target.classList.contains('delete-expense-btn')) {
-        const expenseId = e.target.dataset.expenseId;
-        if (confirm('Удалить этот расход?')) {
-            fetch(`/payroll/expenses/delete/${expenseId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': CSRF_TOKEN,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
-                    if (row) row.remove();
-                    
-                    // Обновляем таблицу если нет расходов
-                    if (!document.querySelector('#expenses-table-body tr')) {
-                        document.getElementById('expenses-table-body').innerHTML = 
-                            '<tr><td colspan="4" class="text-center">Нет расходов</td></tr>';
-                    }
-                    showToast('Расход успешно удален', 'success');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Произошла ошибка при удалении расхода', 'error');
-            });
+// Обработчик кликов по строкам расходов
+document.addEventListener('click', function (e) {
+  const row = e.target.closest('tr.clickable-expense-row');
+  if (row && !e.target.classList.contains('delete-expense-btn')) {
+    const expenseId = row.dataset.expenseId;
+    loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
+  }
+});
+
+// Кнопки удаления расхода
+document.addEventListener('click', function (e) {
+  // Обработка кнопок удаления расходов
+  if (e.target.classList.contains('delete-expense-btn')) {
+    const expenseId = e.target.dataset.expenseId;
+    if (confirm('Удалить этот расход?')) {
+      fetch(`/payroll/expenses/delete/${expenseId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': CSRF_TOKEN,
+          'X-Requested-With': 'XMLHttpRequest'
         }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
+            if (row) row.remove();
+
+            // Обновляем таблицу если нет расходов
+            if (!document.querySelector('#expenses-table-body tr')) {
+              document.getElementById('expenses-table-body').innerHTML =
+                '<tr><td colspan="5" class="text-center">Нет расходов</td></tr>';
+            } else {
+              // Обновляем нумерацию только если есть строки
+              updateExpenseRowNumbers();
+            }
+            showToast('Расход успешно удален', 'success');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при удалении расхода', 'error');
+        });
     }
+  }
 });
 
 // Обработчик отправки формы расхода
-document.addEventListener('submit', function(e) {
-    if (e.target.id === 'expense-form') {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        const isEdit = form.action.includes('edit');
-        
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': CSRF_TOKEN,
-                'X-Requested-With': 'XMLHttpRequest'
+document.addEventListener('submit', function (e) {
+  if (e.target.id === 'expense-form') {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const isEdit = form.action.includes('edit');
+
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Закрываем модальное окно
+          const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
+          if (modal) modal.hide();
+
+          // Обновляем таблицу расходов
+          const tableBody = document.getElementById('expenses-table-body');
+          const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
+
+          if (expenseRow) {
+            // Обновляем существующую строку
+            expenseRow.innerHTML = `
+              <td>${expenseRow.querySelector('td:first-child').textContent}</td>
+              <td>${data.expense.category_display}</td>
+              <td>${data.expense.comment || ''}</td>
+              <td>${data.expense.amount} руб.</td>
+              <td>
+                  <button class="btn btn-sm btn-danger delete-expense-btn" 
+                          data-expense-id="${data.expense.id}">
+                      Удалить
+                  </button>
+              </td>
+            `;
+          } else {
+            // Добавляем новую строку
+            const emptyRow = tableBody.querySelector('tr td[colspan]');
+            if (emptyRow) {
+              emptyRow.closest('tr').remove();
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Закрываем модальное окно
-                const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
-                if (modal) modal.hide();
-                
-                // Обновляем таблицу расходов
-                const tableBody = document.getElementById('expenses-table-body');
-                const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
-                
-                if (expenseRow) {
-                    // Обновляем существующую строку
-                    expenseRow.innerHTML = `
-                        <td>${data.expense.category_display}</td>
-                        <td>${data.expense.comment || ''}</td>
-                        <td>${data.expense.amount} руб.</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger delete-expense-btn" 
-                                    data-expense-id="${data.expense.id}">
-                                Удалить
-                            </button>
-                        </td>
-                    `;
-                } else {
-                    // Добавляем новую строку
-                    const emptyRow = tableBody.querySelector('tr td[colspan]');
-                    if (emptyRow) {
-                        emptyRow.closest('tr').remove();
-                    }
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.dataset.expenseId = data.expense.id;
-                    newRow.className = 'clickable-expense-row';
-                    newRow.innerHTML = `
-                        <td>${data.expense.category_display}</td>
-                        <td>${data.expense.comment || ''}</td>
-                        <td>${data.expense.amount} руб.</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger delete-expense-btn" 
-                                    data-expense-id="${data.expense.id}">
-                                Удалить
-                            </button>
-                        </td>
-                    `;
-                    tableBody.appendChild(newRow);
-                }
-                
-                showToast('Расход успешно сохранен', 'success');
-            } else {
-                // Обновляем содержимое модального окна с ошибками
-                document.getElementById('expense-modal-content').innerHTML = data.html;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Произошла ошибка при сохранении расхода', 'error');
-        });
-    }
+
+            const newRow = document.createElement('tr');
+            newRow.dataset.expenseId = data.expense.id;
+            newRow.className = 'clickable-expense-row';
+            newRow.innerHTML = `
+              <td></td> <!-- Пустая ячейка для номера -->
+              <td>${data.expense.category_display}</td>
+              <td>${data.expense.comment || ''}</td>
+              <td>${data.expense.amount} руб.</td>
+              <td>
+                  <button class="btn btn-sm btn-danger delete-expense-btn" 
+                          data-expense-id="${data.expense.id}">
+                      Удалить
+                  </button>
+              </td>
+            `;
+            tableBody.appendChild(newRow);
+            
+            // Обновляем нумерацию после добавления
+            updateExpenseRowNumbers();
+          }
+
+          showToast('Расход успешно сохранен', 'success');
+        } else {
+          // Обновляем содержимое модального окна с ошибками
+          document.getElementById('expense-modal-content').innerHTML = data.html;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при сохранении расхода', 'error');
+      });
+  }
 });
 });

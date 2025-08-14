@@ -6,7 +6,7 @@
   border-spacing: 2px;
 }
 
-.attendance-table th, 
+.attendance-table th,
 .attendance-table td {
   padding: 10px 12px;
   vertical-align: middle;
@@ -18,41 +18,43 @@
 /* Ширины для информационных столбцов */
 .attendance-table th:nth-child(1),
 .attendance-table td:nth-child(1) {
-  width: 40px; /* № */
+  width: 40px;
+  /* № */
   min-width: 40px;
   max-width: 40px;
 }
 
 .attendance-table th:nth-child(2),
 .attendance-table td:nth-child(2) {
-  width: 100px; 
+  width: 100px;
   min-width: 100px;
   max-width: 200px;
 }
 
 .attendance-table th:nth-child(3),
 .attendance-table td:nth-child(3) {
-  width: 100px; 
+  width: 100px;
   min-width: 90px;
 }
 
 .attendance-table th:nth-child(4),
 .attendance-table td:nth-child(4) {
-  width: 90px; 
+  width: 90px;
   min-width: 150px;
   max-width: 200px;
 }
 
 .attendance-table th:nth-child(5),
 .attendance-table td:nth-child(5) {
-  width: 150px; /* ФИО */
+  width: 150px;
+  /* ФИО */
   max-width: 350px;
   min-width: 200px;
 }
 
 .attendance-table th:nth-child(6),
 .attendance-table td:nth-child(6) {
-  width: 90px; 
+  width: 90px;
   min-width: 70px;
   max-width: 90px;
 }
@@ -60,41 +62,77 @@
 /* СТИЛИ ДЛЯ СТОЛБЦОВ С ДАТАМИ И ОТМЕТКАМИ */
 .attendance-table th.date-cell,
 .attendance-table td.date-cell {
-  width: 48px; /* Увеличена ширина */
-  min-width: 48px;
-  max-width: 48px;
-  padding: 4px !important;
+  width: 50px;
+  /* Фиксированная ширина */
+  min-width: 50px;
+  max-width: 50px;
+  height: 50px;
+  /* Фиксированная высота */
+  min-height: 50px;
+  max-height: 50px;
+  padding: 0 !important;
+  /* Убираем отступы */
+  text-align: center;
+  vertical-align: middle;
+}
+
+.attendance-table th.date-cell {
+  padding: 5px 0 !important;
+  /* Вертикальные отступы для текста */
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.attendance-table th.date-cell small {
+  display: block;
+  font-size: 0.7rem;
 }
 
 .date-cell {
   font-size: 0.8rem;
   text-align: center;
-  padding: 5px 2px !important;
+  padding: 0 !important;
 }
 
 .date-cell small {
   display: block;
   font-size: 0.7rem;
-  white-space: nowrap; /* Запрещаем перенос слов */
+  white-space: nowrap;
+  /* Запрещаем перенос слов */
 }
 
 /* СТИЛИ ДЛЯ ОТМЕТОК ПОСЕЩАЕМОСТИ */
 .attendance-cell {
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s;
-  border-radius: 4px;
-  margin: 0 auto;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-radius: 0;
+  /* Убираем скругление углов */
+  box-shadow: none;
+  /* Убираем тень */
+  transition: background-color 0.3s;
+}
+
+/* Для таблицы сотрудников */
+#employees-table .date-cell {
+  padding: 0 !important;
+}
+
+#employees-table {
+  margin-bottom: 15px;
+}
+
+/* Для таблицы учеников */
+#attendance-body .date-cell {
+  padding: 0 !important;
 }
 
 .attendance-cell:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  opacity: 0.9;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
 .attendance-cell.bg-success {
@@ -110,7 +148,7 @@
 }
 
 .attendance-cell i {
-  font-size: 1.2rem;
+  font-size: 1.8rem !important;
   color: white;
 }
 
@@ -129,8 +167,10 @@
   text-align: center;
   position: sticky;
   top: 0;
-  background-color: #f8f9fa; /* Светлый фон */
-  color: #212529; /* Темный текст */
+  background-color: #f8f9fa;
+  /* Светлый фон */
+  color: #212529;
+  /* Темный текст */
   z-index: 10;
   font-weight: 600;
   text-transform: uppercase;
@@ -141,6 +181,11 @@
 
 .attendance-table tbody td {
   background-color: #f8f9fa;
+}
+
+.attendance-table tbody tr {
+  height: 50px;
+  /* Фиксированная высота строки */
 }
 
 /* Подсветка текущего дня */
@@ -175,12 +220,14 @@
 }
 
 /* Кнопки экспорта */
-.btn-outline-success, .btn-outline-danger {
+.btn-outline-success,
+.btn-outline-danger {
   border-width: 2px;
   font-weight: 500;
 }
 
-.btn-outline-success:hover, .btn-outline-danger:hover {
+.btn-outline-success:hover,
+.btn-outline-danger:hover {
   color: white;
 }
 
@@ -205,15 +252,187 @@
   transition: all 0.3s;
   border-radius: 4px;
   margin: 0 auto;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .employee-attendance-cell:hover {
   transform: scale(1.1);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Для ячеек сотрудников */
 #employees-table .employee-attendance-cell {
   min-height: 40px;
+}
+
+/* Добавить стили для таблицы сотрудников */
+.attendance-table-employees th:nth-child(1),
+.attendance-table-employees td:nth-child(1) {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.attendance-table-employees th:nth-child(2),
+.attendance-table-employees td:nth-child(2) {
+  min-width: 200px;
+  max-width: 350px;
+}
+
+.attendance-table-employees th:nth-child(3),
+.attendance-table-employees td:nth-child(3) {
+  width: 120px;
+  min-width: 170px;
+  max-width: 200px;
+}
+
+.attendance-table-employees th:nth-child(4),
+.attendance-table-employees td:nth-child(4) {
+  width: 120px;
+  min-width: 120px;
+  max-width: 150px;
+}
+
+.attendance-table-employees th:nth-child(5),
+.attendance-table-employees td:nth-child(5) {
+  width: 90px;
+  min-width: 70px;
+  max-width: 90px;
+}
+
+.attendance-table.expenses-table td {
+  height: auto !important;
+}
+
+.attendance-table-employees th:last-child,
+.attendance-table-employees td:last-child {
+  min-width: 100px;
+}
+
+
+/* Стили для таблицы расходов */
+
+.attendance-table.expenses-table th:nth-child(1),
+.attendance-table.expenses-table td:nth-child(1) {
+  width: 20px;
+  min-width: 20px;
+  max-width: 20px;
+}
+
+.attendance-table.expenses-table th:nth-child(2),
+.attendance-table.expenses-table td:nth-child(2) {
+  min-width: 100px;
+  /* Категория */
+  max-width: 150px;
+}
+
+.attendance-table.expenses-table th:nth-child(3) {
+  min-width: 250px;
+  max-width: 400px;
+  text-align: center;
+  /* заголовок по центру */
+}
+
+.attendance-table.expenses-table td:nth-child(3) {
+  min-width: 250px;
+  max-width: 400px;
+  text-align: left;
+  /* комментарии по левому краю */
+  word-wrap: break-word;
+}
+
+.attendance-table.expenses-table th:nth-child(4),
+.attendance-table.expenses-table td:nth-child(4) {
+  min-width: 70px;
+  /* Сумма */
+  max-width: 90px;
+  text-align: center;
+}
+
+.attendance-table.expenses-table th:nth-child(5),
+.attendance-table.expenses-table td:nth-child(5) {
+  min-width: 80px;
+  /* Действия */
+  max-width: 100px;
+  text-align: center;
+}
+
+
+
+
+
+/* Унифицированные стили для форм */
+.form-container {
+  margin-bottom: 200px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+/* Выравнивание элементов внутри форм */
+.form-container .row.g-3 {
+  margin-bottom: 0;
+}
+
+/* Ширина кнопок в формах */
+.form-container .btn {
+  min-width: 120px;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+  .form-container .flex-wrap-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-container .btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+}
+
+/* Единые стили для всех форм */
+.form-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid button {
+    width: 100%;
+  }
+}
+
+.form-grid .select-wrapper {
+  min-width: 100%;
+}
+
+.card.mb-5 {
+  margin-bottom: 3rem !important;
+
+}
+
+
+#employees-table-container {
+  padding-bottom: 40px;
+}
+
+#employees-table-container .attendance-table-employees tr:last-child td {
+  border-bottom: 2px solid #dee2e6;
 }

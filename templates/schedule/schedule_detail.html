@@ -8,89 +8,126 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container page-container">
-        <!-- Кнопка Назад -->
-        <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
-            &larr; Назад к календарю
-        </a>
-        
-        <h1>{{ schedule.name }}</h1>
-        <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
-        <p><strong>Тематика:</strong> {{ schedule.theme }}</p>
-        <!-- Универсальное модальное окно для форм -->
+<div class="container page-container">
+    <!-- Кнопка Назад -->
+    <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
+        &larr; Назад к календарю
+    </a>
+    
+    <h1>{{ schedule.name }}</h1>
+    <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
+    <p><strong>Тематика:</strong> {{ schedule.theme }}</p>
+    
+    <!-- Универсальное модальное окно для форм -->
     <div class="modal fade" id="universalFormModal" tabindex="-1" aria-labelledby="universalFormModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" id="universalFormModalContent">
-        <!-- Сюда будет загружаться контент -->
+        <div class="modal-dialog">
+            <div class="modal-content" id="universalFormModalContent">
+                <!-- Сюда будет загружаться контент -->
+            </div>
         </div>
     </div>
-    </div>
+    
     <!-- Сотрудники группы - на всю ширину -->
-    <div class="card mb-4">
+    <div class="card mb-5">
         <div class="card-header bg-primary text-white">
             <h3>Сотрудники группы</h3>
         </div>
         <div class="card-body">
-            <form method="post" class="mb-4" id="employee-form" action="{% url 'schedule_detail' pk=schedule.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_employee">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-8">
-                        <label class="form-label">Добавить сотрудника</label>
-                        <select name="employee" class="form-select" required>
-                            <option value="">Выберите сотрудника</option>
-                            {% for emp in available_employees %}
-                                <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.get_position_display }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end gap-2">
+            <!-- Форма сотрудника -->
+            <div class="form-container">
+                <form method="post" id="employee-form" action="{% url 'schedule_detail' pk=schedule.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_employee">
+                    <div class="form-grid">
+                        <div class="select-wrapper">
+                            <label class="form-label">Добавить сотрудника</label>
+                            <select name="employee" class="form-select" required>
+                                <option value="">Выберите сотрудника</option>
+                                {% for emp in available_employees %}
+                                    <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.get_position_display }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <button type="submit" class="btn btn-success">Добавить</button>
-                            <button type="button" class="btn btn-primary mt-2" id="create-employee-btn">
-                                Создать
-                            </button>
+                        <button type="button" class="btn btn-primary" id="create-employee-btn">Создать</button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
             
-            <div class="table-responsive">
-                <table class="table table-striped">
+                <div class="table-responsive" id="employees-table-container">
+                <table class="attendance-table attendance-table-employees">       
                     <thead>
                         <tr>
+                            <th>№</th>
                             <th>ФИО</th>
                             <th>Должность</th>
-                            <th>Ставка</th>
+                            <th>Ставка, руб/день</th>
+                            <th>Явка</th>
+                            {% for date in dates %}
+                                <th class="text-center date-cell" data-date="{{ date|date:'Y-m-d' }}">
+                                    {{ date|date:"d.m" }}<br>
+                                    <small>{{ date|date:"D" }}</small>
+                                </th>
+                            {% endfor %}
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody id="employees-table">
                         {% for employee in employees %}
-                        <tr id="employee-{{ employee.id }}">
-                            <td>{{ employee.full_name }}</td>
-                            <td>{{ employee.get_position_display }}</td>
-                            <td>{{ employee.rate_per_day }} руб./день</td>
-                            <td>
-                                <button class="btn btn-sm btn-danger remove-employee" 
-                                        data-employee-id="{{ employee.id }}"
-                                        data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
-                                        data-schedule-id="{{ schedule.id }}">
-                                    Удалить
-                                </button>
-                            </td>
-                        </tr>
+                            <tr id="employee-{{ employee.id }}">
+                                <td>{{ forloop.counter }}</td>
+                                <td class="student-column">{{ employee.full_name }}</td>
+                                <td>{{ employee.get_position_display }}</td>
+                                <td>{{ employee.rate_per_day }}</td>
+                                <td class="text-center">{{ employee_attendance_counts|get_item:employee.id }}</td>
+                                {% for date in dates %}
+                                    {% with key=employee.id|stringformat:"s"|add:"_"|add:date.isoformat %}
+                                        <td class="date-cell" data-date="{{ date|date:'Y-m-d' }}">
+                                            <div class="attendance-cell-wrapper"> 
+                                            <div class="attendance-cell text-center 
+                                                {% if employee_attendance|get_item:key == 'present' %}bg-success
+                                                {% elif employee_attendance|get_item:key == 'excused' %}bg-warning
+                                                {% else %}bg-danger
+                                                {% endif %}" 
+                                                data-employee-id="{{ employee.id }}"
+                                                data-date="{{ date|date:'Y-m-d' }}"
+                                                data-attendance-type="{% if employee_attendance|get_item:key == 'present' %}present{% elif employee_attendance|get_item:key == 'excused' %}excused{% else %}absent{% endif %}">
+                                                {% if employee_attendance|get_item:key == 'present' %}
+                                                    <i class="bi bi-check-lg text-white"></i>
+                                                {% elif employee_attendance|get_item:key == 'excused' %}
+                                                    <i class="bi bi-exclamation-lg text-white"></i>
+                                                {% else %}
+                                                    <i class="bi bi-x-lg text-white"></i>
+                                                {% endif %}
+                                            </div>
+                                            </div>
+                                        </td>
+                                    {% endwith %}
+                                {% endfor %}
+                                <td>
+                                    <button class="btn btn-sm btn-danger remove-employee" 
+                                            data-employee-id="{{ employee.id }}"
+                                            data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
+                                            data-schedule-id="{{ schedule.id }}">
+                                        Удалить
+                                    </button>
+                                </td>
+                            </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет сотрудников</td>
-                        </tr>
+                            <tr>
+                                <td colspan="{{ 5|add:dates|length|add:1 }}" class="text-center">
+                                    Нет сотрудников
+                                </td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </div>  
     
     <!-- Таблица посещаемости -->
-    <div class="card mb-4">
+    <div class="card mb-5">
         <div class="card-header bg-primary text-white">
             <div class="d-flex justify-content-between align-items-center">
                 <h3>Посещаемость</h3>
@@ -102,66 +139,57 @@
             </div>
         </div>
         <div class="card-body">
-            <!-- Форма добавления ученика -->
-            <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_student">
-                <div class="student-addition-form">
-                    <div class="row g-3 align-items-    end">
-                        <div class="col-md-8">
+            <!-- Форма ученика -->
+            <div class="form-container">
+                <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_student">
+                    <div class="form-grid">
+                        <div class="select-wrapper">
                             <label class="form-label">Добавить ученика</label>
-                            <div class="flex-wrap-container">
-                                <div class="select-wrapper">
-                                    <select name="student" class="form-select" required id="student-select">
-                                        <option value="">Выберите ученика</option>
-                                        {% for student in available_students %}
-                                            <option value="{{ student.id }}">{{ student.full_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                
-                                <button type="submit" class="btn btn-success btn-action">
-                                    Добавить
-                                </button>
-                                <button type="button" class="btn btn-primary btn-action" id="create-student-btn">
-                                    Создать
-                                </button>
-                            </div>
+                            <select name="student" class="form-select" required id="student-select">
+                                <option value="">Выберите ученика</option>
+                                {% for student in available_students %}
+                                    <option value="{{ student.id }}">{{ student.full_name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
+                        <button type="submit" class="btn btn-success">Добавить</button>
+                        <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Фильтр по ученику</label>
+                        <input type="text" id="attendance-student-filter" class="form-control" placeholder="ФИО ученика">
+                    </div>
+                                    
+                    <div class="filter-group">
+                        <label>Тип</label>
+                        <select id="attendance-type-filter" class="form-select">
+                            <option value="">Все типы</option>
+                            <option value="camp">Лагерь</option>
+                            <option value="lab">Лаборатория</option>
+                            <option value="full_day">Полный день</option>
+                        </select>
+                    </div>          
+
+                    <div class="filter-group">
+                        <label>Сортировка</label>
+                        <select id="attendance-sort" class="form-select">
+                            <option value="">Сортировать по...</option>
+                            <option value="name-asc">Имя (А-Я)</option>
+                            <option value="name-desc">Имя (Я-А)</option>
+                            <option value="visits-asc">Посещения (↑)</option>
+                            <option value="visits-desc">Посещения (↓)</option>
+                        </select>
                     </div>
                 </div>
-            </form>
-
-        <!-- Фильтры -->
-        <div class="filter-section">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Фильтр по ученику</label>
-                    <input type="text" id="attendance-student-filter" class="form-control" placeholder="ФИО ученика">
-                </div>
-                                
-                <div class="filter-group">
-                    <label>Тип</label>
-                    <select id="attendance-type-filter" class="form-select">
-                        <option value="">Все типы</option>
-                        <option value="camp">Лагерь</option>
-                        <option value="lab">Лаборатория</option>
-                        <option value="full_day">Полный день</option>
-                    </select>
-                </div>          
-
-                <div class="filter-group">
-                    <label>Сортировка</label>
-                    <select id="attendance-sort" class="form-select">
-                        <option value="">Сортировать по...</option>
-                        <option value="name-asc">Имя (А-Я)</option>
-                        <option value="name-desc">Имя (Я-А)</option>
-                        <option value="visits-asc">Посещения (↑)</option>
-                        <option value="visits-desc">Посещения (↓)</option>
-                    </select>
-                </div>
             </div>
-        </div>
             
             <div class="table-responsive">
                 <table class="table table-bordered attendance-table">
@@ -172,7 +200,7 @@
                             <th>Платежи</th>
                             <th>Тип</th>
                             <th>ФИО</th>
-                            <th>Посещения</th>
+                            <th>Явка</th>
                             {% for date in dates %}
                                 <th class="text-center date-cell" data-date="{{ date|date:'Y-m-d' }}">
                                     {{ date|date:"d.m" }}<br>
@@ -229,154 +257,160 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Модальное окно для создания ученика -->
-<div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createStudentModalLabel">Создать нового ученика</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    
+    <!-- Расходы группы -->
+    <div class="card mb-5">
+        <div class="card-header bg-primary text-white">
+            <h3>Расходы</h3>
+        </div>
+        <div class="card-body">
+            <!-- Форма расходов -->
+            <div class="form-container">
+                <div class="form-grid">
+                    <div></div>
+                    <button type="button" class="btn btn-success" id="add-expense-btn">Добавить расход</button>
+                    <div></div>
+                </div>
             </div>
+            
+            <div class="table-responsive">
+                <table class="table table-bordered attendance-table expenses-table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Категория</th>
+                            <th>Комментарий</th>
+                            <th>Сумма, руб</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenses-table-body">
+                        {% for expense in expenses %}
+                        <tr data-expense-id="{{ expense.id }}" class="clickable-expense-row">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ expense.get_category_display }}</td>
+                            <td>{{ expense.comment }}</td>
+                            <td>{{ expense.amount }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger delete-expense-btn" 
+                                        data-expense-id="{{ expense.id }}">
+                                    Удалить
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Нет расходов</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для создания ученика -->
+    <div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createStudentModalLabel">Создать нового ученика</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                    <div class="modal-body">
+                        <form id="create-student-form">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">ФИО *</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                            <div class="mb-3">
+                                <label for="parent_name" class="form-label">Родитель</label>
+                                <input type="text" class="form-control" id="parent_name" name="parent_name">
+                            </div>
+                            <div class="mb-3">
+                                <label for="default_price" class="form-label">Базовая цена</label>
+                                <input type="number" class="form-control" id="default_price" name="default_price" value="15000">
+                            </div>
+                            <div class="mb-3">
+                                <label for="attendance_type" class="form-label">Тип посещения *</label>
+                                <select class="form-select" id="attendance_type" name="attendance_type" required>
+                                    <option value="camp">Лагерь</option>
+                                    <option value="lab">Лаборатория</option>
+                                    <option value="full_day" selected>Полный день</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="save-student-btn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
                 <div class="modal-body">
-                    <form id="create-student-form">
+                    <form id="create-employee-form">
                         {% csrf_token %}
                         <div class="mb-3">
-                            <label for="full_name" class="form-label">ФИО *</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            <label for="employee_full_name" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Телефон</label>
-                            <input type="tel" class="form-control" id="phone" name="phone">
-                        </div>
-                        <div class="mb-3">
-                            <label for="parent_name" class="form-label">Родитель</label>
-                            <input type="text" class="form-control" id="parent_name" name="parent_name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="default_price" class="form-label">Базовая цена</label>
-                            <input type="number" class="form-control" id="default_price" name="default_price" value="15000">
-                        </div>
-                        <div class="mb-3">
-                            <label for="attendance_type" class="form-label">Тип посещения *</label>
-                            <select class="form-select" id="attendance_type" name="attendance_type" required>
-                                <option value="camp">Лагерь</option>
-                                <option value="lab">Лаборатория</option>
-                                <option value="full_day" selected>Полный день</option>
+                            <label for="position" class="form-label">Должность *</label>
+                            <select class="form-select" id="position" name="position" required>
+                                <option value="teacher">Преподаватель</option>
+                                <option value="assistant">Ассистент</option>
+                                <option value="camp_head">Начальник лагеря</option>
+                                <option value="lab_head">Начальник лаборатории</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rate_per_day" class="form-label">Ставка за день</label>
+                            <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
                         </div>
                     </form>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="save-student-btn">Сохранить</button>
+    <!-- Модальное окно для формы расхода -->
+    <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="expense-modal-content">
+                <!-- Контент будет загружен через AJAX -->
             </div>
         </div>
     </div>
 </div>
-
-<div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="create-employee-form">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="employee_full_name" class="form-label">ФИО *</label>
-                        <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="position" class="form-label">Должность *</label>
-                        <select class="form-select" id="position" name="position" required>
-                            <option value="teacher">Преподаватель</option>
-                            <option value="assistant">Ассистент</option>
-                            <option value="camp_head">Начальник лагеря</option>
-                            <option value="lab_head">Начальник лаборатории</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="rate_per_day" class="form-label">Ставка за день</label>
-                        <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Расходы группы -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h3>Расходы</h3>
-    </div>
-    <div class="card-body">
-        <button type="button" class="btn btn-success mb-3" id="add-expense-btn">Добавить расход</button>
-        
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Категория</th>
-                        <th>Комментарий</th>
-                        <th>Сумма</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody id="expenses-table-body">
-                    {% for expense in expenses %}
-                    <tr data-expense-id="{{ expense.id }}" class="clickable-expense-row">
-                        <td>{{ expense.get_category_display }}</td>
-                        <td>{{ expense.comment }}</td>
-                        <td>{{ expense.amount }} руб.</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger delete-expense-btn" 
-                                    data-expense-id="{{ expense.id }}">
-                                Удалить
-                            </button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center">Нет расходов</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно для формы расхода -->
-<div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" id="expense-modal-content">
-            <!-- Контент будет загружен через AJAX -->
-        </div>
-    </div>
-</div>
-
-
-
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
   // Глобальные переменные для использования в JS
-  const SCHEDULE_ID = "{{ schedule.id }}";
-  const CSRF_TOKEN = "{{ csrf_token }}";
-  const DATES_JSON = JSON.stringify([
-    {% for date in dates %}"{{ date|date:'Y-m-d' }}",{% endfor %}
-  ]);
+    const SCHEDULE_ID = "{{ schedule.id }}";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const DATES_JSON = [
+        {% for date in dates %}"{{ date|date:'Y-m-d' }}",{% endfor %}
+    ];
 </script>
 <script src="{% static 'js/schedule_detail.js' %}"></script>
 {% endblock %}
