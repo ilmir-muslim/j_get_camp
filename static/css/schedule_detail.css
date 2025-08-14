@@ -175,3 +175,32 @@
     width: 100%;
 }
 
+/* Фиксированный размер для обертки итогов */
+.attendance-table tfoot .attendance-cell-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2px;
+}
+
+/* Уменьшаем размер текста в ячейках итогов */
+.attendance-table tfoot .present-count,
+.attendance-table tfoot .present-percent {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* Фиксируем размеры ячеек */
+.attendance-table td.date-cell,
+.attendance-table th.date-cell {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+}

@@ -3,6 +3,7 @@ restore_backup.sh
 .env
 .vscode/
 venv/
+fixtures/
 # Ignore Python cache files
 __pycache__/
 *.py[cod]

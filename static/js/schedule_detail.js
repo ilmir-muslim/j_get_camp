@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Функция для обработки кликов по ячейкам посещаемости
   function handleAttendanceClick(event) {
     const cell = event.target.closest('.attendance-cell');
-  if (!cell) return;
+    if (!cell) return;
 
     // Проверяем, это сотрудник или ученик
     const employeeId = cell.dataset.employeeId;
@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
               }
             }
+            updateAttendanceTotals(); // Обновляем итоги
           }
         })
         .catch(error => console.error('Error:', error));
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.status === 'success') {
             updateAttendanceCell(cell, data);
             updateAttendanceCounter(studentId, data.total_attendance);
+            updateAttendanceTotals(); // Обновляем итоги
           }
         })
         .catch(error => console.error('Error:', error));
@@ -149,9 +151,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Функция для обновления итогов посещаемости
+  function updateAttendanceTotals() {
+    // Для сотрудников
+    DATES_JSON.forEach(date => {
+      const employeeCells = document.querySelectorAll(
+        `#employees-table .attendance-cell[data-date="${date}"][data-attendance-type="present"]`
+      );
+      const count = employeeCells.length;
+      const totalCell = document.querySelector(`#employee-total-row td[data-date="${date}"] .present-count`);
+      if (totalCell) {
+        totalCell.textContent = count;
+      }
+    });
+
+    // Для учеников
+    DATES_JSON.forEach(date => {
+      const studentCells = document.querySelectorAll(
+        `#attendance-body .attendance-cell[data-date="${date}"][data-attendance-type="present"]`
+      );
+      const count = studentCells.length;
+      const totalCell = document.querySelector(`#student-total-row td[data-date="${date}"] .present-count`);
+      if (totalCell) {
+        totalCell.textContent = count;
+      }
+    });
+  }
 
   // Вешаем обработчик на таблицу учеников
-const studentsTable = document.querySelector('#attendance-body');
+  const studentsTable = document.querySelector('#attendance-body');
   if (studentsTable) {
     studentsTable.addEventListener('click', handleAttendanceClick);
   }
@@ -161,6 +189,7 @@ const studentsTable = document.querySelector('#attendance-body');
   if (employeesTable) {
     employeesTable.addEventListener('click', handleAttendanceClick);
   }
+  
   function generateEmployeeAttendanceCells(employeeId, attendanceData) {
     return DATES_JSON.map(date => {
       const key = `${employeeId}_${date}`;
@@ -224,7 +253,6 @@ const studentsTable = document.querySelector('#attendance-body');
             const emptyRow = tableBody.querySelector('tr td[colspan]');
             if (emptyRow) emptyRow.closest('tr').remove();
 
-
             // Генерируем ячейки посещаемости на основе данных с сервера
             const attendanceCells = generateEmployeeAttendanceCells(
               data.employee.id,
@@ -268,6 +296,7 @@ const studentsTable = document.querySelector('#attendance-body');
 
             this.reset();
             showToast('Сотрудник успешно добавлен', 'success');
+            updateAttendanceTotals(); // Обновляем итоги
           } else {
             showToast(data.error || 'Ошибка добавления сотрудника', 'error');
           }
@@ -310,6 +339,7 @@ const studentsTable = document.querySelector('#attendance-body');
         .then(data => {
           if (data.success) {
             showToast('Ученик успешно добавлен в смену', 'success');
+            updateAttendanceTotals(); // Обновляем итоги
             setTimeout(() => {
               window.location.reload();
             }, 1000);
@@ -371,6 +401,7 @@ const studentsTable = document.querySelector('#attendance-body');
               }
 
               showToast('Сотрудник удален из смены', 'success');
+              updateAttendanceTotals(); // Обновляем итоги
             }
           })
           .catch(error => {
@@ -420,6 +451,7 @@ const studentsTable = document.querySelector('#attendance-body');
               }
 
               showToast('Ученик удален из смены', 'success');
+              updateAttendanceTotals(); // Обновляем итоги
             }
           })
           .catch(error => {
@@ -865,44 +897,85 @@ const studentsTable = document.querySelector('#attendance-body');
   });
 
   // Обработчики для расходов
-// Функция для обновления нумерации строк в таблице расходов
-function updateExpenseRowNumbers() {
-  const tableBody = document.getElementById('expenses-table-body');
-  const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
-  
-  rows.forEach((row, index) => {
-    // Пропускаем строку "Нет расходов"
-    if (!row.querySelector('td[colspan]')) {
-      const numberCell = row.querySelector('td:first-child');
-      if (numberCell) {
-        numberCell.textContent = index + 1;
+  // Функция для обновления нумерации строк в таблице расходов
+  function updateExpenseRowNumbers() {
+    const tableBody = document.getElementById('expenses-table-body');
+    const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
+
+    rows.forEach((row, index) => {
+      // Пропускаем строку "Нет расходов"
+      if (!row.querySelector('td[colspan]')) {
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) {
+          numberCell.textContent = index + 1;
+        }
+      }
+    });
+  }
+
+  // Кнопка добавления расхода
+  document.getElementById('add-expense-btn')?.addEventListener('click', function () {
+    loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
+  });
+
+  // Обработчик кликов по строкам расходов
+  document.addEventListener('click', function (e) {
+    const row = e.target.closest('tr.clickable-expense-row');
+    if (row && !e.target.classList.contains('delete-expense-btn')) {
+      const expenseId = row.dataset.expenseId;
+      loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
+    }
+  });
+
+  // Кнопки удаления расхода
+  document.addEventListener('click', function (e) {
+    // Обработка кнопок удаления расходов
+    if (e.target.classList.contains('delete-expense-btn')) {
+      const expenseId = e.target.dataset.expenseId;
+      if (confirm('Удалить этот расход?')) {
+        fetch(`/payroll/expenses/delete/${expenseId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
+              if (row) row.remove();
+
+              // Обновляем таблицу если нет расходов
+              if (!document.querySelector('#expenses-table-body tr')) {
+                document.getElementById('expenses-table-body').innerHTML =
+                  '<tr><td colspan="5" class="text-center">Нет расходов</td></tr>';
+              } else {
+                // Обновляем нумерацию только если есть строки
+                updateExpenseRowNumbers();
+              }
+              showToast('Расход успешно удален', 'success');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showToast('Произошла ошибка при удалении расхода', 'error');
+          });
       }
     }
   });
-}
 
-// Кнопка добавления расхода
-document.getElementById('add-expense-btn')?.addEventListener('click', function () {
-  loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
-});
+  // Обработчик отправки формы расхода
+  document.addEventListener('submit', function (e) {
+    if (e.target.id === 'expense-form') {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const isEdit = form.action.includes('edit');
 
-// Обработчик кликов по строкам расходов
-document.addEventListener('click', function (e) {
-  const row = e.target.closest('tr.clickable-expense-row');
-  if (row && !e.target.classList.contains('delete-expense-btn')) {
-    const expenseId = row.dataset.expenseId;
-    loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
-  }
-});
-
-// Кнопки удаления расхода
-document.addEventListener('click', function (e) {
-  // Обработка кнопок удаления расходов
-  if (e.target.classList.contains('delete-expense-btn')) {
-    const expenseId = e.target.dataset.expenseId;
-    if (confirm('Удалить этот расход?')) {
-      fetch(`/payroll/expenses/delete/${expenseId}/`, {
+      fetch(form.action, {
         method: 'POST',
+        body: formData,
         headers: {
           'X-CSRFToken': CSRF_TOKEN,
           'X-Requested-With': 'XMLHttpRequest'
@@ -911,58 +984,17 @@ document.addEventListener('click', function (e) {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
-            if (row) row.remove();
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
+            if (modal) modal.hide();
 
-            // Обновляем таблицу если нет расходов
-            if (!document.querySelector('#expenses-table-body tr')) {
-              document.getElementById('expenses-table-body').innerHTML =
-                '<tr><td colspan="5" class="text-center">Нет расходов</td></tr>';
-            } else {
-              // Обновляем нумерацию только если есть строки
-              updateExpenseRowNumbers();
-            }
-            showToast('Расход успешно удален', 'success');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showToast('Произошла ошибка при удалении расхода', 'error');
-        });
-    }
-  }
-});
+            // Обновляем таблицу расходов
+            const tableBody = document.getElementById('expenses-table-body');
+            const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
 
-// Обработчик отправки формы расхода
-document.addEventListener('submit', function (e) {
-  if (e.target.id === 'expense-form') {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    const isEdit = form.action.includes('edit');
-
-    fetch(form.action, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-CSRFToken': CSRF_TOKEN,
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Закрываем модальное окно
-          const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
-          if (modal) modal.hide();
-
-          // Обновляем таблицу расходов
-          const tableBody = document.getElementById('expenses-table-body');
-          const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
-
-          if (expenseRow) {
-            // Обновляем существующую строку
-            expenseRow.innerHTML = `
+            if (expenseRow) {
+              // Обновляем существующую строку
+              expenseRow.innerHTML = `
               <td>${expenseRow.querySelector('td:first-child').textContent}</td>
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
@@ -974,17 +1006,17 @@ document.addEventListener('submit', function (e) {
                   </button>
               </td>
             `;
-          } else {
-            // Добавляем новую строку
-            const emptyRow = tableBody.querySelector('tr td[colspan]');
-            if (emptyRow) {
-              emptyRow.closest('tr').remove();
-            }
+            } else {
+              // Добавляем новую строку
+              const emptyRow = tableBody.querySelector('tr td[colspan]');
+              if (emptyRow) {
+                emptyRow.closest('tr').remove();
+              }
 
-            const newRow = document.createElement('tr');
-            newRow.dataset.expenseId = data.expense.id;
-            newRow.className = 'clickable-expense-row';
-            newRow.innerHTML = `
+              const newRow = document.createElement('tr');
+              newRow.dataset.expenseId = data.expense.id;
+              newRow.className = 'clickable-expense-row';
+              newRow.innerHTML = `
               <td></td> <!-- Пустая ячейка для номера -->
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
@@ -996,22 +1028,25 @@ document.addEventListener('submit', function (e) {
                   </button>
               </td>
             `;
-            tableBody.appendChild(newRow);
-            
-            // Обновляем нумерацию после добавления
-            updateExpenseRowNumbers();
-          }
+              tableBody.appendChild(newRow);
 
-          showToast('Расход успешно сохранен', 'success');
-        } else {
-          // Обновляем содержимое модального окна с ошибками
-          document.getElementById('expense-modal-content').innerHTML = data.html;
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при сохранении расхода', 'error');
-      });
-  }
-});
+              // Обновляем нумерацию после добавления
+              updateExpenseRowNumbers();
+            }
+
+            showToast('Расход успешно сохранен', 'success');
+          } else {
+            // Обновляем содержимое модального окна с ошибками
+            document.getElementById('expense-modal-content').innerHTML = data.html;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при сохранении расхода', 'error');
+        });
+    }
+  });
+  
+  // Инициализация итогов при загрузке страницы
+  updateAttendanceTotals();
 });

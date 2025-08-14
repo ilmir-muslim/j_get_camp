@@ -121,6 +121,19 @@
                             </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr id="employee-total-row">
+                            <td colspan="5" class="text-end"><strong>Итого за день:</strong></td>
+                            {% for date in dates %}
+                                <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
+                                    <div class="attendance-cell-wrapper">
+                                    <span class="present-count">0</span>
+                                    </div>
+                                </td>
+                            {% endfor %}
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -253,6 +266,19 @@
                             </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr id="student-total-row">
+                            <td colspan="6" class="text-end"><strong>Итого за день:</strong></td>
+                            {% for date in dates %}
+                                <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
+                                    <div class="attendance-cell-wrapper">
+                                    <span class="present-count">0</span>
+                                    </div>
+                                </td>
+                            {% endfor %}
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

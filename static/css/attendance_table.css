@@ -21,7 +21,7 @@
   width: 40px;
   /* № */
   min-width: 40px;
-  max-width: 40px;
+  max-width: 80px;
 }
 
 .attendance-table th:nth-child(2),
@@ -270,7 +270,7 @@
 .attendance-table-employees td:nth-child(1) {
   width: 40px;
   min-width: 40px;
-  max-width: 40px;
+  max-width: 80px;
 }
 
 .attendance-table-employees th:nth-child(2),
@@ -316,7 +316,7 @@
 .attendance-table.expenses-table td:nth-child(1) {
   width: 20px;
   min-width: 20px;
-  max-width: 20px;
+  max-width: 40px;
 }
 
 .attendance-table.expenses-table th:nth-child(2),
