@@ -37,6 +37,24 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  // Функция для обновления нумерации строк в таблице сотрудников
+  function updateEmployeeRowNumbers() {
+    const tableBody = document.getElementById('employees-table');
+    const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
+    rows.forEach((row, index) => {
+      row.cells[0].textContent = index + 1;
+    });
+  }
+
+  // Функция для обновления нумерации строк в таблице учеников
+  function updateStudentRowNumbers() {
+    const tableBody = document.getElementById('attendance-body');
+    const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
+    rows.forEach((row, index) => {
+      row.cells[0].textContent = index + 1;
+    });
+  }
+
   // Функция для обработки кликов по ячейкам посещаемости
   function handleAttendanceClick(event) {
     const cell = event.target.closest('.attendance-cell');
@@ -69,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.employee_id) {
               const row = document.getElementById(`employee-${data.employee_id}`);
               if (row) {
-                const countCell = row.querySelector('td:nth-child(5)');
+                const countCell = row.querySelector('td:nth-child(6)');
                 if (countCell) {
                   countCell.textContent = data.total_attendance;
                 }
@@ -144,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (!row) return;
 
-    const countCell = row.querySelector('td:nth-child(6)');
+    const countCell = row.querySelector('td:nth-child(7)');
     if (countCell) {
       countCell.textContent = count;
       row.dataset.visits = count;
@@ -189,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (employeesTable) {
     employeesTable.addEventListener('click', handleAttendanceClick);
   }
-  
+
   function generateEmployeeAttendanceCells(employeeId, attendanceData) {
     return DATES_JSON.map(date => {
       const key = `${employeeId}_${date}`;
@@ -266,29 +284,24 @@ document.addEventListener('DOMContentLoaded', function () {
             newRow.id = `employee-${data.employee.id}`;
             newRow.innerHTML = `
                     <td>${rowNumber}</td>
+                    <td>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
+                                data-employee-id="${data.employee.id}"
+                                data-employee-display="${data.employee.full_name} (${data.employee.position})" 
+                                data-schedule-id="${SCHEDULE_ID}">
+                            <i class="bi bi-trash text-danger fs-5"></i>
+                        </button>
+                    </td>
                     <td>${data.employee.full_name}</td>
                     <td>${data.employee.position}</td>
                     <td>${data.employee.rate_per_day}</td>
                     <td class="text-center">${data.employee.total_attendance}</td>
                     ${attendanceCells}
-                    <td>
-                        <button class="btn btn-sm btn-danger remove-employee" 
-                                data-employee-id="${data.employee.id}"
-                                data-employee-display="${data.employee.full_name} (${data.employee.position})" 
-                                data-schedule-id="${SCHEDULE_ID}">
-                            Удалить
-                        </button>
-                    </td>
                 `;
             tableBody.appendChild(newRow);
             updateEmployeeRowNumbers();
 
-            function updateEmployeeRowNumbers() {
-              const rows = document.querySelectorAll('#employees-table tbody tr:not([style*="display: none"])');
-              rows.forEach((row, index) => {
-                row.cells[0].textContent = index + 1;
-              });
-            }
+
 
             if (selectedOption) {
               selectedOption.remove();
@@ -354,12 +367,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Удаление сотрудника
+  // Удаление сотрудника (обновлено для работы с иконками)
   document.addEventListener('click', function (e) {
-    if (e.target.classList.contains('remove-employee')) {
-      const employeeId = e.target.dataset.employeeId;
-      const employeeDisplay = e.target.dataset.employeeDisplay;
-      const scheduleId = e.target.dataset.scheduleId;
+    const removeBtn = e.target.closest('.remove-employee');
+    if (removeBtn) {
+      const employeeId = removeBtn.dataset.employeeId;
+      const employeeDisplay = removeBtn.dataset.employeeDisplay;
+      const scheduleId = removeBtn.dataset.scheduleId;
 
       if (confirm('Удалить сотрудника из смены?')) {
         fetch(`/schedule/${scheduleId}/remove_employee/${employeeId}/`, {
@@ -373,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function () {
           .then(data => {
             if (data.success) {
               document.getElementById(`employee-${employeeId}`).remove();
+              updateEmployeeRowNumbers();
 
               const tableBody = document.getElementById('employees-table');
               if (tableBody.querySelectorAll('tr').length === 0) {
@@ -412,11 +427,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Удаление ученика
+  // Удаление ученика (обновлено для работы с иконками)
   document.addEventListener('click', function (e) {
-    if (e.target.classList.contains('remove-student-attendance')) {
-      const studentId = e.target.dataset.studentId;
-      const studentName = e.target.dataset.studentName;
+    const removeBtn = e.target.closest('.remove-student-attendance');
+    if (removeBtn) {
+      const studentId = removeBtn.dataset.studentId;
+      const studentName = removeBtn.dataset.studentName;
 
       if (confirm('Удалить ученика из смены?')) {
         fetch(`/schedule/${SCHEDULE_ID}/remove_student/${studentId}/`, {
@@ -430,6 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
           .then(data => {
             if (data.success) {
               document.querySelector(`tr[data-student-id="${studentId}"]`).remove();
+              updateStudentRowNumbers();
 
               // Добавляем ученика обратно в выпадающий список
               const select = document.getElementById('student-select');
@@ -525,7 +542,7 @@ document.addEventListener('DOMContentLoaded', function () {
           document.getElementById('full_name').value = '';
           document.getElementById('phone').value = '';
           document.getElementById('parent_name').value = '';
-          document.getElementById('default_price').value = '15000';
+          document.getElementById('default_price').value = '11400';
 
           // Триггерим событие изменения селекта
           const event = new Event('change');
@@ -653,11 +670,12 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       tableBody.appendChild(row);
     });
+    updateStudentRowNumbers();
   }
 
   // Обработчики для открытия форм редактирования по клику на строке
 
-  // Для сотрудников
+  // Для сотрудников (обновлено для работы с иконками)
   document.querySelectorAll('#employees-table tr[id^="employee-"]').forEach(row => {
     row.addEventListener('click', function (e) {
       // Игнорируем клики на кнопке удаления и ячейках посещаемости
@@ -669,13 +687,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Для учеников
+  // Для учеников (обновлено для работы с иконками)
   document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
     row.addEventListener('click', function (e) {
       // Игнорируем клики на ячейках посещения и кнопке удаления
-      if (e.target.closest('.attendance-cell, .remove-student-attendance')) {
-        return;
+      const ignoredElements = [
+        '.attendance-cell',
+        '.remove-student-attendance',
+        '.student-payment-btn',
+        '.bi-cash' // Иконка внутри кнопки
+      ];
+      let shouldIgnore = false;
+      for (const selector of ignoredElements) {
+        if (e.target.closest(selector)) {
+          console.log(`Ignoring click on ${selector}`);
+          shouldIgnore = true;
+          break;
+        }
       }
+      if (shouldIgnore) return;
+      console.log('Opening student edit form');
       const studentId = this.dataset.studentId;
       loadFormIntoModal(`/students/${studentId}/quick_edit/`);
     });
@@ -683,6 +714,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Добавляем обработчики для форм быстрого редактирования
   document.addEventListener('submit', function (e) {
+    if (e.target.id === 'payment-form') return;
     if (e.target.id === 'student-quick-edit-form') {
       e.preventDefault();
       handleQuickFormSubmit(e.target, 'Ученик');
@@ -711,9 +743,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateEmployeeRow(employee) {
     const row = document.getElementById(`employee-${employee.id}`);
     if (row) {
-      row.cells[0].textContent = employee.full_name;
-      row.cells[1].textContent = employee.position_display;
-      row.cells[2].textContent = `${employee.rate_per_day} руб./день`;
+      row.cells[1].textContent = employee.full_name;
+      row.cells[2].textContent = employee.position_display;
+      row.cells[3].textContent = `${employee.rate_per_day} руб./день`;
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-employee');
@@ -727,9 +759,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateStudentRow(student) {
     const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
     if (row) {
-      row.cells[1].textContent = student.individual_price || student.default_price;
-      row.cells[3].textContent = student.attendance_type_display;
-      row.cells[4].textContent = student.full_name;
+      row.cells[2].textContent = student.individual_price || student.default_price;
+      row.cells[4].textContent = student.attendance_type_display;
+      row.cells[5].textContent = student.full_name;
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-student-attendance');
@@ -741,6 +773,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Общая функция обработки отправки форм
   function handleQuickFormSubmit(form, entityName) {
+    // Проверяем, что форма не является формой платежа
+    if (e.target.id === 'student-quick-edit-form') {
+      e.preventDefault();
+      handleQuickFormSubmit(e.target, 'Ученик');
+    }
     const formData = new FormData(form);
     const originalButton = form.querySelector('button[type="submit"]');
     const originalButtonText = originalButton.innerHTML;
@@ -897,6 +934,37 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Обработчики для расходов
+  // Функция для обновления итоговой суммы расходов
+  function updateExpensesTotal() {
+    let total = 0;
+    // Собираем все строки расходов
+    document.querySelectorAll('#expenses-table-body tr[data-expense-id]').forEach(row => {
+      // Сумма находится в последней ячейке (индекс 4)
+      const amountCell = row.cells[4];
+      const amountText = amountCell.textContent.trim();
+      // Парсим число, удаляя все нечисловые символы
+      const amount = parseFloat(amountText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      total += amount;
+    });
+
+    // Форматируем число с разделителем тысяч
+    const formatter = new Intl.NumberFormat('ru-RU');
+    const formattedTotal = formatter.format(total) + ' руб.';
+
+    // Обновляем элемент с итогом в таблице расходов
+    const totalExpenseCell = document.querySelector('#expenses-table-body + tfoot .total-summary-row td:last-child');
+    if (totalExpenseCell) {
+      totalExpenseCell.textContent = formattedTotal;
+    }
+
+    // Обновляем элемент в финансовой сводке
+    const financeExpenseElement = document.getElementById('finance-expense');
+    if (financeExpenseElement) {
+      financeExpenseElement.textContent = formattedTotal;
+    }
+
+    return total;
+  }
   // Функция для обновления нумерации строк в таблице расходов
   function updateExpenseRowNumbers() {
     const tableBody = document.getElementById('expenses-table-body');
@@ -918,20 +986,21 @@ document.addEventListener('DOMContentLoaded', function () {
     loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
   });
 
-  // Обработчик кликов по строкам расходов
+  // Обработчик кликов по строкам расходов (обновлено для работы с иконками)
   document.addEventListener('click', function (e) {
     const row = e.target.closest('tr.clickable-expense-row');
-    if (row && !e.target.classList.contains('delete-expense-btn')) {
+    if (row && !e.target.closest('.delete-expense-btn')) {
       const expenseId = row.dataset.expenseId;
       loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
     }
   });
 
-  // Кнопки удаления расхода
+  // Кнопки удаления расхода (обновлено для работы с иконками)
   document.addEventListener('click', function (e) {
     // Обработка кнопок удаления расходов
-    if (e.target.classList.contains('delete-expense-btn')) {
-      const expenseId = e.target.dataset.expenseId;
+    const deleteBtn = e.target.closest('.delete-expense-btn');
+    if (deleteBtn) {
+      const expenseId = deleteBtn.dataset.expenseId;
       if (confirm('Удалить этот расход?')) {
         fetch(`/payroll/expenses/delete/${expenseId}/`, {
           method: 'POST',
@@ -955,6 +1024,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateExpenseRowNumbers();
               }
               showToast('Расход успешно удален', 'success');
+              updateExpensesTotal(); // Обновляем сумму
+              document.dispatchEvent(new CustomEvent('expenseUpdated'));
             }
           })
           .catch(error => {
@@ -996,15 +1067,15 @@ document.addEventListener('DOMContentLoaded', function () {
               // Обновляем существующую строку
               expenseRow.innerHTML = `
               <td>${expenseRow.querySelector('td:first-child').textContent}</td>
+              <td>
+                  <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
+                          data-expense-id="${data.expense.id}">
+                      <i class="bi bi-trash text-danger fs-5"></i>
+                  </button>
+              </td>
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
               <td>${data.expense.amount} руб.</td>
-              <td>
-                  <button class="btn btn-sm btn-danger delete-expense-btn" 
-                          data-expense-id="${data.expense.id}">
-                      Удалить
-                  </button>
-              </td>
             `;
             } else {
               // Добавляем новую строку
@@ -1018,15 +1089,15 @@ document.addEventListener('DOMContentLoaded', function () {
               newRow.className = 'clickable-expense-row';
               newRow.innerHTML = `
               <td></td> <!-- Пустая ячейка для номера -->
+              <td>
+                  <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
+                          data-expense-id="${data.expense.id}">
+                      <i class="bi bi-trash text-danger fs-5"></i>
+                  </button>
+              </td>
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
               <td>${data.expense.amount} руб.</td>
-              <td>
-                  <button class="btn btn-sm btn-danger delete-expense-btn" 
-                          data-expense-id="${data.expense.id}">
-                      Удалить
-                  </button>
-              </td>
             `;
               tableBody.appendChild(newRow);
 
@@ -1035,6 +1106,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             showToast('Расход успешно сохранен', 'success');
+            updateExpensesTotal();
+            document.dispatchEvent(new CustomEvent('expenseUpdated'));
           } else {
             // Обновляем содержимое модального окна с ошибками
             document.getElementById('expense-modal-content').innerHTML = data.html;
@@ -1046,7 +1119,157 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
   });
-  
+
+
+  function loadPaymentForm(url) {
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('payment-modal-content').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+      });
+  }
+
+
+  // Обновить обработчик кликов по строкам учеников (игнорировать кнопки платежей)
+  document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
+    row.addEventListener('click', function (e) {
+      // Игнорируем клики на:
+      // - ячейках посещения
+      // - кнопке удаления
+      // - кнопке платежа
+      if (e.target.closest('.attendance-cell') ||
+        e.target.closest('.remove-student-attendance') ||
+        e.target.closest('.student-payment-btn') ||
+        e.target.closest('.edit-payment')) {
+        return;
+      }
+      const studentId = this.dataset.studentId;
+      loadFormIntoModal(`/students/${studentId}/quick_edit/`);
+    });
+  });
+
+// Обработчик для кнопки платежа
+document.addEventListener('click', function(e) {
+    const paymentBtn = e.target.closest('.student-payment-btn');
+    if (paymentBtn) {
+        e.stopImmediatePropagation();
+        e.stopPropagation(); // Предотвращаем всплытие события
+        e.preventDefault(); // Дополнительная страховка
+        console.log('Payment button clicked - event stopped');
+
+        const studentId = paymentBtn.dataset.studentId;
+        const scheduleId = paymentBtn.dataset.scheduleId;
+        loadPaymentForm(`/students/payments/create/?student_id=${studentId}&schedule_id=${scheduleId}`);
+    }
+});
+
+// Загрузка формы платежа
+function loadPaymentForm(url) {
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('payment-modal-content').innerHTML = html;
+            new bootstrap.Modal('#paymentModal').show();
+        });
+}
+
+// Обработчик отправки формы платежа
+  document.addEventListener('submit', function (e) {
+    if (e.target.id === 'payment-form') {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const btn = form.querySelector('button[type="submit"]');
+      const btnOriginal = btn.innerHTML;
+
+      // Показать индикатор загрузки
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Сохранение...';
+
+      // Добавим логирование данных формы
+      const formDataObj = Object.fromEntries(formData.entries());
+      console.log('Submitting payment form:', formDataObj);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': CSRF_TOKEN,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(response => {
+          console.log('Response status:', response.status);
+          return response.json().catch(() => null);
+        })
+        .then(data => {
+          console.log('Response data:', data);
+
+          if (data && data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+            if (modal) modal.hide();
+            setTimeout(() => location.reload(), 500);
+            document.dispatchEvent(new CustomEvent('paymentUpdated'));
+            updateFinanceSummary();
+          } else {
+            // Показываем ошибки
+            if (data && data.errors) {
+              showToast('Ошибки: ' + JSON.stringify(data.errors), 'error');
+            } else if (data && data.html) {
+              document.getElementById('payment-modal-content').innerHTML = data.html;
+            } else {
+              showToast('Неизвестная ошибка при сохранении платежа', 'error');
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Fetch error:', error);
+          showToast('Ошибка сети: ' + error.message, 'error');
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.innerHTML = btnOriginal;
+        });
+    }
+  });
+
+  // Функция для обновления финансовой сводки
+  function updateFinanceSummary() {
+    // Используем пересчитанные значения
+    const expense = updateExpensesTotal() || 0;
+
+    // Доходы (парсим из элемента)
+    const incomeText = document.getElementById('finance-income').textContent;
+    const income = parseFloat(incomeText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+
+    // Рассчитываем сальдо
+    const balance = income - expense;
+    const formatter = new Intl.NumberFormat('ru-RU');
+
+    // Обновляем отображение
+    document.getElementById('finance-balance').textContent =
+      formatter.format(balance) + ' руб.';
+
+    // Добавляем цвет в зависимости от результата
+    const balanceCell = document.getElementById('finance-balance');
+    balanceCell.classList.remove('text-success', 'text-danger');
+
+    if (balance > 0) {
+      balanceCell.classList.add('text-success');
+    } else if (balance < 0) {
+      balanceCell.classList.add('text-danger');
+    }
+  }
+  updateExpensesTotal();
+  updateFinanceSummary();
+  // Обновляем финансовую сводку
+  updateFinanceSummary();
   // Инициализация итогов при загрузке страницы
   updateAttendanceTotals();
 });
+
+// Обновляем сводку при изменениях
+document.addEventListener('expenseUpdated', updateFinanceSummary);
+document.addEventListener('paymentUpdated', updateFinanceSummary);

@@ -25,7 +25,7 @@ class Student(models.Model):
         default=list, blank=True, verbose_name="Даты посещений"
     )
     default_price = models.DecimalField(
-        max_digits=10, decimal_places=2, default=15000, verbose_name="Базовая цена"
+        max_digits=10, decimal_places=2, default=11400, verbose_name="Базовая цена"
     )
     individual_price = models.DecimalField(
         max_digits=10,
@@ -63,7 +63,7 @@ class Payment(models.Model):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
     date = models.DateField(default=timezone.now, verbose_name="Дата оплаты")
-    comment = models.CharField(max_length=255, blank=True, verbose_name="Комментарий")
+    comment = models.CharField(max_length=255, blank=True, null=True, verbose_name="Комментарий")
 
     class Meta:
         verbose_name = "Платеж"

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Student
+from .models import Payment, Student
 
 class StudentForm(forms.ModelForm):
     """
@@ -20,3 +20,11 @@ class StudentForm(forms.ModelForm):
         ]
 
 
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ["student", "schedule", "amount", "date", "comment"]
+        widgets = {
+            "student": forms.HiddenInput(),
+            "schedule": forms.HiddenInput(),
+        }

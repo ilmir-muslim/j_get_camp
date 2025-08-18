@@ -1,3 +1,4 @@
+# schedule/views.py
 import io
 import json
 import openpyxl
@@ -203,14 +204,6 @@ def schedule_detail(request, pk):
         ).count()
         student_attendance_counts[student.id] = count
 
-    student_total_payments = {}
-    for student in students:
-        total = Payment.objects.filter(
-            schedule=schedule, 
-            student=student
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        student_total_payments[student.id] = total
-    
     employee_attendance = {}
     employee_attendance_counts = {}
     for employee in employees:
@@ -233,18 +226,28 @@ def schedule_detail(request, pk):
             employee_attendance[key] = status
         employee_attendance_counts[employee.id] = total
 
-    payments = Payment.objects.filter(schedule=schedule)
-    total_payments = payments.aggregate(total=Sum('amount'))['total'] or 0
-    payment_form = PaymentForm()
-    payment_form.fields["student"].queryset = students
+    student_payments = {}
+    for student in students:
+        payment = Payment.objects.filter(student=student, schedule=schedule).first()
+        student_payments[student.id] = payment
+
+    # Общая сумма платежей по смене (для футера)
+    total_payments = (
+        Payment.objects.filter(schedule=schedule).aggregate(total=Sum("amount"))[
+            "total"
+        ]
+        or 0
+    )
 
     available_employees = Employee.objects.exclude(schedule=schedule)
     available_students = Student.objects.exclude(schedule=schedule)
+
     expenses = Expense.objects.filter(schedule=schedule)
+    total_expenses_sum = expenses.aggregate(total=Sum('amount'))['total'] or 0
 
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        
+
         if request.content_type == "application/json":
             try:
                 data = json.loads(request.body)
@@ -261,7 +264,7 @@ def schedule_detail(request, pk):
                         date=date_obj, 
                         defaults={"present": False, "excused": False}
                     )
-                    
+
                     if not att.present and not att.excused:
                         att.present = True
                         status = 'present'
@@ -273,16 +276,16 @@ def schedule_detail(request, pk):
                         att.excused = False
                         status = 'absent'
                     att.save()
-                    
+
                     key = f"{student_id}_{date_str}"
                     attendance[key] = status
-                    
+
                     total_attendance = Attendance.objects.filter(
                         student=student,
                         date__in=dates,
                         present=True
                     ).count()
-                    
+
                     return JsonResponse({
                         "status": "success",
                         "present": att.present,
@@ -291,19 +294,19 @@ def schedule_detail(request, pk):
                         "student_id": student_id,
                         "date": date_str,
                     })
-                
+
                 elif "employee_id" in data:
                     employee_id = data.get("employee_id")
                     date_str = data.get("date")
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-                    
+
                     employee = get_object_or_404(Employee, id=employee_id)
                     att, created = EmployeeAttendance.objects.get_or_create(
                         employee=employee,
                         date=date_obj,
                         defaults={"present": False, "excused": False}
                     )
-                    
+
                     # Циклическое переключение статусов
                     if not att.present and not att.excused:
                         att.present = True
@@ -316,14 +319,14 @@ def schedule_detail(request, pk):
                         att.excused = False
                         status = 'absent'
                     att.save()
-                    
+
                     # Пересчет общего количества посещений
                     total_attendance = EmployeeAttendance.objects.filter(
                         employee=employee,
                         date__in=dates,
                         present=True
                     ).count()
-                    
+
                     return JsonResponse({
                         "status": "success",
                         "present": att.present,
@@ -334,7 +337,7 @@ def schedule_detail(request, pk):
                     })
             except Exception as e:
                 return JsonResponse({"status": "error", "message": str(e)})
-        
+
         else:
             action = request.POST.get("action")
 
@@ -342,16 +345,16 @@ def schedule_detail(request, pk):
                 employee_id = request.POST.get("employee")
                 if employee_id:
                     employee = get_object_or_404(Employee, id=employee_id)
-                    
+
                     # Проверка, что сотрудник не добавлен
                     if employee in employees:
                         if is_ajax:
                             return JsonResponse({'success': False, 'error': 'Сотрудник уже добавлен'})
                         return redirect("schedule_detail", pk=pk)
-                    
+
                     employee.schedule = schedule
                     employee.save()
-                    
+
                     # Создание записей посещаемости для каждого дня смены
                     employee_attendance = {}
                     total_attendance = 0
@@ -370,7 +373,7 @@ def schedule_detail(request, pk):
                         else:
                             status = 'absent'
                         employee_attendance[key] = status
-                    
+
                     if is_ajax:
                         return JsonResponse({
                             'success': True,
@@ -389,16 +392,16 @@ def schedule_detail(request, pk):
                 student_id = request.POST.get("student")
                 if student_id:
                     student = get_object_or_404(Student, id=student_id)
-                    
+
                     # Проверка, что студент не добавлен
                     if student in students:
                         if is_ajax:
                             return JsonResponse({'success': False, 'error': 'Студент уже добавлен'})
                         return redirect("schedule_detail", pk=pk)
-                    
+
                     student.schedule = schedule
                     student.save()
-                    
+
                     # Создание записей посещаемости
                     for date in dates:
                         Attendance.objects.get_or_create(
@@ -406,7 +409,7 @@ def schedule_detail(request, pk):
                             date=date, 
                             defaults={"present": False, "excused": False}
                         )
-                    
+
                     if is_ajax:
                         return JsonResponse({
                             'success': True,
@@ -418,53 +421,26 @@ def schedule_detail(request, pk):
                             }
                         })
                     return redirect("schedule_detail", pk=pk)
-                
+
                 if is_ajax:
                     return JsonResponse({'success': False, 'error': 'Ученик не выбран'})
                 return redirect("schedule_detail", pk=pk)
-
-            elif action == "add_payment":
-                form = PaymentForm(request.POST)
-                if form.is_valid():
-                    payment = form.save(commit=False)
-                    payment.schedule = schedule
-                    payment.save()
-                    
-                    if is_ajax:
-                        return JsonResponse({
-                            'success': True,
-                            'payment': {
-                                'student_full_name': payment.student.full_name,
-                                'amount': payment.amount,
-                                'date': payment.date.strftime('%Y-%m-%d'),
-                                'comment': payment.comment or '',
-                            }
-                        })
-                elif is_ajax:
-                    return JsonResponse({
-                        'success': False,
-                        'errors': form.errors.as_json()
-                    }, status=400)
-                    
-                return redirect("schedule_detail", pk=pk)
-    
 
     context = {
         "schedule": schedule,
         "employees": employees,
         "students": students,
-        "payments": payments,
-        "total_payments": total_payments,
         "dates": dates,
         "attendance": attendance,
         "available_employees": available_employees,
         "available_students": available_students,
-        "payment_form": payment_form,
         "student_attendance_counts": student_attendance_counts,
-        "student_total_payments": student_total_payments,
         "expenses": expenses,
-        'employee_attendance': employee_attendance,
-        'employee_attendance_counts': employee_attendance_counts,
+        "employee_attendance": employee_attendance,
+        "employee_attendance_counts": employee_attendance_counts,
+        "total_expenses_sum": total_expenses_sum,
+        "student_payments": student_payments,
+        "total_payments": total_payments,
     }
     return render(request, "schedule/schedule_detail.html", context)
 

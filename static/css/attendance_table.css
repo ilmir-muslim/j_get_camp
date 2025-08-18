@@ -16,48 +16,51 @@
 }
 
 /* Ширины для информационных столбцов */
+/* № */
 .attendance-table th:nth-child(1),
 .attendance-table td:nth-child(1) {
   width: 40px;
-  /* № */
   min-width: 40px;
   max-width: 80px;
 }
 
+/* действия */
 .attendance-table th:nth-child(2),
 .attendance-table td:nth-child(2) {
-  width: 100px;
-  min-width: 100px;
-  max-width: 200px;
+  width: 90px;
+  min-width: 80px;
+  max-width: 90px;
 }
 
 .attendance-table th:nth-child(3),
 .attendance-table td:nth-child(3) {
   width: 100px;
-  min-width: 90px;
-}
-
-.attendance-table th:nth-child(4),
-.attendance-table td:nth-child(4) {
-  width: 90px;
-  min-width: 150px;
+  min-width: 100px;
   max-width: 200px;
 }
-
+/*платежи*/
+.attendance-table th:nth-child(4),
+.attendance-table td:nth-child(4) {
+  width: 100px;
+  min-width: 90px;
+  max-width: 200px;
+}
+/*тип*/
 .attendance-table th:nth-child(5),
 .attendance-table td:nth-child(5) {
-  width: 150px;
-  /* ФИО */
-  max-width: 350px;
-  min-width: 200px;
+  width: 130px;
+  min-width: 130px;
+  max-width: 180px;
 }
 
+/* ФИО */
 .attendance-table th:nth-child(6),
 .attendance-table td:nth-child(6) {
-  width: 90px;
-  min-width: 70px;
-  max-width: 90px;
+  width: 250px;
+  min-width: 250px;
+  max-width: 350px;
 }
+
 
 /* СТИЛИ ДЛЯ СТОЛБЦОВ С ДАТАМИ И ОТМЕТКАМИ */
 .attendance-table th.date-cell,
@@ -273,32 +276,34 @@
   max-width: 80px;
 }
 
+/*действия*/
 .attendance-table-employees th:nth-child(2),
 .attendance-table-employees td:nth-child(2) {
-  min-width: 200px;
-  max-width: 350px;
+  width: 90px;
+  min-width: 70px;
+  max-width: 90px;
 }
 
 .attendance-table-employees th:nth-child(3),
 .attendance-table-employees td:nth-child(3) {
-  width: 120px;
-  min-width: 170px;
-  max-width: 200px;
+  min-width: 200px;
+  max-width: 350px;
 }
 
 .attendance-table-employees th:nth-child(4),
 .attendance-table-employees td:nth-child(4) {
   width: 120px;
-  min-width: 120px;
-  max-width: 150px;
+  min-width: 170px;
+  max-width: 200px;
 }
 
 .attendance-table-employees th:nth-child(5),
 .attendance-table-employees td:nth-child(5) {
-  width: 90px;
-  min-width: 70px;
-  max-width: 90px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 150px;
 }
+
 
 .attendance-table.expenses-table td {
   height: auto !important;
@@ -319,21 +324,30 @@
   max-width: 40px;
 }
 
+/* Действия */
 .attendance-table.expenses-table th:nth-child(2),
 .attendance-table.expenses-table td:nth-child(2) {
+  width: 50px;
+  min-width: 50px;
+  max-width: 80px;
+  text-align: center;
+}
+
+.attendance-table.expenses-table th:nth-child(3),
+.attendance-table.expenses-table td:nth-child(3) {
   min-width: 100px;
   /* Категория */
   max-width: 150px;
 }
 
-.attendance-table.expenses-table th:nth-child(3) {
+.attendance-table.expenses-table th:nth-child(4) {
   min-width: 250px;
   max-width: 400px;
   text-align: center;
   /* заголовок по центру */
 }
 
-.attendance-table.expenses-table td:nth-child(3) {
+.attendance-table.expenses-table td:nth-child(4) {
   min-width: 250px;
   max-width: 400px;
   text-align: left;
@@ -341,21 +355,14 @@
   word-wrap: break-word;
 }
 
-.attendance-table.expenses-table th:nth-child(4),
-.attendance-table.expenses-table td:nth-child(4) {
+.attendance-table.expenses-table th:nth-child(5),
+.attendance-table.expenses-table td:nth-child(5) {
   min-width: 70px;
   /* Сумма */
   max-width: 90px;
   text-align: center;
 }
 
-.attendance-table.expenses-table th:nth-child(5),
-.attendance-table.expenses-table td:nth-child(5) {
-  min-width: 80px;
-  /* Действия */
-  max-width: 100px;
-  text-align: center;
-}
 
 
 
@@ -435,4 +442,37 @@
 
 #employees-table-container .attendance-table-employees tr:last-child td {
   border-bottom: 2px solid #dee2e6;
+}
+
+#student-total-row td:nth-child(4) {
+    font-weight: bold;
+    background-color: #e9ecef;
+    border-top: 2px solid #fbfcfd !important;
+}
+
+
+/*кнопки иконки*/
+.icon-btn {
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn .bi {
+  display: inline-block;
+  /* важно для transform */
+  transition: transform .2s ease, color .2s ease;
+  vertical-align: middle;
+  /* чтобы не «подпрыгивало» */
+}
+
+.icon-btn:hover .bi,
+.icon-btn:focus-visible .bi {
+  transform: scale(1.2);
+}
+
+/* необязательные улучшения доступности */
+.icon-btn:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+  border-radius: .375rem;
 }

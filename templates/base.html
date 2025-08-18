@@ -75,6 +75,10 @@
     <script src="{% static 'js/base.js' %}"></script>
     
     <!-- Дополнительные скрипты -->
-    {% block extra_scripts %}{% endblock %}
+{% block extra_scripts %}
+  <script src="{% static 'js/schedule_calendar.js' %}"></script> {# тут может быть твой getCookie #}
+  <script src="{% static 'js/student_quick_form.js' %}?v=2"></script> {# добавил версию, чтобы пробить кэш #}
+{% endblock %}
+
 </body>
 </html>

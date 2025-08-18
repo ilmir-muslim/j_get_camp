@@ -204,3 +204,12 @@
     min-height: 50px !important;
     max-height: 50px !important;
 }
+
+.total-summary-row {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.total-summary-row td {
+    border-top: 2px solid #dee2e6 !important;
+}
