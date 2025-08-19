@@ -41,8 +41,8 @@
 /*платежи*/
 .attendance-table th:nth-child(4),
 .attendance-table td:nth-child(4) {
-  width: 100px;
-  min-width: 90px;
+  width: 120px;
+  min-width: 120px;
   max-width: 200px;
 }
 /*тип*/
@@ -63,9 +63,9 @@
 
 .attendance-table-employees th:nth-child(7),
 .attendance-table-employees td:nth-child(7) {
-  width: 70px;
-  min-width: 70px;
-  max-width: 100px;
+  width: 50px;
+  min-width: 50px;
+  max-width: 70px;
 }
 
 
@@ -313,9 +313,9 @@
 /*явка*/
 .attendance-table-employees th:nth-child(6),
 .attendance-table-employees td:nth-child(6) {
-  width: 70px;
-  min-width: 70px;
-  max-width: 100px;
+  width: 50px;
+  min-width: 50px;
+  max-width: 70px;
 }
 
 
