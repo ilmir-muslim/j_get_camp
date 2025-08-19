@@ -1,20 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  // Функция для показа уведомлений
-  function showToast(message, type) {
-    const toastEl = document.getElementById('liveToast');
-    const toastBody = toastEl.querySelector('.toast-body');
-    const toast = new bootstrap.Toast(toastEl);
-
-    toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning');
-    toastBody.textContent = message;
-
-    if (type === 'success') toastEl.classList.add('bg-success', 'text-white');
-    else if (type === 'error') toastEl.classList.add('bg-danger', 'text-white');
-    else if (type === 'warning') toastEl.classList.add('bg-warning', 'text-dark');
-
-    toast.show();
-  }
-
+  colorizePaymentCells();
   // Функция для загрузки формы в модальное окно
   function loadFormIntoModal(url) {
     fetch(url)
@@ -675,16 +660,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Обработчики для открытия форм редактирования по клику на строке
 
-  // Для сотрудников (обновлено для работы с иконками)
-  document.querySelectorAll('#employees-table tr[id^="employee-"]').forEach(row => {
-    row.addEventListener('click', function (e) {
-      // Игнорируем клики на кнопке удаления и ячейках посещаемости
-      if (e.target.closest('.remove-employee') || e.target.closest('.attendance-cell')) {
-        return;
-      }
-      const employeeId = this.id.split('-')[1];
-      loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
-    });
+  // Для сотрудников
+  document.getElementById('employees-table').addEventListener('click', function (e) {
+    const row = e.target.closest('tr[id^="employee-"]');
+    if (!row) return;
+
+    // Игнорируем клики на кнопке удаления и ячейках посещаемости
+    if (e.target.closest('.remove-employee') || e.target.closest('.attendance-cell')) {
+      return;
+    }
+
+    const employeeId = row.id.split('-')[1];
+    loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
   });
 
   // Для учеников (обновлено для работы с иконками)
@@ -715,6 +702,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Добавляем обработчики для форм быстрого редактирования
   document.addEventListener('submit', function (e) {
     if (e.target.id === 'payment-form') return;
+
     if (e.target.id === 'student-quick-edit-form') {
       e.preventDefault();
       handleQuickFormSubmit(e.target, 'Ученик');
@@ -743,9 +731,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateEmployeeRow(employee) {
     const row = document.getElementById(`employee-${employee.id}`);
     if (row) {
-      row.cells[1].textContent = employee.full_name;
-      row.cells[2].textContent = employee.position_display;
-      row.cells[3].textContent = `${employee.rate_per_day} руб./день`;
+      row.cells[2].textContent = employee.full_name;
+      row.cells[3].textContent = employee.position_display;
+      row.cells[4].textContent = `${employee.rate_per_day}`;
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-employee');
@@ -773,11 +761,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Общая функция обработки отправки форм
   function handleQuickFormSubmit(form, entityName) {
-    // Проверяем, что форма не является формой платежа
-    if (e.target.id === 'student-quick-edit-form') {
-      e.preventDefault();
-      handleQuickFormSubmit(e.target, 'Ученик');
-    }
     const formData = new FormData(form);
     const originalButton = form.querySelector('button[type="submit"]');
     const originalButtonText = originalButton.innerHTML;
@@ -797,9 +780,56 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Закрываем модальное окно
-          const modal = bootstrap.Modal.getInstance(document.getElementById('universalFormModal'));
-          modal.hide();
+          // Получаем экземпляр модального окна и закрываем его
+          const modalElement = document.getElementById('universalFormModal');
+
+          // Используем более надежный способ закрытия модального окна
+          if (modalElement) {
+            // Получаем экземпляр модального окна, если он существует
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
+            if (modalInstance) {
+              modalInstance.hide();
+            } else {
+              // Если экземпляр не найден, создаем новый и сразу закрываем
+              const newModalInstance = new bootstrap.Modal(modalElement);
+              newModalInstance.hide();
+            }
+
+            // Удаляем backdrop (затемнение) вручную, если он остался
+            setTimeout(() => {
+              const backdrops = document.querySelectorAll('.modal-backdrop');
+              backdrops.forEach(backdrop => {
+                backdrop.remove();
+              });
+
+              // Восстанавливаем прокрутку страницы более надежно
+              document.body.classList.remove('modal-open');
+              document.body.style.overflow = '';
+              document.body.style.paddingRight = '';
+
+              // Принудительно восстанавливаем возможность прокрутки
+              document.documentElement.style.overflow = '';
+              document.documentElement.style.paddingRight = '';
+
+              // Добавляем небольшой таймаут для полного восстановления
+              setTimeout(() => {
+                // Принудительно активируем прокрутку
+                window.dispatchEvent(new Event('scroll'));
+
+                // Принудительно восстанавливаем фокус и взаимодействие
+                document.body.focus();
+                document.body.click();
+
+                // Восстанавливаем стандартное поведение прокрутки
+                document.body.style.overflow = 'auto';
+                document.body.style.overflowX = 'hidden';
+                document.documentElement.style.overflow = 'auto';
+                document.documentElement.style.overflowX = 'hidden';
+              }, 50);
+            }, 100);
+          }
+
           showToast(`${entityName} успешно сохранен`, 'success');
 
           if (form.id === 'student-quick-edit-form' && data.student) {
@@ -809,7 +839,6 @@ document.addEventListener('DOMContentLoaded', function () {
             updateEmployeeRow(data.employee);
           }
         } else {
-          // Показываем ошибки
           let errorMsg = 'Ошибка сохранения: ';
           if (data.errors) {
             for (let field in data.errors) {
@@ -831,6 +860,8 @@ document.addEventListener('DOMContentLoaded', function () {
         originalButton.innerHTML = originalButtonText;
       });
   }
+
+
 
   // Общая функция обработки кнопок удаления
   function handleDeleteButtonClick(button, entityType) {
@@ -1024,6 +1055,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateExpenseRowNumbers();
               }
               showToast('Расход успешно удален', 'success');
+              updateFinanceSummary()
               updateExpensesTotal(); // Обновляем сумму
               document.dispatchEvent(new CustomEvent('expenseUpdated'));
             }
@@ -1077,6 +1109,8 @@ document.addEventListener('DOMContentLoaded', function () {
               <td>${data.expense.comment || ''}</td>
               <td>${data.expense.amount} руб.</td>
             `;
+              updateFinanceSummary(); // Добавляем обновление сальдо
+              document.dispatchEvent(new CustomEvent('expenseUpdated'));
             } else {
               // Добавляем новую строку
               const emptyRow = tableBody.querySelector('tr td[colspan]');
@@ -1106,6 +1140,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             showToast('Расход успешно сохранен', 'success');
+            updateFinanceSummary();
             updateExpensesTotal();
             document.dispatchEvent(new CustomEvent('expenseUpdated'));
           } else {
@@ -1213,6 +1248,7 @@ function loadPaymentForm(url) {
             setTimeout(() => location.reload(), 500);
             document.dispatchEvent(new CustomEvent('paymentUpdated'));
             updateFinanceSummary();
+            colorizePaymentCells(); 
           } else {
             // Показываем ошибки
             if (data && data.errors) {
@@ -1237,39 +1273,64 @@ function loadPaymentForm(url) {
 
   // Функция для обновления финансовой сводки
   function updateFinanceSummary() {
-    // Используем пересчитанные значения
-    const expense = updateExpensesTotal() || 0;
+    // Получаем значения расходов и доходов
+    const expense = parseFloat(
+      document.getElementById('finance-expense').textContent.replace(/\D/g, '')
+    ) || 0;
 
-    // Доходы (парсим из элемента)
-    const incomeText = document.getElementById('finance-income').textContent;
-    const income = parseFloat(incomeText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    const income = parseFloat(
+      document.getElementById('finance-income').textContent.replace(/\D/g, '')
+    ) || 0;
 
     // Рассчитываем сальдо
     const balance = income - expense;
+
+    // Форматируем числа с разделителями тысяч
     const formatter = new Intl.NumberFormat('ru-RU');
 
-    // Обновляем отображение
-    document.getElementById('finance-balance').textContent =
-      formatter.format(balance) + ' руб.';
+    // Обновляем отображение сальдо
+    const balanceCell = document.getElementById('finance-balance');
+    balanceCell.textContent = formatter.format(balance) + ' руб.';
 
     // Добавляем цвет в зависимости от результата
-    const balanceCell = document.getElementById('finance-balance');
     balanceCell.classList.remove('text-success', 'text-danger');
-
     if (balance > 0) {
       balanceCell.classList.add('text-success');
     } else if (balance < 0) {
       balanceCell.classList.add('text-danger');
     }
   }
+
+  function colorizePaymentCells() {
+    const rows = document.querySelectorAll('#attendance-body tr[data-student-id]');
+
+    rows.forEach(row => {
+      const costCell = row.cells[2]; // Ячейка стоимости
+      const paymentCell = row.cells[3]; // Ячейка платежей
+
+      // Получаем числовые значения
+      const cost = parseFloat(costCell.textContent.replace(/\D/g, '')) || 0;
+      const payment = parseFloat(paymentCell.textContent.replace(/\D/g, '')) || 0;
+
+      // Применяем классы в зависимости от условия
+      if (payment >= cost) {
+        paymentCell.classList.add('payment-success');
+        paymentCell.classList.remove('payment-danger');
+      } else {
+        paymentCell.classList.add('payment-danger');
+        paymentCell.classList.remove('payment-success');
+      }
+    });
+  }
+
+
+
   updateExpensesTotal();
-  updateFinanceSummary();
   // Обновляем финансовую сводку
   updateFinanceSummary();
   // Инициализация итогов при загрузке страницы
   updateAttendanceTotals();
+  // Обновляем сводку при изменениях
+  document.addEventListener('expenseUpdated', updateFinanceSummary);
+  document.addEventListener('paymentUpdated', updateFinanceSummary);
 });
-
-// Обновляем сводку при изменениях
-document.addEventListener('expenseUpdated', updateFinanceSummary);
-document.addEventListener('paymentUpdated', updateFinanceSummary);

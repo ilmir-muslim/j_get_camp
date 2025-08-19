@@ -1,0 +1,421 @@
+{% extends 'base.html' %} {% load static %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tables.css' %}" />
+<link rel="stylesheet" href="{% static 'css/forms.css' %}" />
+{% endblock %} {% block content %}
+<div class="container mt-4">
+  <a href="{% url 'dashboard' %}" class="btn btn-secondary mb-3">
+    &larr; Назад на главную
+  </a>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <div class="d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">Сотрудники</h3>
+        <div>
+          <button type="button" class="btn btn-light" id="add-employee-btn">
+            <i class="bi bi-plus-lg"></i> Добавить сотрудника
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover" id="employees-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Действия</th>
+              <th>ФИО</th>
+              <th>Должность</th>
+              <th>Филиал</th>
+              <th>Смена</th>
+              <th>Ставка за день</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for employee in employees %}
+            <tr id="employee-{{ employee.id }}">
+              <td>{{ forloop.counter }}</td>
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-primary edit-employee-btn"
+                  data-employee-id="{{ employee.id }}"
+                >
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button
+                  class="btn btn-sm btn-outline-danger delete-employee-btn"
+                  data-employee-id="{{ employee.id }}"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+              <td>{{ employee.full_name }}</td>
+              <td>{{ employee.get_position_display }}</td>
+              <td>{{ employee.branch.name|default:"—" }}</td>
+              <td>{{ employee.schedule.name|default:"—" }}</td>
+              <td>{{ employee.rate_per_day }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для работы с сотрудниками -->
+<div
+  class="modal fade"
+  id="employeeModal"
+  tabindex="-1"
+  aria-labelledby="employeeModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content" id="employee-modal-content">
+      <!-- Сюда будет загружаться форма -->
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для создания сотрудника -->
+<div
+  class="modal fade"
+  id="createEmployeeModal"
+  tabindex="-1"
+  aria-labelledby="createEmployeeModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createEmployeeModalLabel">
+          Создать нового сотрудника
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="create-employee-form">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="employee_full_name" class="form-label">ФИО *</label>
+            <input
+              type="text"
+              class="form-control"
+              id="employee_full_name"
+              name="full_name"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="position" class="form-label">Должность *</label>
+            <select class="form-select" id="position" name="position" required>
+              <option value="teacher">Преподаватель</option>
+              <option value="admin">Администратор</option>
+              <option value="camp_head">Начальник лагеря</option>
+              <option value="lab_head">Начальник лаборатории</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="branch" class="form-label">Филиал</label>
+            <select class="form-select" id="branch" name="branch_id">
+              <option value="">Выберите филиал</option>
+              {% for branch in branches %}
+              <option value="{{ branch.id }}">{{ branch.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="schedule" class="form-label">Смена</label>
+            <select class="form-select" id="schedule" name="schedule_id">
+              <option value="">Выберите смену</option>
+              {% for schedule in schedules %}
+              <option value="{{ schedule.id }}">{{ schedule.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="rate_per_day" class="form-label">Ставка за день</label>
+            <input
+              type="number"
+              class="form-control"
+              id="rate_per_day"
+              name="rate_per_day"
+              value="1000"
+            />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Отмена
+        </button>
+        <button type="button" class="btn btn-primary" id="save-employee-btn">
+          Сохранить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast для уведомлений -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div
+    id="operationToast"
+    class="toast"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+  >
+    <div class="toast-header">
+      <strong class="me-auto">Уведомление</strong>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="toast"
+        aria-label="Close"
+      ></button>
+    </div>
+    <div class="toast-body">
+      <span id="toastMessage">Операция выполнена успешно</span>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block extra_scripts %}
+<script>
+  // Глобальные переменные
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+// Функция для обновления нумерации строк
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('#employees-table tbody tr');
+    rows.forEach((row, index) => {
+        row.cells[0].textContent = index + 1;
+    });
+}
+
+  // Функция для загрузки формы редактирования в модальное окно
+  function loadEmployeeEditForm(employeeId) {
+    fetch(`/employees/${employeeId}/quick_edit/`)
+      .then((response) => response.text())
+      .then((html) => {
+        document.getElementById("employee-modal-content").innerHTML = html;
+
+        if (window.location.pathname.includes("/employees/")) {
+          const cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "btn btn-secondary";
+          cancelBtn.textContent = "Отменить";
+          cancelBtn.setAttribute("data-bs-dismiss", "modal");
+
+          const deleteBtn = document.getElementById("delete-employee-btn");
+          if (deleteBtn) {
+            deleteBtn.replaceWith(cancelBtn);
+          }
+        }
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("employeeModal")
+        );
+        modal.show();
+
+        // Обработчик отправки формы редактирования
+        const form = document.getElementById("employee-quick-edit-form");
+        if (form) {
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+              method: "POST",
+              body: formData,
+              headers: {
+                "X-CSRFToken": CSRF_TOKEN,
+                "X-Requested-With": "XMLHttpRequest",
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  // Обновляем данные в таблице
+                  const row = document.getElementById(
+                    `employee-${data.employee.id}`
+                  );
+                  if (row) {
+                    row.cells[2].textContent = data.employee.full_name;
+                    row.cells[3].textContent = data.employee.position_display;
+                    row.cells[4].textContent = data.employee.branch_name || "—";
+                    row.cells[5].textContent =
+                      data.employee.schedule_name || "—";
+                    row.cells[6].textContent = data.employee.rate_per_day;
+                  }
+
+                  modal.hide();
+                  showToast("Сотрудник успешно обновлен");
+                } else {
+                  showToast("Ошибка при обновлении сотрудника", "error");
+                }
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                showToast(
+                  "Произошла ошибка при обновлении сотрудника",
+                  "error"
+                );
+              });
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        showToast("Произошла ошибка при загрузке формы", "error");
+      });
+  }
+
+  // Обработчики событий
+  document.addEventListener("DOMContentLoaded", function () {
+    // Обработчик кнопки добавления сотрудника
+    document
+      .getElementById("add-employee-btn")
+      .addEventListener("click", function () {
+        const modal = new bootstrap.Modal(
+          document.getElementById("createEmployeeModal")
+        );
+        modal.show();
+      });
+
+    // Обработчик кнопки сохранения нового сотрудника
+    document
+      .getElementById("save-employee-btn")
+      .addEventListener("click", function () {
+        const formData = new FormData(
+          document.getElementById("create-employee-form")
+        );
+        const data = Object.fromEntries(formData.entries());
+
+        fetch("/employees/create/ajax/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": CSRF_TOKEN,
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // Добавляем нового сотрудника в таблицу
+              const tableBody = document.querySelector(
+                "#employees-table tbody"
+              );
+              const newRow = document.createElement("tr");
+              newRow.id = `employee-${data.employee.id}`;
+              newRow.innerHTML = `
+                    <td>${tableBody.children.length + 1}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary edit-employee-btn" 
+                                data-employee-id="${data.employee.id}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-employee-btn" 
+                                data-employee-id="${data.employee.id}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                    <td>${data.employee.full_name}</td>
+                    <td>${data.employee.position_display}</td>
+                    <td>${data.employee.branch_name || "—"}</td>
+                    <td>${data.employee.schedule_name || "—"}</td>
+                    <td>${data.employee.rate_per_day || "0"}</td>
+                `;
+              tableBody.appendChild(newRow);
+              updateRowNumbers();
+
+              // Добавляем обработчики для новых кнопок
+              newRow
+                .querySelector(".edit-employee-btn")
+                .addEventListener("click", function () {
+                  loadEmployeeEditForm(data.employee.id);
+                });
+
+              newRow
+                .querySelector(".delete-employee-btn")
+                .addEventListener("click", function () {
+                  deleteEmployee(data.employee.id);
+                });
+
+              // Закрываем модальное окно и показываем уведомление
+              bootstrap.Modal.getInstance(
+                document.getElementById("createEmployeeModal")
+              ).hide();
+              showToast("Сотрудник успешно создан");
+            } else {
+              showToast("Ошибка при создании сотрудника", "error");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showToast("Произошла ошибка при создании сотрудника", "error");
+          });
+      });
+
+    // Обработчики кнопок редактирования
+    document.querySelectorAll(".edit-employee-btn").forEach((button) => {
+      button.addEventListener("click", function () {
+        const employeeId = this.dataset.employeeId;
+        loadEmployeeEditForm(employeeId);
+      });
+    });
+
+    
+    // Обработчики кнопок удаления
+    document.querySelectorAll(".delete-employee-btn").forEach((button) => {
+      button.addEventListener("click", function () {
+        const employeeId = this.dataset.employeeId;
+        deleteEmployee(employeeId);
+      });
+    });
+  });
+
+  // Функция удаления сотрудника
+  function deleteEmployee(employeeId) {
+    if (confirm("Вы уверены, что хотите удалить этого сотрудника?")) {
+        fetch(`/employees/delete/${employeeId}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": CSRF_TOKEN,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    // Удаляем строку из таблицы
+                    const row = document.getElementById(`employee-${employeeId}`);
+                    if (row) {
+                        row.remove();
+                        // Обновляем нумерацию после удаления
+                        updateRowNumbers();
+                        showToast("Сотрудник успешно удален");
+                    }
+                } else {
+                    showToast("Ошибка при удалении сотрудника", "error");
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                showToast("Произошла ошибка при удалении сотрудника", "error");
+            });
+    }
+}
+</script>
+{% endblock %}

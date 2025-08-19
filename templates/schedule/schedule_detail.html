@@ -10,9 +10,15 @@
 {% block content %}
 <div class="container page-container">
     <!-- Кнопка Назад -->
-    <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
-        &larr; Назад к календарю
-    </a>
+    {% if from_schedule_list %}
+        <a href="{% url 'schedule_list' %}" class="btn btn-secondary mb-3">
+            &larr; Назад к списку смен
+        </a>
+    {% else %}
+        <a href="{% url 'schedule_calendar' %}" class="btn btn-secondary mb-3">
+            &larr; Назад к календарю
+        </a>
+    {% endif %}
     
     <h1>{{ schedule.name }}</h1>
     <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
@@ -123,7 +129,7 @@
                     </tbody>
                     <tfoot>
                         <tr id="employee-total-row">
-                            <td colspan="5" class="text-end"><strong>Итого</strong></td>
+                            <td colspan="6" class="text-end"><strong>Итого</strong></td>
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
                                     <div class="attendance-cell-wrapper">

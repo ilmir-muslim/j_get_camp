@@ -213,3 +213,16 @@
 .total-summary-row td {
     border-top: 2px solid #dee2e6 !important;
 }
+
+/* Добавьте эти стили в ваш файл attendance_table.css */
+.payment-success {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: bold;
+}
+
+.payment-danger {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: bold;
+}

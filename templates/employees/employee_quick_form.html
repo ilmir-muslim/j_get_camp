@@ -8,11 +8,17 @@
     {{ form.as_p }}
     <div class="d-flex justify-content-between">
       <button type="submit" class="btn btn-primary">Сохранить</button>
-      <button type="button" class="btn btn-danger" 
-              id="delete-employee-btn" 
-              data-employee-id="{{ employee.id }}">
-        Удалить
-      </button>
+      {% if request.resolver_match.url_name == 'employees_list' %}
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Отменить
+        </button>
+      {% else %}
+        <button type="button" class="btn btn-danger" 
+                id="delete-employee-btn" 
+                data-employee-id="{{ employee.id }}">
+          Удалить
+        </button>
+      {% endif %}
     </div>
   </form>
 </div>

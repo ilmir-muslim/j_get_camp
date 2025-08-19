@@ -162,6 +162,11 @@ def schedule_quick_edit(request, pk=None):
 def schedule_detail(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
     user = request.user
+    # Проверяем параметр в URL
+    from_param = request.GET.get("from", "")
+    from_schedule_list = from_param == "list" or "schedule/list" in request.META.get(
+        "HTTP_REFERER", ""
+    )
 
     if (
         user.role in ["camp_head", "lab_head"]
@@ -441,6 +446,7 @@ def schedule_detail(request, pk):
         "total_expenses_sum": total_expenses_sum,
         "student_payments": student_payments,
         "total_payments": total_payments,
+        "from_schedule_list": from_schedule_list,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
@@ -538,25 +544,41 @@ def export_schedule_students_pdf(request, pk):
 
     return response
 
+
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def schedule_list(request):
-    schedules = Schedule.objects.select_related('branch').all()
-    
+    schedules = (
+        Schedule.objects.select_related("branch")
+        .prefetch_related("employee_set", "student_set")
+        .all()
+    )
+
     schedule_data = []
     for schedule in schedules:
-        teachers = schedule.employee_set.filter(position='teacher')
-        teacher_names = ", ".join([t.full_name for t in teachers]) if teachers.exists() else "—"
-        
-        schedule_data.append({
-            'id': schedule.id,
-            'name': schedule.name,
-            'teacher': teacher_names,
-            'theme': schedule.theme,
-            'dates': f"{schedule.start_date.strftime('%d.%m.%Y')} – {schedule.end_date.strftime('%d.%m.%Y')}",
-            'branch': schedule.branch.name,
-        })
+        # Получаем начальника лагеря
+        camp_head = schedule.employee_set.filter(position="camp_head").first()
+        # Получаем начальника лаборатории
+        lab_head = schedule.employee_set.filter(position="lab_head").first()
+        # Считаем количество студентов
+        student_count = schedule.student_set.count()
 
-    return render(request, 'schedule/schedule_list.html', {'schedule_data': schedule_data})
+        schedule_data.append(
+            {
+                "id": schedule.id,
+                "name": schedule.name,
+                "theme": schedule.theme,
+                "dates": f"{schedule.start_date.strftime('%d.%m.%Y')} – {schedule.end_date.strftime('%d.%m.%Y')}",
+                "branch": schedule.branch.name,
+                "student_count": student_count,
+                "camp_head": camp_head.full_name if camp_head else "—",
+                "lab_head": lab_head.full_name if lab_head else "—",
+            }
+        )
+
+    return render(
+        request, "schedule/schedule_list.html", {"schedule_data": schedule_data}
+    )
+
 
 @require_POST
 @role_required(["manager", "admin", "camp_head", "lab_head"])

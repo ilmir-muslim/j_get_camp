@@ -13,7 +13,7 @@ employees_router = Router(tags=["Employees"])
 attendances_router = Router(tags=["Attendances"])
 
 @employees_router.get("/", response=list[EmployeeSchema])
-def employee_list(request):
+def employees_list(request):
     return Employee.objects.all()
 
 @employees_router.get("/{employee_id}/", response=EmployeeSchema)

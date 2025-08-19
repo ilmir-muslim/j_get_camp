@@ -1,48 +1,78 @@
 /* Стили для списка смен */
-.schedule-list-container {
-  padding: 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-
-.schedule-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #339af0;
-}
-
 .schedule-table {
-  width: 100%;
-  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .schedule-table th {
-  background-color: #f8f9fa;
+  background-color: #2c3e50;
+  color: white;
   font-weight: 600;
-  text-align: left;
   padding: 12px 15px;
-  border-bottom: 2px solid #dee2e6;
 }
 
 .schedule-table td {
   padding: 12px 15px;
-  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
 }
 
-.schedule-table tr:hover {
-  background-color: #f1f3f5;
-}
-
-.clickable-cell {
+.clickable-row {
   cursor: pointer;
-  color: #339af0;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #e9f7fe;
+}
+
+.card-header .btn-light {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
   font-weight: 500;
 }
 
-.clickable-cell:hover {
-  text-decoration: underline;
+.card-header .btn-light:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Сброс стилей для таблицы и гарантия отображения шапки */
+.schedule-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.schedule-table thead {
+  display: table-header-group;
+}
+
+.schedule-table th {
+  background-color: #f8f9fa !important;
+  color: #212529 !important;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.schedule-table tr {
+  background-color: transparent !important;
+}
+
+/* Убедимся, что таблица правильно отображается */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-table th,
+.schedule-table td
+ {
+  text-align: center;
+  vertical-align: middle;
 }
