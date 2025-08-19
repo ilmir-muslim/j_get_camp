@@ -60,9 +60,9 @@
   min-width: 250px;
   max-width: 350px;
 }
-
-.attendance-table-employees th:nth-child(7),
-.attendance-table-employees td:nth-child(7) {
+/*явка*/
+.attendance-table th:nth-child(7),
+.attendance-table td:nth-child(7) {
   width: 50px;
   min-width: 50px;
   max-width: 70px;
