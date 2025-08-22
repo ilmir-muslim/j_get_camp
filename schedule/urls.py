@@ -47,4 +47,9 @@ urlpatterns = [
         views.toggle_attendance,
         name="toggle_attendance",
     ),
+    path(
+        "schedule/<int:pk>/get_updated_data/",
+        views.get_updated_schedule_data,
+        name="get_updated_schedule_data",
+    ),
 ]

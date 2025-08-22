@@ -409,18 +409,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.target.id === 'student-form-attendance') {
       e.preventDefault();
       const form = e.target;
-      const studentId = form.querySelector('select[name="student"]').value;
-      const studentSelect = form.querySelector('select[name="student"]');
-      const selectedOption = studentSelect.querySelector(`option[value="${studentId}"]`);
+      const studentId = document.getElementById('student-id-input').value; // Получаем ID из скрытого поля
 
       if (!studentId) {
-        showToast('Выберите ученика', 'error');
+        showToast('Выберите ученика из списка', 'error');
         return;
       }
 
       const formData = new FormData();
       formData.append('action', 'add_student');
-      formData.append('student', studentId);
+      formData.append('student', studentId); // Используем правильное имя поля
 
       fetch(`/schedule/${SCHEDULE_ID}/`, {
         method: 'POST',
@@ -515,9 +513,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (removeBtn) {
       const studentId = removeBtn.dataset.studentId;
       const studentName = removeBtn.dataset.studentName;
+      const scheduleId = removeBtn.dataset.scheduleId;
 
       if (confirm('Удалить ученика из смены?')) {
-        fetch(`/schedule/${SCHEDULE_ID}/remove_student/${studentId}/`, {
+        fetch(`/schedule/${scheduleId}/remove_student/${studentId}/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -527,30 +526,23 @@ document.addEventListener('DOMContentLoaded', function () {
           .then(response => response.json())
           .then(data => {
             if (data.success) {
-              document.querySelector(`tr[data-student-id="${studentId}"]`).remove();
+              // Удаляем строку из DOM
+              const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+              if (row) row.remove();
+
               updateStudentRowNumbers();
 
-              // Добавляем ученика обратно в выпадающий список
-              const select = document.getElementById('student-select');
+              // Обновляем финансовые данные
+              updateTotalPayments();
+              updateFinanceSummary();
+              updateAttendanceTotals();
 
-              // Проверяем, не существует ли уже такого option
-              const optionExists = Array.from(select.options).some(option => option.value === studentId);
-
-              if (!optionExists) {
-                const option = document.createElement('option');
-                option.value = studentId;
-                option.textContent = studentName;
-                select.appendChild(option);
-
-                // Сортируем варианты
-                const options = Array.from(select.options);
-                options.sort((a, b) => a.text.localeCompare(b.text, 'ru'));
-                select.innerHTML = '';
-                options.forEach(opt => select.appendChild(opt));
-              }
+              // Запрашиваем обновленные данные с сервера
+              fetchUpdatedScheduleData(scheduleId);
 
               showToast('Ученик удален из смены', 'success');
-              updateAttendanceTotals(); // Обновляем итоги
+            } else {
+              showToast(data.error || 'Ошибка при удалении ученика', 'error');
             }
           })
           .catch(error => {
@@ -558,8 +550,38 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast('Произошла ошибка при удалении ученика', 'error');
           });
       }
-    }
+    }c
   });
+
+  // Функция для запроса обновленных данных с сервера
+  function fetchUpdatedScheduleData(scheduleId) {
+    fetch(`/schedule/${scheduleId}/get_updated_data/`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Обновляем глобальные переменные с данными
+          if (data.total_payments !== undefined) {
+            window.totalPayments = data.total_payments;
+          }
+          if (data.total_expenses !== undefined) {
+            window.totalExpenses = data.total_expenses;
+          }
+
+          // Принудительно обновляем отображение
+          updateTotalPayments();
+          updateFinanceSummary();
+          updateAttendanceTotals();
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching updated data:', error);
+      });
+  }
 
   // Обработчик для кнопки создания ученика
   document.getElementById('create-student-btn')?.addEventListener('click', function () {
@@ -610,25 +632,22 @@ document.addEventListener('DOMContentLoaded', function () {
           const modal = bootstrap.Modal.getInstance(document.getElementById('createStudentModal'));
           modal.hide();
 
-          // Добавляем нового ученика в выпадающий список
-          const select = document.getElementById('student-select');
+          // Добавляем нового ученика в datalist
+          const datalist = document.getElementById('students-datalist');
           const option = document.createElement('option');
-          option.value = data.student.id;
-          option.textContent = data.student.full_name;
-          select.appendChild(option);
+          option.value = data.student.full_name;
+          option.setAttribute('data-id', data.student.id);
+          datalist.appendChild(option);
 
-          // Автоматически выбираем нового ученика
-          select.value = data.student.id;
+          // Автоматически заполняем поле поиска
+          document.getElementById('student-search-input').value = data.student.full_name;
+          document.getElementById('student-id-input').value = data.student.id;
 
           // Очищаем форму
           document.getElementById('full_name').value = '';
           document.getElementById('phone').value = '';
           document.getElementById('parent_name').value = '';
           document.getElementById('default_price').value = '11400';
-
-          // Триггерим событие изменения селекта
-          const event = new Event('change');
-          select.dispatchEvent(event);
 
           showToast('Ученик успешно создан', 'success');
         } else {
@@ -712,6 +731,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       row.style.display = (nameMatch && typeMatch) ? '' : 'none';
     });
+
+    // Обновляем итоги платежей после фильтрации
+    updateTotalPayments();
   }
 
   // Функция сортировки таблицы посещаемости
@@ -880,6 +902,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateTotalPayments() {
     let total = 0;
     document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
+      // Пропускаем скрытые строки (например, отфильтрованные) и удаленные строки
+      if (row.style.display === 'none' || !row.isConnected) {
+        return;
+      }
+
       const paymentCell = row.cells[3];
       const paymentText = paymentCell.textContent.trim();
 
@@ -910,9 +937,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (financeIncomeElement) {
       financeIncomeElement.textContent = formattedTotal + ' руб.';
     }
-
-    // Обновляем сальдо
-    updateFinanceSummary();
 
     return total;
   }

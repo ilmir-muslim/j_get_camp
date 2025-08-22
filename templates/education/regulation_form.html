@@ -1,0 +1,37 @@
+{% load static %}
+
+<div class="modal-header">
+  <h5 class="modal-title">{% if form.instance.pk %}Редактирование{% else %}Добавление{% endif %} материала</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="regulation-form" action="{% if form.instance.pk %}{% url 'regulation_edit' form.instance.pk %}{% else %}{% url 'regulation_create' %}{% endif %}">
+  {% csrf_token %}
+  
+  <div class="modal-body">
+    <div class="mb-3">
+      <label for="{{ form.title.id_for_label }}" class="form-label">Название</label>
+      {{ form.title }}
+      {% if form.title.errors %}
+        <div class="invalid-feedback d-block">
+          {{ form.title.errors }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.file.id_for_label }}" class="form-label">Файл (PDF)</label>
+      {{ form.file }}
+      {% if form.file.errors %}
+        <div class="invalid-feedback d-block">
+          {{ form.file.errors }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </div>
+</form>

@@ -19,7 +19,7 @@ from core.utils import role_required
 from employees.models import Employee, EmployeeAttendance
 from payroll.forms import PaymentForm
 from payroll.models import Expense
-from students.models import Payment, Student
+from students.models import Balance, Payment, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
 
@@ -469,6 +469,7 @@ def remove_employee_from_schedule(request, schedule_id, employee_id):
 
     return JsonResponse({'success': True})
 
+
 @require_POST
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def remove_student_from_schedule(request, schedule_id, student_id):
@@ -480,13 +481,37 @@ def remove_student_from_schedule(request, schedule_id, student_id):
         user.role in ["camp_head", "lab_head"]
         and schedule not in user.schedule_set.all()
     ):
-        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        return JsonResponse(
+            {"success": False, "error": "Permission denied"}, status=403
+        )
 
+    # Получаем все платежи студента за эту смену
+    payments = Payment.objects.filter(student=student, schedule=schedule)
+
+    # Суммируем все платежи
+    total_amount = payments.aggregate(total=Sum("amount"))["total"] or 0
+
+    # Если есть платежи, создаем операцию возврата на баланс
+    if total_amount > 0:
+        # Создаем запись о возврате средств
+        Balance.objects.create(
+            student=student,
+            amount=total_amount,
+            operation_type="deposit",  # Используем тип 'deposit' для возврата средств
+            comment=f'Возврат средств при удалении из смены "{schedule.name}"',
+            created_by=request.user,
+        )
+
+    # Удаляем все платежи студента за эту смену
+    payments.delete()
+
+    # Отвязываем студента от смены
     if student.schedule == schedule:
         student.schedule = None
         student.save()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({"success": True})
+
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_students_excel(request, pk):
@@ -585,26 +610,26 @@ def schedule_list(request):
 def toggle_attendance(request, schedule_id):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     user = request.user
-    
+
     if user.role in ["camp_head", "lab_head"] and schedule not in user.schedule_set.all():
         return JsonResponse({"status": "error", "message": "Permission denied"}, status=403)
-    
+
     try:
         data = json.loads(request.body)
-        
+
         # Обработка учеников
         if "student_id" in data:
             student_id = data.get("student_id")
             date_str = data.get("date")
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-            
+
             student = get_object_or_404(Student, id=student_id)
             att, created = Attendance.objects.get_or_create(
                 student=student, 
                 date=date_obj, 
                 defaults={"present": False, "excused": False}
             )
-            
+
             # Циклическое переключение: отсутствует -> присутствует -> по уважительной -> отсутствует
             if not att.present and not att.excused:
                 att.present = True
@@ -617,14 +642,14 @@ def toggle_attendance(request, schedule_id):
                 att.excused = False
                 status = 'absent'
             att.save()
-            
+
             # Пересчитываем общее количество посещений
             total_attendance = Attendance.objects.filter(
                 student=student,
                 date__range=(schedule.start_date, schedule.end_date),
                 present=True
             ).count()
-            
+
             return JsonResponse({
                 "status": "success",
                 "present": att.present,
@@ -633,20 +658,20 @@ def toggle_attendance(request, schedule_id):
                 "student_id": student_id,
                 "date": date_str,
             })
-        
+
         # Обработка сотрудников
         elif "employee_id" in data:
             employee_id = data.get("employee_id")
             date_str = data.get("date")
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-            
+
             employee = get_object_or_404(Employee, id=employee_id)
             att, created = EmployeeAttendance.objects.get_or_create(
                 employee=employee,
                 date=date_obj,
                 defaults={"present": False, "excused": False}
             )
-            
+
             # Циклическое переключение статусов
             if not att.present and not att.excused:
                 att.present = True
@@ -659,14 +684,14 @@ def toggle_attendance(request, schedule_id):
                 att.excused = False
                 status = 'absent'
             att.save()
-            
+
             # Пересчет общего количества посещений
             total_attendance = EmployeeAttendance.objects.filter(
                 employee=employee,
                 date__range=(schedule.start_date, schedule.end_date),
                 present=True
             ).count()
-            
+
             return JsonResponse({
                 "status": "success",
                 "present": att.present,
@@ -675,9 +700,39 @@ def toggle_attendance(request, schedule_id):
                 "employee_id": employee_id,
                 "date": date_str,
             })
-        
+
         else:
             return JsonResponse({"status": "error", "message": "Не указан student_id или employee_id"}, status=400)
-            
+
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+def get_updated_schedule_data(request, pk):
+    try:
+        schedule = Schedule.objects.get(pk=pk)
+
+        # Получаем обновленные данные
+        total_payments = (
+            Payment.objects.filter(student__schedule_students=schedule).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+        total_expenses = (
+            Expense.objects.filter(schedule=schedule).aggregate(total=Sum("amount"))[
+                "total"
+            ]
+            or 0
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "total_payments": float(total_payments),
+                "total_expenses": float(total_expenses),
+            }
+        )
+    except Schedule.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Schedule not found"})

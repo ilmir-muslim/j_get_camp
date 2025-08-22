@@ -42,9 +42,9 @@ def salary_list(request):
     if show_unpaid:
         salaries = salaries.filter(is_paid=False)
 
-    # Добавляем вычисляемое поле days_worked к каждому объекту
+    # Создаем временный атрибут для отображения в шаблоне
     for salary in salaries:
-        salary.days_worked = salary.calculate_days_worked()
+        salary.days_worked_display = salary.calculate_days_worked()
 
     total_salary = (
         salaries.aggregate(models.Sum("total_payment"))["total_payment__sum"] or 0
@@ -72,23 +72,16 @@ def salary_create(request):
             salary = form.save()
 
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "salary": {
-                            "id": salary.id,
-                            "employee_name": salary.employee.full_name,
-                            "schedule_name": f"{salary.schedule.name} ({salary.schedule.start_date} - {salary.schedule.end_date})",
-                            "payment_type_display": salary.get_payment_type_display(),
-                            "days_worked": salary.days_worked,
-                            "daily_rate": salary.daily_rate,
-                            "percent_rate": salary.percent_rate,
-                            "total_payment": salary.total_payment,
-                            "is_paid": salary.is_paid,
-                        },
-                    }
-                )
+                return JsonResponse({"success": True})
             return redirect("salary_list")
+        else:
+            # Возвращаем форму с ошибками в формате JSON
+            html = render_to_string(
+                "payroll/salary_form.html",
+                {"form": form, "salary": None},
+                request=request,
+            )
+            return JsonResponse({"success": False, "form_html": html})
     else:
         form = SalaryForm()
 
@@ -117,23 +110,16 @@ def salary_edit(request, pk):
             salary = form.save()
 
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "salary": {
-                            "id": salary.id,
-                            "employee_name": salary.employee.full_name,
-                            "schedule_name": f"{salary.schedule.name} ({salary.schedule.start_date} - {salary.schedule.end_date})",
-                            "payment_type_display": salary.get_payment_type_display(),
-                            "days_worked": salary.days_worked,
-                            "daily_rate": salary.daily_rate,
-                            "percent_rate": salary.percent_rate,
-                            "total_payment": salary.total_payment,
-                            "is_paid": salary.is_paid,
-                        },
-                    }
-                )
+                return JsonResponse({"success": True})
             return redirect("salary_list")
+        else:
+            # Возвращаем форму с ошибками в формате JSON
+            html = render_to_string(
+                "payroll/salary_form.html",
+                {"form": form, "salary": salary},
+                request=request,
+            )
+            return JsonResponse({"success": False, "form_html": html})
     else:
         form = SalaryForm(instance=salary)
 

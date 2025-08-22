@@ -98,31 +98,34 @@
             </tr>
           </thead>
           <tbody id="salaries-table-body">
-            {% for salary in salaries %}
-            <tr data-salary-id="{{ salary.id }}" class="clickable-salary-row">
-              <td>{{ salary.id }}</td>
-              <td>{{ salary.employee.full_name }}</td>
-              <td>{{ salary.schedule.name }} ({{ salary.schedule.start_date }} - {{ salary.schedule.end_date }})</td>
-              <td>{{ salary.get_payment_type_display }}</td>
-              <td>{{ salary.days_worked }}</td>
-              <td>{{ salary.daily_rate }}</td>
-              <td>{{ salary.percent_rate }}</td>
-              <td>{{ salary.total_payment }}</td>
-              <td>
-                {% if salary.is_paid %}
-                  <span class="status-badge status-paid">✅ Выплачено</span>
-                {% else %}
-                  <span class="status-badge status-unpaid">❌ Не выплачено</span>
-                {% endif %}
-              </td>
-              <td>
-                <button class="btn p-0 border-0 bg-transparent icon-btn delete-salary-btn"
-                        data-salary-id="{{ salary.id }}">
-                  <i class="bi bi-trash text-danger fs-5"></i>
-                </button>
-              </td>
-            </tr>
-            {% endfor %}
+          {% for data in salary_data %}
+          {% with salary=data.salary days_worked=data.days_worked_calculated %}
+          <tr data-salary-id="{{ salary.id }}" class="clickable-salary-row">
+            <td>{{ salary.id }}</td>
+            <td>{{ salary.employee.full_name }}</td>
+            <td>{{ salary.schedule.name }} ({{ salary.schedule.start_date }} - {{ salary.schedule.end_date }})</td>
+            <td>{{ salary.get_payment_type_display }}</td>
+            <td>{{ days_worked }}</td>  <!-- Используем вычисленное значение -->
+            <td>{{ salary.daily_rate }}</td>
+            <td>{{ salary.percent_rate }}</td>
+            <td>{{ salary.total_payment }}</td>
+            <td>
+              {% if salary.is_paid %}
+                <span class="status-badge status-paid">✅ Выплачено</span>
+              {% else %}
+                <span class="status-badge status-unpaid">❌ Не выплачено</span>
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn p-0 border-0 bg-transparent icon-btn delete-salary-btn"
+                      data-salary-id="{{ salary.id }}">
+                <i class="bi bi-trash text-danger fs-5"></i>
+              </button>
+            </td>
+          </tr>
+          {% endwith %}
+          {% endfor %}
+
           </tbody>
           <tfoot>
             <tr class="total-summary-row">
@@ -230,42 +233,44 @@
     }
 
     // Обработчик отправки формы зарплаты
-    document.addEventListener('submit', function (e) {
-      if (e.target.id === 'salary-form') {
+document.addEventListener('submit', function (e) {
+    if (e.target.id === 'salary-form') {
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
-        const isEdit = form.action.includes('edit');
         
         fetch(form.action, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-CSRFToken': CSRF_TOKEN,
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // Закрываем модальное окно
-              const modal = bootstrap.Modal.getInstance(document.getElementById('salaryModal'));
-              if (modal) modal.hide();
-              
-              // Обновляем таблицу
-              location.reload(); // Временное решение - перезагрузка страницы
-            } else {
-              // Обновляем содержимое модального окна с ошибками
-              document.getElementById('salary-modal-content').innerHTML = data.html;
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
             }
-          })
-          .catch(error => {
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('salaryModal'));
+                modal.hide();
+                
+                // Показываем уведомление об успехе
+                showToast('Данные успешно сохранены', 'success');
+                
+                // Обновляем страницу
+                location.reload();
+            } else {
+                // Обновляем форму с ошибками валидации
+                document.getElementById('salary-modal-content').innerHTML = data.form_html;
+            }
+        })
+        .catch(error => {
             console.error('Error:', error);
-            showToast('Произошла ошибка при сохранении зарплаты', 'error');
-          });
-      }
-    });
-  });
+            showToast('Произошла ошибка при сохранении', 'error');
+        });
+    }
+});
+
 
 </script>
 {% endblock %}

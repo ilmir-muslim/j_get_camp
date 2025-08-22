@@ -134,7 +134,7 @@ class Balance(models.Model):
     OPERATION_TYPES = [
         ("deposit", "Пополнение"),
         ("payment", "Списание"),
-        ("correction", "Корректировка"),
+        ("refund", "Возврат"),
     ]
 
     student = models.ForeignKey(
