@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   colorizePaymentCells();
-
+  setupStudentSearch();
   // Функция для загрузки формы в модальное окно
   function loadFormIntoModal(url) {
     fetch(url)
@@ -916,7 +916,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     return total;
   }
-  
+
   // Обработчик для кнопок удаления в модальных окнах
   document.addEventListener('click', function (e) {
     if (e.target.id === 'delete-student-btn') {
@@ -1480,6 +1480,38 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Функция для обработки выбора ученика из datalist
+function setupStudentSearch() {
+    const searchInput = document.getElementById('student-search-input');
+    const idInput = document.getElementById('student-id-input');
+    const datalist = document.getElementById('students-datalist');
+    
+    if (!searchInput || !idInput) return;
+
+    // Обработчик изменения значения в поле поиска
+    searchInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        const option = Array.from(datalist.options).find(opt => opt.value === value);
+        
+        if (option) {
+            idInput.value = option.getAttribute('data-id');
+        } else {
+            idInput.value = '';
+        }
+    });
+
+    // Обработчик отправки формы - проверяем, что ученик выбран
+    const form = document.getElementById('student-form-attendance');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!idInput.value) {
+                e.preventDefault();
+                showToast('Пожалуйста, выберите ученика из списка', 'error');
+                searchInput.focus();
+            }
+        });
+    }
+}
 
 
   // Обновляем доступный баланс при изменении суммы

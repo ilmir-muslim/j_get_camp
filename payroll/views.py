@@ -27,14 +27,14 @@ def expense_list(request):
     })
 
 
-@role_required(['manager', 'admin'])
+@role_required(["manager", "admin"])
 def salary_list(request):
     """
     Список зарплат с фильтрацией: все или только невыплаченные.
     """
-    show_unpaid = request.GET.get('unpaid') == '1'
+    show_unpaid = request.GET.get("unpaid") == "1"
 
-    if request.user.role == 'manager':
+    if request.user.role == "manager":
         salaries = Salary.objects.all()
     else:
         salaries = Salary.objects.filter(schedule__branch=request.user.branch)
@@ -42,13 +42,23 @@ def salary_list(request):
     if show_unpaid:
         salaries = salaries.filter(is_paid=False)
 
-    total_salary = salaries.aggregate(models.Sum('total_payment'))['total_payment__sum'] or 0
+    # Добавляем вычисляемое поле days_worked к каждому объекту
+    for salary in salaries:
+        salary.days_worked = salary.calculate_days_worked()
 
-    return render(request, 'payroll/salary_list.html', {
-        'salaries': salaries,
-        'total_salary': total_salary,
-        'show_unpaid': show_unpaid,
-    })
+    total_salary = (
+        salaries.aggregate(models.Sum("total_payment"))["total_payment__sum"] or 0
+    )
+
+    return render(
+        request,
+        "payroll/salary_list.html",
+        {
+            "salaries": salaries,
+            "total_salary": total_salary,
+            "show_unpaid": show_unpaid,
+        },
+    )
 
 
 @role_required(["manager", "admin"])

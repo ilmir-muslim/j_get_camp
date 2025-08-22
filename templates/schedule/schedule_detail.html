@@ -158,26 +158,29 @@
         </div>
         <div class="card-body">
             <!-- Форма ученика -->
-            <div class="form-container">
-                <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="add_student">
-                    <div class="form-grid">
-                        <div class="select-wrapper">
-                            <label class="form-label">Добавить ученика</label>
-                            <select name="student" class="form-select" required id="student-select">
-                                <option value="">Выберите ученика</option>
-                                {% for student in available_students %}
-                                    <option value="{{ student.id }}">{{ student.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-success">Добавить</button>
-                        <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
+        <div class="form-container">
+            <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_student">
+                <div class="form-grid">
+                    <div class="select-wrapper">
+                        <label class="form-label">Добавить ученика</label>
+                        <!-- Заменяем select на input с datalist -->
+                        <input list="students-datalist" id="student-search-input" name="student" 
+                            class="form-control" placeholder="Начните вводить ФИО ученика" autocomplete="off">
+                        <datalist id="students-datalist">
+                            {% for student in available_students %}
+                                <option value="{{ student.full_name }}" data-id="{{ student.id }}">
+                            {% endfor %}
+                        </datalist>
+                        <!-- Скрытое поле для хранения ID выбранного студента -->
+                        <input type="hidden" id="student-id-input" name="student_id">
                     </div>
-                </form>
-            </div>
-
+                    <button type="submit" class="btn btn-success">Добавить</button>
+                    <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
+                </div>
+            </form>
+        </div>
             <!-- Фильтры -->
             <div class="filter-section">
                 <div class="filter-row">
@@ -368,31 +371,31 @@
         </div>
     </div>
     
-<div class="col-md-4">
-    <div class="card mb-5">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Финансовая сводка</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Расход</th>
-                        <th>Доход</th>
-                        <th>Сальдо</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:2 }} руб.</td>
-                        <td id="finance-income">{{ total_payments|default:0|floatformat:2 }} руб.</td>
-                        <td id="finance-balance">0.00 руб.</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="col-md-4">
+        <div class="card mb-5">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Финансовая сводка</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Расход</th>
+                            <th>Доход</th>
+                            <th>Сальдо</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:"0" }} руб.</td>
+                            <td id="finance-income">{{ total_payments|default:0|floatformat:"0" }} руб.</td>
+                            <td id="finance-balance">0 руб.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 </div>
     
     <!-- Модальное окно для создания ученика -->
