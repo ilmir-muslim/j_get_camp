@@ -10,6 +10,37 @@ urlpatterns = [
     path("export_pdf/", views.student_export_pdf, name="student_export_pdf"),
     path("create/ajax/", views.student_create_ajax, name="student_create_ajax"),
     path("<int:pk>/quick_edit/", views.student_quick_edit, name="student_quick_edit"),
-    path("payments/create/", views.create_payment, name="create_payment"),
-    path("payments/edit/<int:pk>/", views.edit_payment, name="edit_payment"),
+    path(
+        "<int:student_id>/add_balance/", views.add_balance, name="student_add_balance"
+    ),
+    path(
+        "<int:student_id>/balance_history/",
+        views.get_balance_history,
+        name="student_balance_history",
+    ),
+    path(
+        "<int:student_id>/check_balance/",
+        views.check_balance,
+        name="student_check_balance",
+    ),
+    path(
+        "<int:student_id>/payments/add_payment/",
+        views.add_payment,
+        name="student_add_payment",
+    ),
+    path(
+        "<int:student_id>/payments/history/",
+        views.payment_history,
+        name="student_payment_history",
+    ),
+    path(
+        "<int:student_id>/payment_info/",
+        views.student_payment_info,
+        name="student_payment_info",
+    ),
+    path(
+        "<int:student_id>/payments/add_payment_form/",
+        views.add_payment_form,
+        name="student_add_payment_form",
+    ),
 ]

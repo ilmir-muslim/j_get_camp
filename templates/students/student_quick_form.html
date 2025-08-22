@@ -5,7 +5,38 @@
 <div class="modal-body">
   <form id="student-quick-edit-form" method="post" action="{% url 'student_quick_edit' student.id %}">
     {% csrf_token %}
-    {{ form.as_p }}
+    <div class="mb-3">
+      <label for="{{ form.full_name.id_for_label }}" class="form-label">ФИО</label>
+      {{ form.full_name }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.phone.id_for_label }}" class="form-label">Телефон</label>
+      {{ form.phone }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.parent_name.id_for_label }}" class="form-label">Родитель</label>
+      {{ form.parent_name }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена</label>
+      {{ form.schedule }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.attendance_type.id_for_label }}" class="form-label">Тип посещения</label>
+      {{ form.attendance_type }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.default_price.id_for_label }}" class="form-label">Базовая цена</label>
+      {{ form.default_price }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.individual_price.id_for_label }}" class="form-label">Индивидуальная цена</label>
+      {{ form.individual_price }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.price_comment.id_for_label }}" class="form-label">Комментарий к цене</label>
+      {{ form.price_comment }}
+    </div>
     <div class="d-flex justify-content-between">
       <button type="submit" class="btn btn-primary">Сохранить</button>
       <button type="button" class="btn btn-danger" 

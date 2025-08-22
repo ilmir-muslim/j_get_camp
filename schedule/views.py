@@ -231,10 +231,10 @@ def schedule_detail(request, pk):
             employee_attendance[key] = status
         employee_attendance_counts[employee.id] = total
 
-    student_payments = {}
+    student_total_payments = {}
     for student in students:
-        payment = Payment.objects.filter(student=student, schedule=schedule).first()
-        student_payments[student.id] = payment
+        total_paid = student.get_total_paid_for_schedule(schedule)
+        student_total_payments[student.id] = total_paid
 
     # Общая сумма платежей по смене (для футера)
     total_payments = (
@@ -444,7 +444,7 @@ def schedule_detail(request, pk):
         "employee_attendance": employee_attendance,
         "employee_attendance_counts": employee_attendance_counts,
         "total_expenses_sum": total_expenses_sum,
-        "student_payments": student_payments,
+        "student_total_payments": student_total_payments,
         "total_payments": total_payments,
         "from_schedule_list": from_schedule_list,
     }

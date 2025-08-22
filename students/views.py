@@ -1,27 +1,34 @@
+from decimal import Decimal
 import io
 import json
 import openpyxl
 import logging
-from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
-from django.db.models import Sum
 from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_GET
 from weasyprint import HTML
 
 from core.utils import role_required
+import schedule
 from schedule.models import Schedule
-from students.forms import PaymentForm, StudentForm
-from .models import Payment, Student
+from students.forms import BalanceForm, PaymentForm, StudentForm
+from .models import Balance, Payment, Student
 
 logger = logging.getLogger(__name__)
 
+
 def student_list(request):
     students = Student.objects.all()
-    return render(request, "students/student_list.html", {"students": students})
+    schedules = Schedule.objects.all()  # Добавляем список смен
+    return render(
+        request,
+        "students/student_list.html",
+        {"students": students, "schedules": schedules},
+    )
 
 
 @role_required(["manager", "admin"])
@@ -168,6 +175,16 @@ def student_create_ajax(request):
                         date=timezone.now().date(),
                         comment="Автоматически созданный платеж",
                     )
+
+                    # Создаем операцию списания
+                    Balance.objects.create(
+                        student=student,
+                        amount=amount,
+                        operation_type="payment",
+                        comment=f"Автоматически созданный платеж за смену {schedule.name}",
+                        created_by=request.user,
+                    )
+
                     payment_data = {
                         "id": payment.id,
                         "amount": str(payment.amount),
@@ -222,6 +239,11 @@ def student_quick_edit(request, pk):
                     "student": {
                         "id": student.id,
                         "full_name": student.full_name,
+                        "phone": student.phone,
+                        "parent_name": student.parent_name,
+                        "schedule_name": (
+                            student.schedule.name if student.schedule else None
+                        ),
                         "attendance_type_display": student.get_attendance_type_display(),
                         "default_price": str(student.default_price),
                         "individual_price": (
@@ -229,6 +251,7 @@ def student_quick_edit(request, pk):
                             if student.individual_price
                             else None
                         ),
+                        "price_comment": student.price_comment,
                     },
                 }
             )
@@ -246,86 +269,217 @@ def student_quick_edit(request, pk):
     )
 
 
-def create_payment(request):
-    logger.info(f"Create payment request: {request.method}")
+@require_POST
+@role_required(["manager", "admin"])
+def add_balance(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+    form = BalanceForm(request.POST)
 
-    if request.method == "POST":
+    if form.is_valid():
         try:
-            form = PaymentForm(request.POST)
-            logger.info(f"Form data: {request.POST}")
+            balance = form.save(commit=False)
+            balance.student = student
+            balance.operation_type = "deposit"
+            balance.created_by = request.user
+            balance.save()
 
-            if form.is_valid():
-                student = form.cleaned_data["student"]
-                schedule = form.cleaned_data["schedule"]
-
-                # Поиск существующего платежа
-                existing_payment = Payment.objects.filter(
-                    student=student, schedule=schedule
-                ).first()
-
-                if existing_payment:
-                    # Обновление существующего платежа
-                    existing_payment.amount = form.cleaned_data["amount"]
-                    existing_payment.date = form.cleaned_data["date"]
-                    existing_payment.comment = form.cleaned_data["comment"]
-                    existing_payment.save()
-                    logger.info(f"Updated payment: {existing_payment.id}")
-                    return JsonResponse(
-                        {"success": True, "payment_id": existing_payment.id}
-                    )
-                else:
-                    # Создание нового платежа
-                    payment = form.save()
-                    logger.info(f"Created new payment: {payment.id}")
-                    return JsonResponse({"success": True, "payment_id": payment.id})
-
-            # Форма не валидна
-            logger.warning(f"Form errors: {form.errors}")
-            html = render_to_string(
-                "students/payment_form.html", {"form": form}, request=request
+            return JsonResponse(
+                {
+                    "success": True,
+                    "new_balance": str(student.current_balance),
+                    "message": "Баланс успешно пополнен",
+                }
             )
-            return JsonResponse({"success": False, "html": html}, status=400)
-
         except Exception as e:
-            logger.exception("Error in create_payment")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
+            logger.exception("Ошибка при пополнении баланса")
+            return JsonResponse(
+                {"success": False, "error": f"Ошибка при сохранении: {str(e)}"},
+                status=500,
+            )
 
-    # GET-запрос
-    try:
-        student_id = request.GET.get("student_id")
-        schedule_id = request.GET.get("schedule_id")
+    return JsonResponse({"success": False, "errors": form.errors.as_json()}, status=400)
 
-        # Поиск существующего платежа
-        payment = Payment.objects.filter(
-            student_id=student_id, schedule_id=schedule_id
-        ).first()
 
-        if payment:
-            form = PaymentForm(instance=payment)
-        else:
-            initial = {
-                "student": student_id,
-                "schedule": schedule_id,
-                "date": timezone.now().date(),
+@require_GET
+@role_required(["manager", "admin"])
+def get_balance_history(request, student_id):
+    """Получить историю операций по балансу студента"""
+    student = get_object_or_404(Student, id=student_id)
+    balance_operations = student.balance_operations.all().order_by("-date")[
+        :20
+    ]  # Последние 20 операций
+
+    # Преобразуем данные в JSON-совместимый формат
+    operations_data = []
+    for operation in balance_operations:
+        operations_data.append(
+            {
+                "date": operation.date.strftime("%d.%m.%Y %H:%M"),
+                "operation_type": operation.get_operation_type_display(),
+                "amount": str(operation.amount),
+                "comment": operation.comment or "",
+                "created_by": (
+                    operation.created_by.get_full_name()
+                    if operation.created_by
+                    else "Система"
+                ),
             }
-            form = PaymentForm(initial=initial)
+        )
 
-        return render(request, "students/payment_form.html", {"form": form})
-
-    except Exception as e:
-        logger.exception("Error in GET create_payment")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    return JsonResponse({"success": True, "operations": operations_data})
 
 
-def edit_payment(request, pk):
-    payment = get_object_or_404(Payment, pk=pk)
+@require_GET
+@role_required(["manager", "admin"])
+def check_balance(request, student_id):
+    """Проверить достаточно ли средств на балансе для платежа"""
+    student = get_object_or_404(Student, id=student_id)
+    amount = request.GET.get("amount", 0)
+    schedule_id = request.GET.get("schedule_id")
 
-    if request.method == "POST":
-        form = PaymentForm(request.POST, instance=payment)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({"success": True})
+    try:
+        amount = Decimal(amount)
+
+        # Проверяем, есть ли существующий платеж для этой смены
+        existing_payment = None
+        if schedule_id:
+            existing_payment = Payment.objects.filter(
+                student_id=student_id, schedule_id=schedule_id
+            ).first()
+
+        # При редактировании платежа мы сначала "возвращаем" старую сумму
+        if existing_payment:
+            available_balance = student.current_balance + existing_payment.amount
+        else:
+            available_balance = student.current_balance
+
+        can_pay = available_balance >= amount
+
+        return JsonResponse(
+            {
+                "can_pay": can_pay,
+                "balance": float(student.current_balance),
+                "required": float(amount),
+            }
+        )
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Неверная сумма"}, status=400)
+
+
+@require_POST
+@role_required(["manager", "admin"])
+def add_payment(request, student_id):
+    """Обработка добавления платежа"""
+    student = get_object_or_404(Student, id=student_id)
+    schedule_id = request.GET.get("schedule_id")
+
+    if not schedule_id:
+        return JsonResponse({"success": False, "error": "Не указана смена"}, status=400)
+
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    form = PaymentForm(request.POST)
+
+    if form.is_valid():
+        payment = form.save(commit=False)
+        payment.student = student
+        payment.schedule = schedule
+        payment.save()
+
+        # Создаем операцию списания в Balance
+        Balance.objects.create(
+            student=student,
+            amount=payment.amount,
+            operation_type="payment",
+            comment=f"Платеж за смену {schedule.name}",
+            created_by=request.user,
+        )
+
+        # Получаем общую сумму оплаченного за смену (все платежи студента)
+        total_paid = student.get_total_paid_for_schedule(schedule)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Платеж успешно добавлен",
+                "student_id": student_id,
+                "schedule_id": schedule_id,
+                "payment_amount": float(payment.amount),
+                "total_paid": float(total_paid),
+            }
+        )
+    else:
         return JsonResponse({"success": False, "errors": form.errors}, status=400)
 
-    form = PaymentForm(instance=payment)
-    return render(request, "students/payment_form.html", {"form": form})
+
+@require_GET
+@role_required(["manager", "admin"])
+def payment_history(request, student_id):
+    """Получить историю платежей студента для конкретной смены"""
+    student = get_object_or_404(Student, id=student_id)
+    schedule_id = request.GET.get("schedule_id")
+
+    payments = Payment.objects.filter(student=student)
+    if schedule_id:
+        payments = payments.filter(schedule_id=schedule_id)
+
+    payments = payments.order_by("-date")
+
+    html = render_to_string(
+        "students/payment_history_partial.html",
+        {"payments": payments, "student": student},
+    )
+
+    return JsonResponse({"success": True, "html": html})
+
+
+@require_POST
+@role_required(["manager", "admin"])
+def student_payment_info(request, student_id):
+    """Получить информацию о платежах студента для конкретной смены"""
+    student = get_object_or_404(Student, id=student_id)
+    schedule_id = request.GET.get("schedule_id")
+
+    total_paid = student.get_total_paid_for_schedule(schedule_id) if schedule_id else 0
+
+    return JsonResponse(
+        {
+            "success": True,
+            "student_id": student_id,
+            "student_name": student.full_name,
+            "total_paid": total_paid,
+            "balance": student.current_balance,
+        }
+    )
+
+
+@role_required(["manager", "admin"])
+def add_payment_form(request, student_id):
+    """Отображение формы добавления платежа"""
+    student = get_object_or_404(Student, id=student_id)
+    schedule_id = request.GET.get("schedule_id")
+
+    if not schedule_id:
+        return JsonResponse({"success": False, "error": "Не указана смена"}, status=400)
+
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+
+    # Проверяем, есть ли уже платежи
+    existing_payments = Payment.objects.filter(student=student, schedule=schedule)
+    total_paid = student.get_total_paid_for_schedule(schedule)
+
+    # Определяем текст кнопки
+    button_text = "Добавить платеж" if existing_payments.exists() else "Создать платеж"
+
+    form = PaymentForm(initial={"date": timezone.now().date()})
+
+    return render(
+        request,
+        "students/payment_form.html",
+        {
+            "form": form,
+            "student": student,
+            "schedule": schedule,
+            "button_text": button_text,
+            "total_paid": total_paid,
+        },
+    )

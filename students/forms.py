@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Payment, Student
+from .models import Balance, Payment, Student
 
 class StudentForm(forms.ModelForm):
     """
@@ -23,8 +23,34 @@ class StudentForm(forms.ModelForm):
 class PaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
-        fields = ["student", "schedule", "amount", "date", "comment"]
+        fields = ["amount", "date", "comment"]
         widgets = {
-            "student": forms.HiddenInput(),
-            "schedule": forms.HiddenInput(),
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "comment": forms.Textarea(attrs={"rows": 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["amount"].widget.attrs.update(
+            {"min": "0", "step": "0.01", "class": "form-control"}
+        )
+        self.fields["date"].widget.attrs.update({"class": "form-control"})
+        self.fields["comment"].widget.attrs.update(
+            {"class": "form-control", "placeholder": "Комментарий к платежу"}
+        )
+
+
+class BalanceForm(forms.ModelForm):
+    class Meta:
+        model = Balance
+        fields = ["amount", "comment", "operation_type"]
+        widgets = {
+            "operation_type": forms.HiddenInput(),
+            "comment": forms.TextInput(attrs={"placeholder": "Причина пополнения..."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["amount"].widget.attrs.update({"min": "0", "step": "0.01"})
+        # Устанавливаем начальное значение для operation_type
+        self.fields["operation_type"].initial = "deposit"

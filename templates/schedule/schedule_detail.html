@@ -252,16 +252,16 @@
                                 </td>
                                 <td>{{ student.individual_price|default:student.default_price }}</td>
                                 <td>
-                                    {% with payment=student_payments|get_item:student.id %}
-                                        {% if payment %}
-                                            {{ payment.amount }}
+                                    {% with total_paid=student_total_payments|get_item:student.id %}
+                                        {% if total_paid %}
+                                            {{ total_paid|floatformat:2 }}
                                         {% else %}
                                             —
                                         {% endif %}
                                     {% endwith %}
                                 </td>
                                 <td>{{ student.get_attendance_type_display }}</td>
-                                <td>{{ student.full_name }}</td>
+                                <td class="student-column">{{ student.full_name }}</td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}
                                     {% with key=student.id|stringformat:"s"|add:"_"|add:date.isoformat %}
@@ -291,7 +291,7 @@
                     <tfoot>
                         <tr id="student-total-row">
                             <td colspan="3" class="text-end"><strong>Итого:</strong></td>
-                            <td class="text-center"><strong>{{ total_payments }}</strong></td> 
+                            <td class="text-center" id="total-payments-cell"><strong>{{ total_payments|default:0|floatformat:2 }}</strong></td>
                             <td colspan="3"></td> 
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
@@ -368,31 +368,31 @@
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card mb-5">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Финансовая сводка</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Расход</th>
-                            <th>Доход</th>
-                            <th>Сальдо</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:"0" }} руб.</td>
-                            <td id="finance-income">{{ total_payments|default:0|floatformat:"0" }} руб.</td>
-                            <td id="finance-balance">0 руб.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+<div class="col-md-4">
+    <div class="card mb-5">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Финансовая сводка</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Расход</th>
+                        <th>Доход</th>
+                        <th>Сальдо</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:2 }} руб.</td>
+                        <td id="finance-income">{{ total_payments|default:0|floatformat:2 }} руб.</td>
+                        <td id="finance-balance">0.00 руб.</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 </div>
     
     <!-- Модальное окно для создания ученика -->

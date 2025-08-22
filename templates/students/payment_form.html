@@ -1,32 +1,131 @@
 <div class="modal-header">
-    <h5 class="modal-title">
-        {% if form.instance.id %}Редактирование платежа{% else %}Добавление платежа{% endif %}
-    </h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <h5 class="modal-title">Платеж для {{ student.full_name }}</h5>
+  <button
+    type="button"
+    class="btn-close"
+    data-bs-dismiss="modal"
+    aria-label="Close"
+  ></button>
 </div>
 <div class="modal-body">
-    <form id="payment-form" method="post" action="{% url 'create_payment' %}">
+  <div class="alert alert-info">
+    <div class="d-flex justify-content-between">
+      <span
+        ><strong>Баланс:</strong>
+        <span id="current-balance">{{ student.current_balance }}</span>
+        руб.</span
+      >
+      <span
+        ><strong>Оплачено за смену:</strong>
+        <span id="total-paid">{{ total_paid }}</span> руб.</span
+      >
+    </div>
+    <div id="balance-warning" class="text-danger d-none mt-1">
+      <i class="bi bi-exclamation-triangle"></i> Недостаточно средств на балансе
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs" id="paymentTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link active"
+        id="payment-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#payment-form-tab"
+        type="button"
+        role="tab"
+      >
+        Новый платеж
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="history-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#payment-history"
+        type="button"
+        role="tab"
+      >
+        История платежей
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content mt-3">
+    <div
+      class="tab-pane fade show active"
+      id="payment-form-tab"
+      role="tabpanel"
+    >
+      <form
+        id="payment-form"
+        method="post"
+        action="{% url 'student_add_payment' student.id %}?schedule_id={{ schedule.id }}"
+      >
         {% csrf_token %}
-        {{ form.student }}
-        {{ form.schedule }}
-        
+        <input type="hidden" name="student" value="{{ student.id }}" />
+        <input type="hidden" name="schedule" value="{{ schedule.id }}" />
+
         <div class="mb-3">
-            <label for="{{ form.amount.id_for_label }}" class="form-label">Сумма *</label>
-            {{ form.amount }}
-            <div class="invalid-feedback">{{ form.amount.errors }}</div>
+          <label for="amount" class="form-label">Сумма платежа</label>
+          <input
+            type="number"
+            class="form-control"
+            id="amount"
+            name="amount"
+            required
+            step="0.01"
+            min="0"
+            max="{{ student.current_balance }}"
+            oninput="updateBalanceWarning(this.value, {{ student.current_balance }})"
+          />
         </div>
-        
+
         <div class="mb-3">
-            <label for="{{ form.date.id_for_label }}" class="form-label">Дата оплаты *</label>
-            {{ form.date }}
-            <div class="invalid-feedback">{{ form.date.errors }}</div>
+          <label for="date" class="form-label">Дата платежа</label>
+          <input
+            type="date"
+            class="form-control"
+            id="date"
+            name="date"
+            value="{% now 'Y-m-d' %}"
+          />
         </div>
-        
+
         <div class="mb-3">
-            <label for="{{ form.comment.id_for_label }}" class="form-label">Комментарий</label>
-            {{ form.comment }}
+          <label for="comment" class="form-label">Комментарий</label>
+          <textarea
+            class="form-control"
+            id="comment"
+            name="comment"
+            rows="2"
+          ></textarea>
         </div>
-        
-        <button type="submit" class="btn btn-primary">Сохранить</button>
-    </form>
+
+        <button type="submit" class="btn btn-success">{{ button_text }}</button>
+      </form>
+    </div>
+
+    <div class="tab-pane fade" id="payment-history" role="tabpanel">
+      <div id="payment-history-content">
+        <div class="text-center py-3">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+  function updateBalanceWarning(amount, balance) {
+    const warning = document.getElementById("balance-warning");
+    if (parseFloat(amount) > parseFloat(balance)) {
+      warning.classList.remove("d-none");
+    } else {
+      warning.classList.add("d-none");
+    }
+  }
+</script>

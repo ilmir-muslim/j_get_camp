@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   colorizePaymentCells();
+
   // Функция для загрузки формы в модальное окно
   function loadFormIntoModal(url) {
     fetch(url)
@@ -11,6 +12,11 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  // Вызываем при загрузке страницы
+  document.addEventListener('DOMContentLoaded', function () {
+    updatePaymentButtonsText();
+  });
+
   // Функция для загрузки формы расхода
   function loadExpenseForm(url) {
     fetch(url)
@@ -21,6 +27,113 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.show();
       });
   }
+
+  // Функция для загрузки формы платежа
+  function loadPaymentForm(url) {
+    fetch(url, {
+      credentials: 'include'
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.text();
+      })
+      .then(html => {
+        document.getElementById('payment-modal-content').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+
+        // Инициализируем вкладки
+        initPaymentTabs();
+      })
+      .catch(error => {
+        console.error('Error loading payment form:', error);
+        showToast('Ошибка при загрузке формы платежа', 'error');
+      });
+  }
+
+  // Функция инициализации вкладок платежа
+  function initPaymentTabs() {
+    const triggerTabList = document.querySelectorAll('#paymentTabs button');
+    triggerTabList.forEach(triggerEl => {
+      triggerEl.addEventListener('click', function (event) {
+        event.preventDefault();
+        const tab = bootstrap.Tab.getInstance(this);
+        if (!tab) {
+          new bootstrap.Tab(this).show();
+        } else {
+          tab.show();
+        }
+
+        // При переключении на вкладку истории загружаем данные
+        if (this.id === 'history-tab') {
+          loadPaymentHistory();
+        }
+      });
+    });
+
+    // Загружаем баланс при открытии модального окна
+    updatePaymentFormBalance();
+  }
+
+  // Функция обновления баланса в форме платежа
+  function updatePaymentFormBalance() {
+    const studentId = document.querySelector('#payment-form input[name="student"]').value;
+    const amountInput = document.querySelector('#payment-form input[name="amount"]');
+
+    fetch(`/students/${studentId}/check_balance/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.balance !== undefined) {
+          document.getElementById('current-balance').textContent =
+            `${data.balance.toLocaleString('ru-RU')} руб.`;
+
+          // Проверяем достаточно ли средств
+          if (amountInput && amountInput.value) {
+            const amount = parseFloat(amountInput.value);
+            if (amount > data.balance) {
+              document.getElementById('balance-warning').classList.remove('d-none');
+            } else {
+              document.getElementById('balance-warning').classList.add('d-none');
+            }
+          }
+        }
+      });
+  }
+
+  // Функция загрузки истории платежей
+  function loadPaymentHistory() {
+    const form = document.querySelector('#payment-form');
+    if (!form) return;
+
+    const studentId = form.querySelector('input[name="student"]').value;
+    const scheduleId = form.querySelector('input[name="schedule"]').value;
+
+    fetch(`/students/${studentId}/payments/history/?schedule_id=${scheduleId}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          const historyContainer = document.getElementById('payment-history-content');
+          historyContainer.innerHTML = data.html;
+        } else {
+          console.error('Error loading payment history:', data.error);
+          const historyContainer = document.getElementById('payment-history-content');
+          historyContainer.innerHTML = '<div class="text-center text-muted">Ошибка загрузки истории</div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading payment history:', error);
+        const historyContainer = document.getElementById('payment-history-content');
+        historyContainer.innerHTML = '<div class="text-center text-muted">Ошибка загрузки истории</div>';
+      });
+  }
+
 
   // Функция для обновления нумерации строк в таблице сотрудников
   function updateEmployeeRowNumbers() {
@@ -106,19 +219,6 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => console.error('Error:', error));
     }
-  }
-
-  function generateAttendanceCells(employeeId) {
-    return DATES_JSON.map(date => `
-        <td class="date-cell" data-date="${date}">
-            <div class="attendance-cell text-center bg-danger"
-                data-employee-id="${employeeId}"
-                data-date="${date}"
-                data-attendance-type="absent">
-                <i class="bi bi-x-lg text-white"></i>
-            </div>
-        </td>
-    `).join('');
   }
 
   // Обновление внешнего вида ячейки
@@ -286,8 +386,6 @@ document.addEventListener('DOMContentLoaded', function () {
             tableBody.appendChild(newRow);
             updateEmployeeRowNumbers();
 
-
-
             if (selectedOption) {
               selectedOption.remove();
             }
@@ -306,20 +404,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  const studentForm = document.getElementById('student-form-attendance');
-  if (studentForm) {
-    studentForm.addEventListener('submit', function (e) {
+  // Обработчик для формы добавления ученика
+  document.addEventListener('submit', function (e) {
+    if (e.target.id === 'student-form-attendance') {
       e.preventDefault();
-      const studentId = this.querySelector('select[name="student"]').value;
-      const studentSelect = this.querySelector('select[name="student"]');
+      const form = e.target;
+      const studentId = form.querySelector('select[name="student"]').value;
+      const studentSelect = form.querySelector('select[name="student"]');
       const selectedOption = studentSelect.querySelector(`option[value="${studentId}"]`);
 
       if (!studentId) {
         showToast('Выберите ученика', 'error');
         return;
       }
-
-      const studentName = selectedOption ? selectedOption.textContent : '';
 
       const formData = new FormData();
       formData.append('action', 'add_student');
@@ -337,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
           if (data.success) {
             showToast('Ученик успешно добавлен в смену', 'success');
-            updateAttendanceTotals(); // Обновляем итоги
+            updateAttendanceTotals();
             setTimeout(() => {
               window.location.reload();
             }, 1000);
@@ -349,10 +446,10 @@ document.addEventListener('DOMContentLoaded', function () {
           console.error('Error:', error);
           showToast('Произошла ошибка при добавлении ученика', 'error');
         });
-    });
-  }
+    }
+  });
 
-  // Удаление сотрудника (обновлено для работы с иконками)
+  // Удаление сотрудника
   document.addEventListener('click', function (e) {
     const removeBtn = e.target.closest('.remove-employee');
     if (removeBtn) {
@@ -412,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Удаление ученика (обновлено для работы с иконками)
+  // Удаление ученика
   document.addEventListener('click', function (e) {
     const removeBtn = e.target.closest('.remove-student-attendance');
     if (removeBtn) {
@@ -674,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
   });
 
-  // Для учеников (обновлено для работы с иконками)
+  // Для учеников
   document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
     row.addEventListener('click', function (e) {
       // Игнорируем клики на ячейках посещения и кнопке удаления
@@ -687,33 +784,139 @@ document.addEventListener('DOMContentLoaded', function () {
       let shouldIgnore = false;
       for (const selector of ignoredElements) {
         if (e.target.closest(selector)) {
-          console.log(`Ignoring click on ${selector}`);
           shouldIgnore = true;
           break;
         }
       }
       if (shouldIgnore) return;
-      console.log('Opening student edit form');
       const studentId = this.dataset.studentId;
       loadFormIntoModal(`/students/${studentId}/quick_edit/`);
     });
   });
 
-  // Добавляем обработчики для форм быстрого редактирования
+  // Обработчик отправки формы платежа
   document.addEventListener('submit', function (e) {
-    if (e.target.id === 'payment-form') return;
-
-    if (e.target.id === 'student-quick-edit-form') {
+    if (e.target.id === 'payment-form') {
       e.preventDefault();
-      handleQuickFormSubmit(e.target, 'Ученик');
-    }
+      const form = e.target;
+      const formData = new FormData(form);
 
-    if (e.target.id === 'employee-quick-edit-form') {
-      e.preventDefault();
-      handleQuickFormSubmit(e.target, 'Сотрудник');
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': CSRF_TOKEN,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Платеж успешно создан', 'success');
+
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+            modal.hide();
+
+            // Обновляем данные на странице
+            updateStudentPaymentData(data.student_id, data.schedule_id, data.payment_amount, parseFloat(data.total_paid));
+
+            // Обновляем кнопку платежа
+            const paymentBtn = document.querySelector(`.student-payment-btn[data-student-id="${data.student_id}"]`);
+            if (paymentBtn) {
+              const icon = paymentBtn.querySelector('i');
+              icon.classList.remove('text-success');
+              icon.classList.add('text-primary');
+            }
+            // Принудительно обновляем итоги
+            updateTotalPayments();
+            updateFinanceSummary();
+          } else {
+            if (data.errors) {
+              let errorMsg = 'Ошибки в форме: ';
+              for (const field in data.errors) {
+                errorMsg += data.errors[field].join(', ');
+              }
+              showToast(errorMsg, 'error');
+            } else {
+              showToast(data.error || 'Ошибка при создании платежа', 'error');
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при создании платежа', 'error');
+        });
     }
   });
 
+  // Функция обновления данных о платежах студента
+  function updateStudentPaymentData(studentId, scheduleId, paymentAmount, totalPaid) {
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (row) {
+      // Обновляем ячейку с платежами
+      const paymentCell = row.cells[3];
+      paymentCell.textContent = totalPaid > 0 ? totalPaid.toFixed(2) : '—';
+
+      // Обновляем цвет ячейки
+      const costCell = row.cells[2];
+      const cost = parseFloat(costCell.textContent) || 0;
+
+      if (totalPaid >= cost) {
+        paymentCell.classList.add('payment-success');
+        paymentCell.classList.remove('payment-danger');
+      } else {
+        paymentCell.classList.add('payment-danger');
+        paymentCell.classList.remove('payment-success');
+      }
+
+      // Обновляем итоговую сумму платежей
+      updateTotalPayments();
+      updateFinanceSummary();
+    }
+  }
+
+  // Функция обновления итоговой суммы платежей
+  function updateTotalPayments() {
+    let total = 0;
+    document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
+      const paymentCell = row.cells[3];
+      const paymentText = paymentCell.textContent.trim();
+
+      // Пропускаем ячейки с прочерком
+      if (paymentText === '—') {
+        return;
+      }
+
+      const paymentAmount = parseFloat(paymentText.replace(/[^\d,.]/g, '').replace(',', '.')) || 0;
+      total += paymentAmount;
+    });
+
+    // Форматируем число с разделителем тысяч и двумя знаками после запятой
+    const formatter = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    const formattedTotal = formatter.format(total);
+
+    // Обновляем элемент с итогом платежей
+    const totalPaymentsElement = document.getElementById('total-payments-cell');
+    if (totalPaymentsElement) {
+      totalPaymentsElement.textContent = formattedTotal;
+    }
+
+    // Обновляем финансовую сводку
+    const financeIncomeElement = document.getElementById('finance-income');
+    if (financeIncomeElement) {
+      financeIncomeElement.textContent = formattedTotal + ' руб.';
+    }
+
+    // Обновляем сальдо
+    updateFinanceSummary();
+
+    return total;
+  }
+  
   // Обработчик для кнопок удаления в модальных окнах
   document.addEventListener('click', function (e) {
     if (e.target.id === 'delete-student-btn') {
@@ -861,8 +1064,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
-
-
   // Общая функция обработки кнопок удаления
   function handleDeleteButtonClick(button, entityType) {
     const entityId = button.dataset[`${entityType}Id`];
@@ -964,7 +1165,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   });
 
-  // Обработчики для расходов
   // Функция для обновления итоговой суммы расходов
   function updateExpensesTotal() {
     let total = 0;
@@ -974,28 +1174,32 @@ document.addEventListener('DOMContentLoaded', function () {
       const amountCell = row.cells[4];
       const amountText = amountCell.textContent.trim();
       // Парсим число, удаляя все нечисловые символы
-      const amount = parseFloat(amountText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const amount = parseFloat(amountText.replace(/[^\d,.]/g, '').replace(',', '.')) || 0;
       total += amount;
     });
 
-    // Форматируем число с разделителем тысяч
-    const formatter = new Intl.NumberFormat('ru-RU');
-    const formattedTotal = formatter.format(total) + ' руб.';
+    // Форматируем число с разделителем тысяч и двумя знаками после запятой
+    const formatter = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    const formattedTotal = formatter.format(total);
 
     // Обновляем элемент с итогом в таблице расходов
     const totalExpenseCell = document.querySelector('#expenses-table-body + tfoot .total-summary-row td:last-child');
     if (totalExpenseCell) {
-      totalExpenseCell.textContent = formattedTotal;
+      totalExpenseCell.textContent = formattedTotal + ' руб.';
     }
 
     // Обновляем элемент в финансовой сводке
     const financeExpenseElement = document.getElementById('finance-expense');
     if (financeExpenseElement) {
-      financeExpenseElement.textContent = formattedTotal;
+      financeExpenseElement.textContent = formattedTotal + ' руб.';
     }
 
     return total;
   }
+
   // Функция для обновления нумерации строк в таблице расходов
   function updateExpenseRowNumbers() {
     const tableBody = document.getElementById('expenses-table-body');
@@ -1017,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
   });
 
-  // Обработчик кликов по строкам расходов (обновлено для работы с иконками)
+  // Обработчик кликов по строкам расходов
   document.addEventListener('click', function (e) {
     const row = e.target.closest('tr.clickable-expense-row');
     if (row && !e.target.closest('.delete-expense-btn')) {
@@ -1026,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Кнопки удаления расхода (обновлено для работы с иконками)
+  // Кнопки удаления расхода
   document.addEventListener('click', function (e) {
     // Обработка кнопок удаления расходов
     const deleteBtn = e.target.closest('.delete-expense-btn');
@@ -1142,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast('Расход успешно сохранен', 'success');
             updateFinanceSummary();
             updateExpensesTotal();
-            document.dispatchEvent(new CustomEvent('expenseUpdated'));
+            document.dispatchEvent(new Event('expenseUpdated'));
           } else {
             // Обновляем содержимое модального окна с ошибками
             document.getElementById('expense-modal-content').innerHTML = data.html;
@@ -1155,18 +1359,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-
-  function loadPaymentForm(url) {
-    fetch(url)
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('payment-modal-content').innerHTML = html;
-        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        modal.show();
-      });
-  }
-
-
   // Обновить обработчик кликов по строкам учеников (игнорировать кнопки платежей)
   document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
     row.addEventListener('click', function (e) {
@@ -1176,8 +1368,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // - кнопке платежа
       if (e.target.closest('.attendance-cell') ||
         e.target.closest('.remove-student-attendance') ||
-        e.target.closest('.student-payment-btn') ||
-        e.target.closest('.edit-payment')) {
+        e.target.closest('.student-payment-btn')) {
         return;
       }
       const studentId = this.dataset.studentId;
@@ -1185,108 +1376,54 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-// Обработчик для кнопки платежа
-document.addEventListener('click', function(e) {
+  // Обработчик для кнопки платежа
+  document.addEventListener('click', function (e) {
     const paymentBtn = e.target.closest('.student-payment-btn');
     if (paymentBtn) {
-        e.stopImmediatePropagation();
-        e.stopPropagation(); // Предотвращаем всплытие события
-        e.preventDefault(); // Дополнительная страховка
-        console.log('Payment button clicked - event stopped');
-
-        const studentId = paymentBtn.dataset.studentId;
-        const scheduleId = paymentBtn.dataset.scheduleId;
-        loadPaymentForm(`/students/payments/create/?student_id=${studentId}&schedule_id=${scheduleId}`);
-    }
-});
-
-// Загрузка формы платежа
-function loadPaymentForm(url) {
-    fetch(url)
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('payment-modal-content').innerHTML = html;
-            new bootstrap.Modal('#paymentModal').show();
-        });
-}
-
-// Обработчик отправки формы платежа
-  document.addEventListener('submit', function (e) {
-    if (e.target.id === 'payment-form') {
       e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      const btn = form.querySelector('button[type="submit"]');
-      const btnOriginal = btn.innerHTML;
+      e.stopPropagation();
+      const studentId = paymentBtn.dataset.studentId;
+      const scheduleId = paymentBtn.dataset.scheduleId;
 
-      // Показать индикатор загрузки
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Сохранение...';
+      // Загружаем форму платежа
+      loadPaymentForm(`/students/${studentId}/payments/add_payment_form/?schedule_id=${scheduleId}`);
+    }
+  });
 
-      // Добавим логирование данных формы
-      const formDataObj = Object.fromEntries(formData.entries());
-      console.log('Submitting payment form:', formDataObj);
 
-      fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-CSRFToken': CSRF_TOKEN,
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      })
-        .then(response => {
-          console.log('Response status:', response.status);
-          return response.json().catch(() => null);
-        })
-        .then(data => {
-          console.log('Response data:', data);
-
-          if (data && data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-            if (modal) modal.hide();
-            setTimeout(() => location.reload(), 500);
-            document.dispatchEvent(new CustomEvent('paymentUpdated'));
-            updateFinanceSummary();
-            colorizePaymentCells(); 
-          } else {
-            // Показываем ошибки
-            if (data && data.errors) {
-              showToast('Ошибки: ' + JSON.stringify(data.errors), 'error');
-            } else if (data && data.html) {
-              document.getElementById('payment-modal-content').innerHTML = data.html;
-            } else {
-              showToast('Неизвестная ошибка при сохранении платежа', 'error');
-            }
-          }
-        })
-        .catch(error => {
-          console.error('Fetch error:', error);
-          showToast('Ошибка сети: ' + error.message, 'error');
-        })
-        .finally(() => {
-          btn.disabled = false;
-          btn.innerHTML = btnOriginal;
-        });
+  // Инициализируем баланс при загрузке формы
+  document.addEventListener('DOMContentLoaded', function () {
+    const paymentModal = document.getElementById('paymentModal');
+    if (paymentModal) {
+      paymentModal.addEventListener('shown.bs.modal', function () {
+        updatePaymentFormBalance();
+      });
     }
   });
 
   // Функция для обновления финансовой сводки
   function updateFinanceSummary() {
     // Получаем значения расходов и доходов
+    const expenseElement = document.getElementById('finance-expense');
+    const incomeElement = document.getElementById('finance-income');
+
+    // Извлекаем только числовые значения (удаляем " руб." и другие нечисловые символы)
     const expense = parseFloat(
-      document.getElementById('finance-expense').textContent.replace(/\D/g, '')
+      expenseElement.textContent.replace(/[^\d,.]/g, '').replace(',', '.')
     ) || 0;
 
     const income = parseFloat(
-      document.getElementById('finance-income').textContent.replace(/\D/g, '')
+      incomeElement.textContent.replace(/[^\d,.]/g, '').replace(',', '.')
     ) || 0;
 
     // Рассчитываем сальдо
     const balance = income - expense;
 
-    // Форматируем числа с разделителями тысяч
-    const formatter = new Intl.NumberFormat('ru-RU');
+    // Форматируем числа с разделителями тысяч и двумя знаками после запятой
+    const formatter = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
 
     // Обновляем отображение сальдо
     const balanceCell = document.getElementById('finance-balance');
@@ -1299,6 +1436,8 @@ function loadPaymentForm(url) {
     } else if (balance < 0) {
       balanceCell.classList.add('text-danger');
     }
+
+    return balance;
   }
 
   function colorizePaymentCells() {
@@ -1309,8 +1448,9 @@ function loadPaymentForm(url) {
       const paymentCell = row.cells[3]; // Ячейка платежей
 
       // Получаем числовые значения
-      const cost = parseFloat(costCell.textContent.replace(/\D/g, '')) || 0;
-      const payment = parseFloat(paymentCell.textContent.replace(/\D/g, '')) || 0;
+      const cost = parseFloat(costCell.textContent) || 0;
+      const paymentText = paymentCell.textContent.trim();
+      const payment = paymentText === '—' ? 0 : parseFloat(paymentText) || 0;
 
       // Применяем классы в зависимости от условия
       if (payment >= cost) {
@@ -1323,7 +1463,31 @@ function loadPaymentForm(url) {
     });
   }
 
+  // Функция для обновления текста кнопок при загрузке страницы
+  function updatePaymentButtonsText() {
+    document.querySelectorAll('.student-payment-btn').forEach(btn => {
+      const studentId = btn.dataset.studentId;
+      const scheduleId = btn.dataset.scheduleId;
 
+      // Можно добавить запрос к серверу для получения информации о платежах
+      // или использовать данные, которые уже есть на странице
+      const paymentCell = document.querySelector(`tr[data-student-id="${studentId}"] td:nth-child(4)`);
+      if (paymentCell && paymentCell.textContent.trim() !== '—') {
+        const icon = btn.querySelector('i');
+        icon.classList.remove('text-success');
+        icon.classList.add('text-primary');
+      }
+    });
+  }
+
+
+
+  // Обновляем доступный баланс при изменении суммы
+  document.addEventListener('input', function (e) {
+    if (e.target.name === 'amount') {
+      updatePaymentFormBalance();
+    }
+  });
 
   updateExpensesTotal();
   // Обновляем финансовую сводку
@@ -1333,4 +1497,21 @@ function loadPaymentForm(url) {
   // Обновляем сводку при изменениях
   document.addEventListener('expenseUpdated', updateFinanceSummary);
   document.addEventListener('paymentUpdated', updateFinanceSummary);
+
+  // Инициализация при загрузке страницы
+  document.addEventListener('DOMContentLoaded', function () {
+    // Обновляем финансовую сводку
+    updateFinanceSummary();
+
+    // Обновляем цвет ячеек платежей
+    colorizePaymentCells();
+
+    // Обновляем итоговую сумму платежей
+    updateTotalPayments();
+
+    // Обновляем текст кнопок платежей
+    updatePaymentButtonsText();
+
+    console.log('Schedule detail initialization complete');
+  });
 });

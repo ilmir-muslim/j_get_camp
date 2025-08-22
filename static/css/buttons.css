@@ -147,3 +147,12 @@ a.btn:not(.btn-danger):not(.btn-primary):not(.btn-sm):hover {
   margin: 0 5px;
   font-size: 1.2em;
 }
+
+.student-payment-btn {
+  position: relative;
+}
+
+.payment-badge {
+  font-size: 0.6em;
+  padding: 0.25em 0.5em;
+}

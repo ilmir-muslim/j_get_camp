@@ -1,0 +1,95 @@
+<div class="modal-header">
+    <h5 class="modal-title">{% if salary %}Редактирование зарплаты{% else %}Добавление зарплаты{% endif %}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form id="salary-form" method="post" 
+          action="{% if salary %}{% url 'salary_edit' salary.pk %}{% else %}{% url 'salary_create' %}{% endif %}">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="{{ form.employee.id_for_label }}" class="form-label">Сотрудник *</label>
+            {{ form.employee }}
+            {% if form.employee.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.employee.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена *</label>
+            {{ form.schedule }}
+            {% if form.schedule.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.schedule.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.payment_type.id_for_label }}" class="form-label">Тип выплаты *</label>
+            {{ form.payment_type }}
+            {% if form.payment_type.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.payment_type.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.days_worked.id_for_label }}" class="form-label">Количество отработанных дней</label>
+            {{ form.days_worked }}
+            {% if form.days_worked.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.days_worked.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.daily_rate.id_for_label }}" class="form-label">Ставка за день</label>
+            {{ form.daily_rate }}
+            {% if form.daily_rate.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.daily_rate.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.percent_rate.id_for_label }}" class="form-label">Процент от оплаты</label>
+            {{ form.percent_rate }}
+            {% if form.percent_rate.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.percent_rate.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.total_payment.id_for_label }}" class="form-label">Итоговая сумма выплаты</label>
+            {{ form.total_payment }}
+            {% if form.total_payment.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.total_payment.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3 form-check">
+            {{ form.is_paid }}
+            <label for="{{ form.is_paid.id_for_label }}" class="form-check-label">Выплачено</label>
+            {% if form.is_paid.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.is_paid.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+    </form>
+</div>

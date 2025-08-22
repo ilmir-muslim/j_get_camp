@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Lead(models.Model):
     STATUS_CHOICES = [
@@ -26,6 +27,7 @@ class Lead(models.Model):
     comment = models.TextField(blank=True, verbose_name="Комментарий")
     callback_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата и время перезвона")
 
+
     class Meta:
         verbose_name = "Лид"
         verbose_name_plural = "Лиды"
@@ -33,6 +35,14 @@ class Lead(models.Model):
     def __str__(self):
         return f"{self.phone} ({self.get_status_display()})"
 
+    @property
+    def is_callback_overdue(self):
+        if self.callback_date:
+            return self.callback_date < timezone.now()
+        return False
 
-
-
+    @property
+    def is_callback_today(self):
+        if self.callback_date:
+            return self.callback_date.date() == timezone.now().date()
+        return False

@@ -1,5 +1,5 @@
 <div class="modal-header">
-    <h5 class="modal-title">{% if expense %}Редактирование расхода{% else %}Добавить расход{% endif %}</h5>
+    <h5 class="modal-title">{% if expense %}Редактирование расхода{% else %}Добавление расхода{% endif %}</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body">
@@ -8,21 +8,48 @@
         {% csrf_token %}
         
         <div class="mb-3">
-            <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена</label>
+            <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена *</label>
             {{ form.schedule }}
+            {% if form.schedule.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.schedule.errors }}
+                </div>
+            {% endif %}
         </div>
+        
         <div class="mb-3">
-            <label for="{{ form.category.id_for_label }}" class="form-label">Категория</label>
+            <label for="{{ form.category.id_for_label }}" class="form-label">Категория *</label>
             {{ form.category }}
+            {% if form.category.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.category.errors }}
+                </div>
+            {% endif %}
         </div>
+        
         <div class="mb-3">
-            <label for="{{ form.amount.id_for_label }}" class="form-label">Сумма (руб.)</label>
+            <label for="{{ form.amount.id_for_label }}" class="form-label">Сумма (руб.) *</label>
             {{ form.amount }}
+            {% if form.amount.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.amount.errors }}
+                </div>
+            {% endif %}
         </div>
+        
         <div class="mb-3">
             <label for="{{ form.comment.id_for_label }}" class="form-label">Комментарий</label>
             {{ form.comment }}
+            {% if form.comment.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.comment.errors }}
+                </div>
+            {% endif %}
         </div>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
+        
+        <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
     </form>
 </div>

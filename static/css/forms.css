@@ -75,3 +75,14 @@ input[type="datetime-local"] {
     min-width: 100px;
     text-align: center;
 }
+
+/* Добавим стили для отображения баланса */
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+.text-success {
+    color: #198754 !important;
+    font-weight: bold;
+}
