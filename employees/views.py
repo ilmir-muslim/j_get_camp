@@ -1,3 +1,4 @@
+#employees/views.py
 from datetime import datetime, timedelta
 import json
 
@@ -302,4 +303,3 @@ def employee_create_ajax(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
-

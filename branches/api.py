@@ -30,16 +30,23 @@ def update_branch(request, branch_id: int, data: BranchCreateSchema):
     branch.save()
     return branch
 
+
 @router.delete("/{branch_id}/")
 def delete_branch(request, branch_id: int):
-    branch = get_object_or_404(Branch, id=branch_id)
-    
-    # Проверка наличия связанных объектов
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Филиал не найден"}, status=404)
+
+    # Проверка наличия связанных расписаний
     if branch.schedule.exists():
         return JsonResponse(
-            {"success": False, "error": "Cannot delete branch with active schedules"},
-            status=400
+            {
+                "success": False,
+                "error": "Невозможно удалить филиал с активными сменами",
+            },
+            status=400,
         )
-    
+
     branch.delete()
-    return {"success": True}
+    return JsonResponse({"success": True})

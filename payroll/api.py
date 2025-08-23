@@ -46,14 +46,8 @@ def create_salary(request, data: SalaryCreateSchema):
     employee = get_object_or_404(Employee, id=data.employee_id)
     schedule = get_object_or_404(Schedule, id=data.schedule_id)
 
-    # Создаем объект без сохранения
     salary = Salary(employee=employee, schedule=schedule, **data.dict())
-
-    # Вызываем кастомный метод расчета
-    salary.calculate_total_payment()
-
-    # Сохраняем объект
-    salary.save()
+    salary.save()  # Расчет произойдет автоматически в методе save()
     return salary
 
 
@@ -61,13 +55,10 @@ def create_salary(request, data: SalaryCreateSchema):
 def update_salary(request, salary_id: int, data: SalaryCreateSchema):
     salary = get_object_or_404(Salary, id=salary_id)
 
-    # Обновляем поля
     for attr, value in data.dict().items():
         setattr(salary, attr, value)
 
-    # Пересчитываем платеж
-    salary.calculate_total_payment()
-    salary.save()
+    salary.save()  # Расчет произойдет автоматически
     return salary
 
 

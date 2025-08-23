@@ -4,7 +4,16 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tables.css' %}">
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/payroll.css' %}">
 <style>
+  .calculated-value {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.calculated-value.calculated {
+    opacity: 1;
+}
 .salary-table {
   width: 100%;
   margin-bottom: 1rem;
@@ -54,6 +63,60 @@
   background-color: #f8d7da;
   color: #721c24;
 }
+
+.icon-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Стили для фильтров как в других шаблонах */
+.filter-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+@media (max-width: 768px) {
+  .filter-group {
+    min-width: 100%;
+  }
+  
+  .filter-row {
+    gap: 15px;
+  }
+}
+
+.calculating {
+  opacity: 0.7;
+  background-color: #f8f9fa;
+}
 </style>
 {% endblock %}
 
@@ -68,24 +131,63 @@
       <div class="d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Управление зарплатами</h3>
         <div>
-          {% if show_unpaid %}
-            <a href="{% url 'salary_list' %}" class="btn btn-light me-2">Показать все</a>
-          {% else %}
-            <a href="{% url 'salary_list' %}?unpaid=1" class="btn btn-warning me-2">Только невыплаченные</a>
-          {% endif %}
           <button type="button" class="btn btn-light" id="add-salary-btn">
             <i class="bi bi-plus-lg"></i> Добавить зарплату
+          </button>
+          <button type="button" class="btn btn-info ms-2" id="recalculate-btn">
+            <i class="bi bi-calculator"></i> Пересчитать
           </button>
         </div>
       </div>
     </div>
 
     <div class="card-body">
+      <!-- Фильтры в стиле других страниц -->
+      <div class="filter-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Сотрудник</label>
+            <select id="employee-filter" class="form-select">
+              <option value="">Все сотрудники</option>
+              {% for employee in employees %}
+                <option value="{{ employee.id }}">{{ employee.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label>Смена</label>
+            <select id="schedule-filter" class="form-select">
+              <option value="">Все смены</option>
+              {% for schedule in schedules %}
+                <option value="{{ schedule.id }}">{{ schedule.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label>Статус</label>
+            <select id="status-filter" class="form-select">
+              <option value="">Все статусы</option>
+              <option value="paid">Выплачено</option>
+              <option value="unpaid">Не выплачено</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label>&nbsp;</label>
+            <button id="reset-filters" class="btn btn-secondary w-100">
+              <i class="bi bi-arrow-clockwise"></i> Сбросить
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="table-responsive">
         <table class="table salary-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>№</th>
               <th>Сотрудник</th>
               <th>Смена</th>
               <th>Тип выплаты</th>
@@ -98,39 +200,49 @@
             </tr>
           </thead>
           <tbody id="salaries-table-body">
-          {% for data in salary_data %}
-          {% with salary=data.salary days_worked=data.days_worked_calculated %}
-          <tr data-salary-id="{{ salary.id }}" class="clickable-salary-row">
-            <td>{{ salary.id }}</td>
-            <td>{{ salary.employee.full_name }}</td>
-            <td>{{ salary.schedule.name }} ({{ salary.schedule.start_date }} - {{ salary.schedule.end_date }})</td>
-            <td>{{ salary.get_payment_type_display }}</td>
-            <td>{{ days_worked }}</td>  <!-- Используем вычисленное значение -->
-            <td>{{ salary.daily_rate }}</td>
-            <td>{{ salary.percent_rate }}</td>
-            <td>{{ salary.total_payment }}</td>
-            <td>
-              {% if salary.is_paid %}
-                <span class="status-badge status-paid">✅ Выплачено</span>
-              {% else %}
-                <span class="status-badge status-unpaid">❌ Не выплачено</span>
-              {% endif %}
-            </td>
-            <td>
-              <button class="btn p-0 border-0 bg-transparent icon-btn delete-salary-btn"
-                      data-salary-id="{{ salary.id }}">
-                <i class="bi bi-trash text-danger fs-5"></i>
-              </button>
-            </td>
-          </tr>
-          {% endwith %}
-          {% endfor %}
-
+            {% for salary in salaries %}
+            <tr data-salary-id="{{ salary.id }}" class="clickable-salary-row"
+                data-employee="{{ salary.employee.id }}" 
+                data-schedule="{{ salary.schedule.id }}"
+                data-status="{% if salary.is_paid %}paid{% else %}unpaid{% endif %}"
+                data-days-worked="{{ salary.days_worked_display }}"
+                data-daily-rate="{{ salary.daily_rate }}"
+                data-percent-rate="{{ salary.percent_rate }}"
+                data-payment-type="{{ salary.payment_type }}">
+              <td class="row-number">{{ forloop.counter }}</td>
+              <td>{{ salary.employee.full_name }}</td>
+              <td>{{ salary.schedule.name }} ({{ salary.schedule.start_date }} - {{ salary.schedule.end_date }})</td>
+              <td>{{ salary.get_payment_type_display }}</td>
+              <td>{{ salary.days_worked_display }}</td>
+              <td>{{ salary.employee.rate_per_day }}</td>
+              <td>{{ salary.percent_rate }}</td>
+              <td class="total-payment-cell">
+                <span class="calculated-value">{{ salary.total_payment }}</span>
+                <div class="spinner-border spinner-border-sm text-primary calculating-spinner" style="display: none;" role="status">
+                  <span class="visually-hidden">Calculating...</span>
+                </div>
+              </td>
+              <td>
+                {% if salary.is_paid %}
+                  <span class="status-badge status-paid">✅ Выплачено</span>
+                {% else %}
+                  <span class="status-badge status-unpaid">❌ Не выплачено</span>
+                {% endif %}
+              </td>
+              <td>
+                <button class="btn p-0 border-0 bg-transparent icon-btn delete-salary-btn"
+                        data-salary-id="{{ salary.id }}">
+                  <i class="bi bi-trash text-danger fs-5"></i>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
           </tbody>
+
           <tfoot>
             <tr class="total-summary-row">
               <td colspan="7" class="text-end"><strong>Итого:</strong></td>
-              <td class="text-center"><strong>{{ total_salary }}</strong></td>
+              <td class="text-center"><strong id="total-salary-amount">{{ total_salary }}</strong></td>
               <td colspan="2"></td>
             </tr>
           </tfoot>
@@ -156,21 +268,177 @@
   // Глобальные переменные
   const CSRF_TOKEN = "{{ csrf_token }}";
   
+  // Функция для показа уведомлений
+  function showToast(message, type = 'info') {
+    // Реализация функции showToast из base.js
+    const toastContainer = document.querySelector('.toast-container');
+    const toastEl = document.getElementById('liveToast');
+    const toastBody = toastEl.querySelector('.toast-body');
+    
+    toastBody.textContent = message;
+    toastEl.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+    
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+  }
+
+  // Функция для получения баланса смены
+  async function getScheduleBalance(scheduleId) {
+    try {
+      // Используем прямой запрос к API баланса смены
+      const response = await fetch(`/api/schedule/${scheduleId}/balance/`);
+      if (!response.ok) {
+        throw new Error('Ошибка получения баланса');
+      }
+      const data = await response.json();
+      return parseFloat(data.balance) || 0;
+    } catch (error) {
+      console.error('Ошибка при получении баланса:', error);
+      
+      // Альтернативный способ: получаем данные со страницы смены
+      try {
+        const scheduleResponse = await fetch(`/schedule/${scheduleId}/get_finance_data/`);
+        if (scheduleResponse.ok) {
+          const financeData = await scheduleResponse.json();
+          return parseFloat(financeData.balance) || 0;
+        }
+      } catch (e) {
+        console.error('Не удалось получить данные о финансах смены:', e);
+      }
+      
+      return 0;
+    }
+  }
+
+  // Функция для расчета зарплаты
+  function calculateSalary(paymentType, daysWorked, dailyRate, percentRate, balance) {
+    daysWorked = parseFloat(daysWorked) || 0;
+    dailyRate = parseFloat(dailyRate) || 0;
+    percentRate = parseFloat(percentRate) || 0;
+    balance = parseFloat(balance) || 0;
+
+    let result = 0;
+    
+    if (paymentType === 'fixed') {
+      result = daysWorked * dailyRate;
+    } else if (paymentType === 'percent') {
+      result = balance * percentRate / 100;
+    } else if (paymentType === 'combined') {
+      result = (daysWorked * dailyRate) + (balance * percentRate / 100);
+    }
+    
+    // Округляем до целого числа
+    return Math.round(result);
+  }
+
+  // Функция для обновления зарплаты в строке
+async function updateSalaryRow(row) {
+    const paymentType = row.dataset.paymentType;
+    const daysWorked = row.dataset.daysWorked;
+    const dailyRate = row.dataset.dailyRate;
+    const percentRate = row.dataset.percentRate;
+    const scheduleId = row.dataset.schedule;
+
+    const spinner = row.querySelector('.calculating-spinner');
+    const valueElement = row.querySelector('.calculated-value');
+    
+    if (spinner && valueElement) {
+        spinner.style.display = 'inline-block';
+        valueElement.style.display = 'none';
+        row.classList.add('calculating');
+    }
+
+    let balance = 0;
+    if (paymentType === 'percent' || paymentType === 'combined') {
+        balance = await getScheduleBalance(scheduleId);
+    }
+
+    const calculatedSalary = calculateSalary(paymentType, daysWorked, dailyRate, percentRate, balance);
+    
+    if (valueElement) {
+        valueElement.textContent = calculatedSalary.toLocaleString('ru-RU');
+        valueElement.style.display = 'inline-block';
+        valueElement.classList.add('calculated'); // Добавляем класс для видимости
+    }
+    
+    if (spinner) {
+        spinner.style.display = 'none';
+    }
+    
+    row.classList.remove('calculating');
+
+    return calculatedSalary;
+}
+
+
+  // Функция для обновления всех зарплат
+  async function updateAllSalaries() {
+    const rows = document.querySelectorAll('#salaries-table-body tr');
+    let totalSalary = 0;
+
+    for (const row of rows) {
+      if (row.style.display !== 'none') {
+        const salary = await updateSalaryRow(row);
+        totalSalary += salary;
+      }
+    }
+
+    // Обновляем итоговую сумму
+    const totalElement = document.getElementById('total-salary-amount');
+    if (totalElement) {
+      totalElement.textContent = totalSalary.toLocaleString('ru-RU');
+    }
+    updateRowNumbers();
+    showToast('Зарплаты успешно пересчитаны', 'success');
+  }
+  
   document.addEventListener('DOMContentLoaded', function () {
     // Функция для загрузки формы зарплаты
     function loadSalaryForm(url) {
-      fetch(url)
-        .then(response => response.text())
-        .then(html => {
-          document.getElementById('salary-modal-content').innerHTML = html;
-          const modal = new bootstrap.Modal(document.getElementById('salaryModal'));
-          modal.show();
+      fetch(url, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Обрабатываем JSON ответ и извлекаем HTML
+          const html = data.html || data.form_html;
+          if (html) {
+            document.getElementById('salary-modal-content').innerHTML = html;
+            const modal = new bootstrap.Modal(document.getElementById('salaryModal'));
+            modal.show();
+          } else {
+            throw new Error('No HTML content in response');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading salary form:', error);
+          showToast('Произошла ошибка при загрузке формы', 'error');
         });
     }
+
+    // Обновляем расчет зарплат при загрузке страницы
+    setTimeout(() => {
+    updateAllSalaries().then(() => {
+      updateRowNumbers();  // Обновляем номера после расчета зарплат
+    });
+  }, 500);
 
     // Обработчик для кнопки добавления зарплаты
     document.getElementById('add-salary-btn').addEventListener('click', function () {
       loadSalaryForm('{% url "salary_create" %}');
+    });
+
+    // Обработчик для кнопки пересчета
+    document.getElementById('recalculate-btn').addEventListener('click', function () {
+      updateAllSalaries();
     });
 
     // Обработчик кликов по строкам зарплат (для редактирования)
@@ -209,7 +477,8 @@
                 showToast('Запись о зарплате успешно удалена', 'success');
                 
                 // Пересчитываем общую сумму
-                updateSalaryTotal();
+                updateAllSalaries();
+                updateRowNumbers();
               }
             })
             .catch(error => {
@@ -220,57 +489,74 @@
       }
     });
 
-    // Функция для обновления общей суммы зарплат
-    function updateSalaryTotal() {
-      let total = 0;
-      document.querySelectorAll('#salaries-table-body tr').forEach(row => {
-        const amountCell = row.cells[7];
-        const amount = parseFloat(amountCell.textContent);
-        total += amount;
-      });
-
-      document.querySelector('.total-summary-row td:nth-child(2)').textContent = total.toFixed(2);
+    // Функция для обновления порядковых номеров строк
+function updateRowNumbers() {
+  const visibleRows = document.querySelectorAll('#salaries-table-body tr:not([style*="display: none"])');
+  visibleRows.forEach((row, index) => {
+    const numberCell = row.querySelector('.row-number');
+    if (numberCell) {
+      numberCell.textContent = index + 1;
     }
+  });
+}
 
-    // Обработчик отправки формы зарплаты
-document.addEventListener('submit', function (e) {
-    if (e.target.id === 'salary-form') {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': CSRF_TOKEN,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Закрываем модальное окно
-                const modal = bootstrap.Modal.getInstance(document.getElementById('salaryModal'));
-                modal.hide();
-                
-                // Показываем уведомление об успехе
-                showToast('Данные успешно сохранены', 'success');
-                
-                // Обновляем страницу
-                location.reload();
-            } else {
-                // Обновляем форму с ошибками валидации
-                document.getElementById('salary-modal-content').innerHTML = data.form_html;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Произошла ошибка при сохранении', 'error');
-        });
+    async function reloadSalaryData() {
+    const response = await fetch(window.location.href, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        // Обновляем таблицу с новыми данными
+        updateTableWithNewData(data);
     }
+}
+
+// Обработчик для кнопки пересчета
+document.getElementById('recalculate-btn').addEventListener('click', async function () {
+    await reloadSalaryData();
+    await updateAllSalaries();
 });
 
 
+    // Функция для фильтрации таблицы
+    function filterTable() {
+      const employeeFilter = document.getElementById('employee-filter').value;
+      const scheduleFilter = document.getElementById('schedule-filter').value;
+      const statusFilter = document.getElementById('status-filter').value;
+      
+      document.querySelectorAll('#salaries-table-body tr').forEach(row => {
+        const employeeMatch = !employeeFilter || row.dataset.employee === employeeFilter;
+        const scheduleMatch = !scheduleFilter || row.dataset.schedule === scheduleFilter;
+        const statusMatch = !statusFilter || row.dataset.status === statusFilter;
+        
+        if (employeeMatch && scheduleMatch && statusMatch) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // После фильтрации пересчитываем итоги
+      updateAllSalaries();
+      updateRowNumbers(); 
+    }
+    
+    // Обработчики для фильтров
+    document.getElementById('employee-filter').addEventListener('change', filterTable);
+    document.getElementById('schedule-filter').addEventListener('change', filterTable);
+    document.getElementById('status-filter').addEventListener('change', filterTable);
+    
+    // Сброс фильтров
+    document.getElementById('reset-filters').addEventListener('click', function() {
+      document.getElementById('employee-filter').value = '';
+      document.getElementById('schedule-filter').value = '';
+      document.getElementById('status-filter').value = '';
+      filterTable();
+    });
+  });
 </script>
 {% endblock %}

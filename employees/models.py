@@ -1,3 +1,4 @@
+# employees/models.py
 from django.db import models
 from branches.models import Branch
 from schedule.models import Schedule
@@ -12,6 +13,7 @@ class Employee(models.Model):
     ]
 
     full_name = models.CharField(max_length=255, verbose_name="ФИО")
+    
     position = models.CharField(
         max_length=50, choices=POSITION_CHOICES, verbose_name="Должность"
     )

@@ -15,18 +15,14 @@ class SalaryForm(forms.ModelForm):
             "employee",
             "schedule",
             "payment_type",
-            "daily_rate",
             "percent_rate",
-            "total_payment",
             "is_paid",
         ]
         labels = {
             "employee": "Сотрудник",
             "schedule": "Смена",
             "payment_type": "Тип выплаты",
-            "daily_rate": "Ставка за день",
             "percent_rate": "Процент от оплаты",
-            "total_payment": "Итоговая сумма выплаты",
             "is_paid": "Выплачено",
         }
 

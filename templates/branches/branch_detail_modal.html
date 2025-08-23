@@ -1,42 +1,44 @@
-<div class="modal-header">
-  <h5 class="modal-title">Детали филиала: {{ branch.name }}</h5>
-  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-</div>
-<div class="modal-body">
-  <div class="mb-3">
-    <p><strong>Адрес:</strong> {{ branch.address }}</p>
-  </div>
-
-  <div class="card">
-    <div class="card-header" style="background-color: #3597b5ff;">
-      <h6 class="mb-0">Сотрудники филиала</h6>
-    </div>
-    <div class="card-body p-0">
-      {% if employees %}
-        <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead>
-              <tr style="background-color: #e7f5ff;">
-                <th>ФИО</th>
-                <th>Должность</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for employee in employees %}
-              <tr>
-                <td>{{ employee.full_name }}</td>
-                <td>{{ employee.get_position_display }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="modal fade" id="branchDetailModal" tabindex="-1" aria-labelledby="branchDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="branchDetailModalLabel">Детали филиала: <span id="detail-branch-name"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6>Основная информация</h6>
+            <p><strong>Адрес:</strong> <span id="detail-branch-address"></span></p>
+          </div>
         </div>
-      {% else %}
-        <p class="text-muted p-3">Нет сотрудников</p>
-      {% endif %}
+        
+        <div class="row">
+          <div class="col-12">
+            <h6>Сотрудники филиала</h6>
+            <div class="table-responsive">
+              <table class="table table-sm" id="branch-employees-table">
+                <thead>
+                  <tr>
+                    <th>ФИО</th>
+                    <th>Должность</th>
+                    <th>Телефон</th>
+                  </tr>
+                </thead>
+                <tbody id="branch-employees-body">
+                  <!-- Сотрудники будут загружены динамически -->
+                </tbody>
+              </table>
+            </div>
+            <div id="branch-employees-empty" class="text-center py-3 d-none">
+              <p class="text-muted">В филиале нет сотрудников</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
     </div>
   </div>
-</div>
-<div class="modal-footer">
-  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
 </div>

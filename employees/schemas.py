@@ -13,6 +13,7 @@ class EmployeeSchema(Schema):
     branch_id: Optional[int] = None
     schedule_id: Optional[int] = None
     rate_per_day: float
+    
 
 
 class EmployeeCreateSchema(Schema):

@@ -37,25 +37,7 @@
             {% endif %}
         </div>
         
-        <div class="mb-3">
-            <label for="{{ form.days_worked.id_for_label }}" class="form-label">Количество отработанных дней</label>
-            {{ form.days_worked }}
-            {% if form.days_worked.errors %}
-                <div class="invalid-feedback d-block">
-                    {{ form.days_worked.errors }}
-                </div>
-            {% endif %}
-        </div>
-        
-        <div class="mb-3">
-            <label for="{{ form.daily_rate.id_for_label }}" class="form-label">Ставка за день</label>
-            {{ form.daily_rate }}
-            {% if form.daily_rate.errors %}
-                <div class="invalid-feedback d-block">
-                    {{ form.daily_rate.errors }}
-                </div>
-            {% endif %}
-        </div>
+    
         
         <div class="mb-3">
             <label for="{{ form.percent_rate.id_for_label }}" class="form-label">Процент от оплаты</label>
@@ -67,15 +49,6 @@
             {% endif %}
         </div>
         
-        <div class="mb-3">
-            <label for="{{ form.total_payment.id_for_label }}" class="form-label">Итоговая сумма выплаты</label>
-            {{ form.total_payment }}
-            {% if form.total_payment.errors %}
-                <div class="invalid-feedback d-block">
-                    {{ form.total_payment.errors }}
-                </div>
-            {% endif %}
-        </div>
         
         <div class="mb-3 form-check">
             {{ form.is_paid }}

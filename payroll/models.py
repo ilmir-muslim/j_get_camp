@@ -47,8 +47,13 @@ class Salary(models.Model):
         default="fixed",
         verbose_name="Тип выплаты",
     )
+    # остальные поля без изменений
     daily_rate = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0, verbose_name="Ставка за день"
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Ставка за день",
+        editable=False, 
     )
     percent_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=0, verbose_name="Процент от оплаты"
@@ -61,12 +66,6 @@ class Salary(models.Model):
     )
     is_paid = models.BooleanField(default=False, verbose_name="Выплачено")
 
-    class Meta:
-        verbose_name = "Зарплата сотрудника"
-        verbose_name_plural = "Зарплаты сотрудников"
-
-    def __str__(self):
-        return f"{self.employee.full_name} — {self.total_payment} руб."
 
     def calculate_days_worked(self):
         """
@@ -101,9 +100,21 @@ class Salary(models.Model):
             self.total_payment = (days_worked * self.daily_rate) + self.percent_rate
         return self.total_payment
 
+    def save(self, *args, **kwargs):
+        if not self.daily_rate or self.daily_rate == 0:
+            self.daily_rate = self.employee.rate_per_day
+        super().save(*args, **kwargs)
+
     @property
     def days_worked(self):
         """
         Свойство для получения количества отработанных дней.
         """
         return self.calculate_days_worked()
+
+    class Meta:
+        verbose_name = "Зарплата сотрудника"
+        verbose_name_plural = "Зарплаты сотрудников"
+
+    def __str__(self):
+        return f"{self.employee.full_name} — {self.total_payment} руб."

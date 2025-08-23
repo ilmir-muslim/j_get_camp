@@ -9,6 +9,21 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('universalFormModalContent').innerHTML = html;
         const modal = new bootstrap.Modal(document.getElementById('universalFormModal'));
         modal.show();
+
+        // Добавляем обработчик для формы
+        const form = document.querySelector('#universalFormModal form');
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            let entityName = '';
+            if (form.id === 'student-quick-edit-form') {
+              entityName = 'Ученик';
+            } else if (form.id === 'employee-quick-edit-form') {
+              entityName = 'Сотрудник';
+            }
+            handleQuickFormSubmit(form, entityName);
+          });
+        }
       });
   }
 
@@ -1462,6 +1477,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     return balance;
+  }
+
+  // При изменении ставки сотрудника обновляем связанные зарплаты
+  function updateEmployeeRate(employeeId, newRate) {
+    fetch(`/api/employees/${employeeId}/update_salaries/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN
+      },
+      body: JSON.stringify({ rate_per_day: newRate })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Ставка обновлена во всех связанных зарплатах', 'success');
+        }
+      });
   }
 
   function colorizePaymentCells() {

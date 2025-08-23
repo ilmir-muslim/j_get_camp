@@ -4,7 +4,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 
 from core.utils import role_required
+from employees.models import Employee
 from payroll.forms import ExpenseForm, SalaryForm
+from schedule.models import Schedule
 from .models import Expense, Salary
 
 @role_required(['manager', 'admin'])
@@ -29,20 +31,12 @@ def expense_list(request):
 
 @role_required(["manager", "admin"])
 def salary_list(request):
-    """
-    Список зарплат с фильтрацией: все или только невыплаченные.
-    """
-    show_unpaid = request.GET.get("unpaid") == "1"
-
     if request.user.role == "manager":
         salaries = Salary.objects.all()
     else:
         salaries = Salary.objects.filter(schedule__branch=request.user.branch)
 
-    if show_unpaid:
-        salaries = salaries.filter(is_paid=False)
-
-    # Создаем временный атрибут для отображения в шаблоне
+    # Добавляем вычисляемое поле
     for salary in salaries:
         salary.days_worked_display = salary.calculate_days_worked()
 
@@ -50,13 +44,22 @@ def salary_list(request):
         salaries.aggregate(models.Sum("total_payment"))["total_payment__sum"] or 0
     )
 
+    # Для AJAX-запросов возвращаем JSON
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        data = {
+            "salaries": [...],  # сериализованные данные
+            "total_salary": total_salary,
+        }
+        return JsonResponse(data)
+
     return render(
         request,
         "payroll/salary_list.html",
         {
             "salaries": salaries,
             "total_salary": total_salary,
-            "show_unpaid": show_unpaid,
+            "employees": Employee.objects.all(),
+            "schedules": Schedule.objects.all(),
         },
     )
 

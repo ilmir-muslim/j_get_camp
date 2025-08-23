@@ -40,18 +40,24 @@ def branch_delete(request, pk):
         return redirect('branch_list')
     return render(request, 'branches/branch_confirm_delete.html', {'branch': branch})
 
-@role_required(['manager', 'admin'])
+
+@role_required(["manager", "admin"])
 def branch_detail_modal(request, pk):
     branch = get_object_or_404(Branch, pk=pk)
-    
+
     # Получаем сотрудников филиала без прямого импорта
     try:
         from employees.models import Employee
+
         employees = Employee.objects.filter(branch=branch)
     except ImportError:
         employees = []
-    
-    return render(request, 'branches/branch_detail_modal.html', {
-        'branch': branch,
-        'employees': employees,
-    })
+
+    return render(
+        request,
+        "branches/branch_detail_modal.html",
+        {
+            "branch": branch,
+            "employees": employees,
+        },
+    )
