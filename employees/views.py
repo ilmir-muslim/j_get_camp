@@ -1,17 +1,26 @@
-#employees/views.py
-from datetime import datetime, timedelta
+# employees/views.py
+import io
 import json
+import logging
+import openpyxl
+from datetime import datetime, timedelta
 
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
+
+from weasyprint import HTML
+
 from branches.models import Branch
 from employees.forms import EmployeeAttendanceForm, EmployeeForm
 from core.utils import role_required
 from schedule.models import Schedule
 from .models import Employee, EmployeeAttendance
 
+
+logger = logging.getLogger(__name__)
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def employees_list(request):
@@ -303,3 +312,55 @@ def employee_create_ajax(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@role_required(["manager", "admin"])
+def employee_export_excel(request):
+    employees = Employee.objects.all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Сотрудники"
+
+    ws.append(["ФИО", "Должность", "Филиал", "Смена", "Ставка за день"])
+
+    for employee in employees:
+        ws.append(
+            [
+                employee.full_name,
+                employee.get_position_display(),
+                employee.branch.name if employee.branch else "",
+                employee.schedule.name if employee.schedule else "",
+                employee.rate_per_day,
+            ]
+        )
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = "attachment; filename=employees.xlsx"
+    return response
+
+
+@role_required(["manager", "admin"])
+def employee_export_pdf(request):
+    """
+    Выгрузка списка сотрудников в формате PDF.
+    """
+    employees = Employee.objects.all()
+
+    html_string = render_to_string(
+        "employees/employee_pdf_template.html", {"employees": employees}
+    )
+    html = HTML(string=html_string)
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = "inline; filename=employees.pdf"
+    html.write_pdf(response)
+
+    return response

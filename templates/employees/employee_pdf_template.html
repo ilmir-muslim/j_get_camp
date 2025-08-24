@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 4px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Список сотрудников</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Должность</th>
+                <th>Филиал</th>
+                <th>Смена</th>
+                <th>Ставка за день</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.full_name }}</td>
+                <td>{{ employee.get_position_display }}</td>
+                <td>{{ employee.branch.name|default:"—" }}</td>
+                <td>{{ employee.schedule.name|default:"—" }}</td>
+                <td>{{ employee.rate_per_day }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,3 +1,5 @@
+import urllib
+from django.http import FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.http import JsonResponse
@@ -44,13 +46,36 @@ def regulation_create(request):
     return render(request, "education/regulation_form.html", {"form": form})
 
 
-@role_required(['manager', 'admin'])
+@role_required(["manager", "admin"])
+def regulation_download(request, pk):
+    regulation = get_object_or_404(Regulation, pk=pk)
+    filename = regulation.file.name.split("/")[-1]  # оригинальное имя на диске
+    response = FileResponse(regulation.file.open("rb"))
+    # заставляем браузер скачать именно с этим именем
+    response["Content-Disposition"] = (
+        f"attachment; filename*=UTF-8''{urllib.parse.quote(filename)}"
+    )
+    return response
+
+
+@role_required(["manager", "admin"])
 def regulation_delete(request, pk):
     """
     Удаление обучающего материала.
     """
     regulation = get_object_or_404(Regulation, pk=pk)
-    if request.method == 'POST':
+    if request.method == "POST":
         regulation.delete()
-        return redirect('regulation_list')
-    return render(request, 'education/regulation_confirm_delete.html', {'regulation': regulation})
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True})
+        return redirect("regulation_list")
+
+    # Если запрос не POST, то возвращаем ошибку для AJAX
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {"success": False, "error": "Метод не разрешен"}, status=405
+        )
+
+    return render(
+        request, "education/regulation_confirm_delete.html", {"regulation": regulation}
+    )

@@ -41,9 +41,10 @@
               <td>{{ regulation.title }}</td>
               <td>
                 {% if regulation.file %}
-                  <a href="{{ regulation.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-download"></i> Скачать
-                  </a>
+                <a href="{% url 'regulation_download' regulation.id %}" 
+                  class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-download"></i> Скачать
+                </a>
                 {% else %}
                   <span class="text-muted">Нет файла</span>
                 {% endif %}
@@ -102,29 +103,85 @@
   // Глобальные переменные
   const CSRF_TOKEN = "{{ csrf_token }}";
 
-document.getElementById('add-regulation-btn').addEventListener('click', function() {
-  fetch("{% url 'regulation_create' %}", {
-    method: 'GET',
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-  .then(response => response.json())
-  .then(data => {
-    document.getElementById('regulation-modal-content').innerHTML = data.html;
-    var modal = new bootstrap.Modal(document.getElementById('regulationModal'));
-    modal.show();
-    
-    // Добавляем обработчик отправки формы
-    const form = document.getElementById('regulation-form');
-    if (form) {
-      form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        
-        fetch(this.action, {
+  document.getElementById('add-regulation-btn').addEventListener('click', function() {
+    fetch("{% url 'regulation_create' %}", {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('regulation-modal-content').innerHTML = data.html;
+      var modal = new bootstrap.Modal(document.getElementById('regulationModal'));
+      modal.show();
+      
+      // Добавляем обработчик отправки формы
+      const form = document.getElementById('regulation-form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          
+          fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': CSRF_TOKEN,
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Закрываем модальное окно
+              var modal = bootstrap.Modal.getInstance(document.getElementById('regulationModal'));
+              modal.hide();
+              // Показываем уведомление об успехе
+              showToast('Материал успешно добавлен', 'success');
+              // Обновляем страницу
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            } else {
+              // Показываем ошибки валидации
+              if (data.errors) {
+                let errorMsg = '';
+                for (const field in data.errors) {
+                  errorMsg += field + ': ' + data.errors[field].map(error => error.message).join(', ') + '\n';
+                }
+                showToast('Ошибки при добавлении материала: ' + errorMsg, 'error');
+              } else {
+                showToast('Неизвестная ошибка', 'error');
+              }
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showToast('Ошибка сети или сервера', 'error');
+          });
+        });
+      }
+    });
+  });
+
+  // Обработчик для кнопок удаления
+  document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-regulation-btn');
+    let currentRegulationId = null;
+
+    deleteButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        currentRegulationId = this.getAttribute('data-regulation-id');
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteRegulationModal'));
+        deleteModal.show();
+      });
+    });
+
+    document.getElementById('confirm-delete').addEventListener('click', function() {
+      if (currentRegulationId) {
+        fetch(`/education/delete/${currentRegulationId}/`, {
           method: 'POST',
-          body: formData,
           headers: {
             'X-CSRFToken': CSRF_TOKEN,
             'X-Requested-With': 'XMLHttpRequest'
@@ -133,31 +190,38 @@ document.getElementById('add-regulation-btn').addEventListener('click', function
         .then(response => response.json())
         .then(data => {
           if (data.success) {
+            // Удаляем строку из таблицы
+            const row = document.getElementById(`regulation-${currentRegulationId}`);
+            if (row) row.remove();
             // Закрываем модальное окно
-            var modal = bootstrap.Modal.getInstance(document.getElementById('regulationModal'));
-            modal.hide();
-            // Обновляем страницу
-            window.location.reload();
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRegulationModal'));
+            deleteModal.hide();
+            // Показываем уведомление об успехе
+            showToast('Материал успешно удален', 'success');
+            
+            // Обновляем нумерацию строк
+            updateRowNumbers();
           } else {
-            // Показываем ошибки валидации
-            if (data.errors) {
-              let errorMsg = '';
-              for (const field in data.errors) {
-                errorMsg += field + ': ' + data.errors[field].map(error => error.message).join(', ') + '\n';
-              }
-              alert('Ошибки:\n' + errorMsg);
-            } else {
-              alert('Неизвестная ошибка');
-            }
+            showToast('Ошибка при удалении материала', 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          alert('Ошибка сети или сервера');
+          showToast('Ошибка сети', 'error');
         });
+      }
+    });
+    
+    // Функция для обновления нумерации строк
+    function updateRowNumbers() {
+      const rows = document.querySelectorAll('#regulations-table tbody tr');
+      rows.forEach((row, index) => {
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) {
+          numberCell.textContent = index + 1;
+        }
       });
     }
   });
-});
 </script>
 {% endblock %}

@@ -21,4 +21,6 @@ urlpatterns += [
     ),
     path("<int:pk>/quick_edit/", views.employee_quick_edit, name="employee_quick_edit"),
     path("create/ajax/", views.employee_create_ajax, name="employee_create_ajax"),
+    path("export/excel/", views.employee_export_excel, name="employee_export_excel"),
+    path("export/pdf/", views.employee_export_pdf, name="employee_export_pdf"),
 ]

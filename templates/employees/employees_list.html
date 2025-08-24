@@ -1,7 +1,12 @@
-{% extends 'base.html' %} {% load static %} {% block extra_css %}
+{% extends 'base.html' %} 
+{% load static %} 
+
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tables.css' %}" />
 <link rel="stylesheet" href="{% static 'css/forms.css' %}" />
-{% endblock %} {% block content %}
+{% endblock %} 
+
+{% block content %}
 <div class="container mt-4">
   <a href="{% url 'dashboard' %}" class="btn btn-secondary mb-3">
     &larr; Назад на главную
@@ -12,6 +17,13 @@
       <div class="d-flex justify-content-between align-items-center">
         <h3 class="mb-0">Сотрудники</h3>
         <div>
+          <!-- Добавляем кнопки экспорта -->
+          <a href="{% url 'employee_export_excel' %}" class="btn btn-light me-2">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+          <a href="{% url 'employee_export_pdf' %}" class="btn btn-light me-2">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
           <button type="button" class="btn btn-light" id="add-employee-btn">
             <i class="bi bi-plus-lg"></i> Добавить сотрудника
           </button>
