@@ -86,7 +86,15 @@
                     <td>{{ student.attendance_type }}</td>
                     <td>{{ student.attendance_count }}</td>
                     {% for day in student.daily_attendance %}
-                        <td class="{{ day.status|lower }}">{{ day.status|slice:":1" }}</td>
+                        <td class="{{ day.status|lower }}">
+                            {% if day.status == "Присутствовал" %}
+                                ✓
+                            {% elif day.status == "По уважительной" %}
+                                ⚠
+                            {% else %}
+                                ✗
+                            {% endif %}
+                        </td>
                     {% endfor %}
                 </tr>
             {% endfor %}
