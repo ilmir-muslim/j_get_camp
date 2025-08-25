@@ -52,4 +52,14 @@ urlpatterns = [
         views.get_updated_schedule_data,
         name="get_updated_schedule_data",
     ),
+    path(
+        "<int:pk>/export_attendance_excel/",
+        views.export_schedule_attendance_excel,
+        name="export_schedule_attendance_excel",
+    ),
+    path(
+        "<int:pk>/export_attendance_pdf/",
+        views.export_schedule_attendance_pdf,
+        name="export_schedule_attendance_pdf",
+    ),
 ]

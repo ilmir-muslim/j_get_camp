@@ -150,6 +150,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h3>Посещаемость</h3>
                 <div>
+                     <a href="{% url 'export_schedule_attendance_excel' pk=schedule.pk %}" class="btn btn-light me-2">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                    <a href="{% url 'export_schedule_attendance_pdf' pk=schedule.pk %}" class="btn btn-light me-2">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </a>
                     <button id="reset-attendance-filters" class="btn btn-light btn-action">
                         <i class="bi bi-arrow-clockwise"></i> Сбросить фильтры
                     </button>

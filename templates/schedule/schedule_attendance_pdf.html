@@ -1,0 +1,110 @@
+{% load attendance_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Посещаемость {{ schedule.name }}</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 1cm;
+        }
+        body { 
+            font-family: Arial, sans-serif;
+            font-size: 8px;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            page-break-inside: auto;
+        }
+        tr { 
+            page-break-inside: avoid; 
+            page-break-after: auto;
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 4px; 
+            text-align: center; 
+            vertical-align: middle;
+        }
+        th { 
+            background-color: #f2f2f2; 
+            font-weight: bold;
+        }
+        .student-info {
+            text-align: left;
+        }
+        .present { 
+            background-color: #d4edda; 
+        }
+        .excused { 
+            background-color: #fff3cd; 
+        }
+        .absent { 
+            background-color: #f8d7da; 
+        }
+        .header-row {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        .summary-row {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Посещаемость: {{ schedule.name }}</h1>
+    <p>Период: {{ schedule.start_date }} - {{ schedule.end_date }}</p>
+    <table>
+        <thead>
+            <tr class="header-row">
+                <th rowspan="2">№</th>
+                <th rowspan="2">ФИО</th>
+                <th rowspan="2">Стоимость</th>
+                <th rowspan="2">Платежи</th>
+                <th rowspan="2">Тип посещения</th>
+                <th rowspan="2">Явка</th>
+                {% for date in dates %}
+                    <th colspan="1">{{ date|date:"d.m" }}</th>
+                {% endfor %}
+            </tr>
+            <tr class="header-row">
+                {% for date in dates %}
+                    <th>{{ date|date:"D" }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in attendance_data %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td class="student-info">{{ student.full_name }}</td>
+                    <td>{{ student.price }}</td>
+                    <td>{{ student.total_paid }}</td>
+                    <td>{{ student.attendance_type }}</td>
+                    <td>{{ student.attendance_count }}</td>
+                    {% for day in student.daily_attendance %}
+                        <td class="{{ day.status|lower }}">{{ day.status|slice:":1" }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            <!-- Строка с итогами -->
+            <tr class="summary-row">
+                <td colspan="2">Итого</td>
+                <td>{{ attendance_data|sumattr:"price" }}</td>
+                <td>{{ attendance_data|sumattr:"total_paid" }}</td>
+                <td colspan="2"></td>
+                {% for date in dates %}
+                    <td>
+                        {% with present_count=attendance_data|count_present:forloop.counter0 %}
+                            {{ present_count }}
+                        {% endwith %}
+                    </td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

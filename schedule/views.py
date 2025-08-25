@@ -736,3 +736,146 @@ def get_updated_schedule_data(request, pk):
         )
     except Schedule.DoesNotExist:
         return JsonResponse({"success": False, "error": "Schedule not found"})
+
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def export_schedule_attendance_excel(request, pk):
+    schedule = get_object_or_404(Schedule, pk=pk)
+    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+
+    # Создаем workbook и worksheet
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Посещаемость {schedule.name}"
+
+    # Заголовки - добавляем все колонки из таблицы
+    headers = ["№", "ФИО", "Стоимость", "Платежи", "Тип", "Явка"]
+    dates = []
+    current_date = schedule.start_date
+    while current_date <= schedule.end_date:
+        dates.append(current_date)
+        headers.append(current_date.strftime("%d.%m"))
+        current_date += timedelta(days=1)
+
+    ws.append(headers)
+
+    # Данные
+    for index, student in enumerate(students, 1):
+        # Считаем количество посещенных дней
+        attendance_count = Attendance.objects.filter(
+            student=student, date__in=dates, present=True
+        ).count()
+
+        # Получаем общую сумму платежей студента
+        total_paid = (
+            Payment.objects.filter(student=student, schedule=schedule).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+        row = [
+            index,
+            student.full_name,
+            student.individual_price or student.default_price,
+            total_paid,
+            student.get_attendance_type_display(),
+            attendance_count,
+        ]
+
+        # Для каждой даты получаем статус посещения
+        for date in dates:
+            try:
+                att = Attendance.objects.get(student=student, date=date)
+                if att.present:
+                    status = "✓"
+                elif att.excused:
+                    status = "⚠"
+                else:
+                    status = "✗"
+            except Attendance.DoesNotExist:
+                status = "✗"
+
+            row.append(status)
+
+        ws.append(row)
+
+    # Сохраняем в HttpResponse
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        f"attachment; filename=attendance_{schedule.name}.xlsx"
+    )
+    return response
+
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def export_schedule_attendance_pdf(request, pk):
+    schedule = get_object_or_404(Schedule, pk=pk)
+    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+
+    dates = []
+    current_date = schedule.start_date
+    while current_date <= schedule.end_date:
+        dates.append(current_date)
+        current_date += timedelta(days=1)
+
+    # Подготовим данные для таблицы
+    attendance_data = []
+    for student in students:
+        # Считаем количество посещенных дней
+        attendance_count = Attendance.objects.filter(
+            student=student, date__in=dates, present=True
+        ).count()
+
+        # Получаем общую сумму платежей студента
+        total_paid = (
+            Payment.objects.filter(student=student, schedule=schedule).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+        row = {
+            "full_name": student.full_name,
+            "attendance_type": student.get_attendance_type_display(),
+            "price": student.individual_price or student.default_price,
+            "total_paid": total_paid,
+            "attendance_count": attendance_count,
+            "daily_attendance": [],
+        }
+
+        for date in dates:
+            try:
+                att = Attendance.objects.get(student=student, date=date)
+                if att.present:
+                    status = "Присутствовал"
+                elif att.excused:
+                    status = "По уважительной"
+                else:
+                    status = "Отсутствовал"
+            except Attendance.DoesNotExist:
+                status = "Отсутствовал"
+
+            row["daily_attendance"].append({"date": date, "status": status})
+
+        attendance_data.append(row)
+
+    html_string = render_to_string(
+        "schedule/schedule_attendance_pdf.html",
+        {"schedule": schedule, "dates": dates, "attendance_data": attendance_data},
+    )
+
+    html = HTML(string=html_string)
+    buffer = io.BytesIO()
+    html.write_pdf(buffer)
+
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f"inline; filename=attendance_{schedule.name}.pdf"
+    return response
