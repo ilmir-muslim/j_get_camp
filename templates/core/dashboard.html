@@ -38,10 +38,10 @@
     <div class="col-md-3 mb-3">
         <a href="{% url 'regulation_list' %}" class="btn btn-outline-primary btn-lg btn-block">Обучение и регламенты</a>
     </div>
+    {% if role in "manager admin" %}
     <div class="col-md-3 mb-3">
         <a href="{% url 'branch_list' %}" class="btn btn-outline-primary btn-lg btn-block">Филиалы</a>
     </div>
-    {% if role == "manager" or role == "admin" %}
     <div class="col-md-3 mb-3">
         <a href="{% url 'analytics_dashboard' %}" class="btn btn-outline-primary btn-lg btn-block">Аналитика</a>
     </div>

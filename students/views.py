@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
+from django.db.models import Q
 from weasyprint import HTML
 
 from core.utils import role_required
@@ -24,7 +25,26 @@ logger = logging.getLogger(__name__)
 
 def student_list(request):
     students = Student.objects.all()
-    schedules = Schedule.objects.all()  # Добавляем список смен
+
+    # Фильтрация по филиалам для начальников
+    if request.user.role in ["camp_head", "lab_head"]:
+        # Получаем филиал пользователя
+        user_branch = request.user.branch
+        if user_branch:
+            # Фильтруем учеников по сменам, принадлежащим филиалу пользователя
+            students = students.filter(
+                Q(schedule__branch=user_branch)
+                | Q(schedule__isnull=True)  # Или ученики без смены
+            )
+
+    schedules = Schedule.objects.all()
+
+    # Для начальников показываем только смены их филиала
+    if request.user.role in ["camp_head", "lab_head"]:
+        user_branch = request.user.branch
+        if user_branch:
+            schedules = schedules.filter(branch=user_branch)
+
     return render(
         request,
         "students/student_list.html",
@@ -32,23 +52,23 @@ def student_list(request):
     )
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_create(request):
     """
     Представление для создания ученика.
     """
     if request.method == "POST":
-        form = StudentForm(request.POST)
+        form = StudentForm(request.POST, request=request)
         if form.is_valid():
             form.save()
             return redirect("student_list")
     else:
-        form = StudentForm()
+        form = StudentForm(request=request)
 
     return render(request, "students/student_form.html", {"form": form})
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_edit(request, pk):
     """
     Представление для редактирования ученика.
@@ -56,17 +76,17 @@ def student_edit(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        form = StudentForm(request.POST, instance=student)
+        form = StudentForm(request.POST, instance=student, request=request)
         if form.is_valid():
             form.save()
             return redirect("student_list")
     else:
-        form = StudentForm(instance=student)
+        form = StudentForm(instance=student, request=request)
 
     return render(request, "students/student_form.html", {"form": form})
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_delete(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
@@ -84,7 +104,7 @@ def student_delete(request, pk):
     return render(request, "students/student_confirm_delete.html", {"student": student})
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_export_excel(request):
     students = Student.objects.all()
 
@@ -118,7 +138,7 @@ def student_export_excel(request):
     return response
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_export_pdf(request):
     """
     Выгрузка списка учеников в формате PDF.
@@ -141,6 +161,22 @@ def student_export_pdf(request):
 def student_create_ajax(request):
     try:
         data = json.loads(request.body)
+        # Фильтрация смен по филиалу для начальников
+        if request.user.role in ["camp_head", "lab_head"]:
+            user_branch = request.user.branch
+            if user_branch:
+                schedule_id = data.get("schedule_id")
+                if schedule_id:
+                    # Проверяем, принадлежит ли выбранная смена филиалу пользователя
+                    try:
+                        schedule = Schedule.objects.get(
+                            id=schedule_id, branch=user_branch
+                        )
+                    except Schedule.DoesNotExist:
+                        return JsonResponse(
+                            {"success": False, "error": "Недоступная смена"}, status=400
+                        )
+
         # Преобразуем значение типа посещения если нужно
         if data.get("attendance_type") == "full_day":
             data["attendance_type"] = "full_day"
@@ -226,12 +262,12 @@ def student_create_ajax(request):
         )
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_quick_edit(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        form = StudentForm(request.POST, instance=student)
+        form = StudentForm(request.POST, instance=student, request=request)
         if form.is_valid():
             student = form.save()
             return JsonResponse(
@@ -259,7 +295,7 @@ def student_quick_edit(request, pk):
         return JsonResponse({"success": False, "errors": form.errors})
 
     # GET-запрос — отрисовать форму
-    form = StudentForm(instance=student)
+    form = StudentForm(instance=student, request=request)
     return render(
         request,
         "students/student_quick_form.html",
@@ -271,7 +307,7 @@ def student_quick_edit(request, pk):
 
 
 @require_POST
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def add_balance(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     form = BalanceForm(request.POST)
@@ -302,7 +338,7 @@ def add_balance(request, student_id):
 
 
 @require_GET
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def get_balance_history(request, student_id):
     """Получить историю операций по балансу студента"""
     student = get_object_or_404(Student, id=student_id)
@@ -331,7 +367,7 @@ def get_balance_history(request, student_id):
 
 
 @require_GET
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def check_balance(request, student_id):
     """Проверить достаточно ли средств на балансе для платежа"""
     student = get_object_or_404(Student, id=student_id)
@@ -368,7 +404,7 @@ def check_balance(request, student_id):
 
 
 @require_POST
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def add_payment(request, student_id):
     """Обработка добавления платежа"""
     student = get_object_or_404(Student, id=student_id)
@@ -413,7 +449,7 @@ def add_payment(request, student_id):
 
 
 @require_GET
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def payment_history(request, student_id):
     """Получить историю платежей студента для конкретной смены"""
     student = get_object_or_404(Student, id=student_id)
@@ -434,7 +470,7 @@ def payment_history(request, student_id):
 
 
 @require_POST
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def student_payment_info(request, student_id):
     """Получить информацию о платежах студента для конкретной смены"""
     student = get_object_or_404(Student, id=student_id)
@@ -453,7 +489,7 @@ def student_payment_info(request, student_id):
     )
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def add_payment_form(request, student_id):
     """Отображение формы добавления платежа"""
     student = get_object_or_404(Student, id=student_id)

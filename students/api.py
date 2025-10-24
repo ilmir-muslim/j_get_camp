@@ -3,13 +3,24 @@ from schedule.models import Schedule
 from students.models import Attendance, Payment, Student
 from students.schemas import AttendanceCreateSchema, AttendanceSchema, AttendanceUpdateSchema, PaymentCreateSchema, PaymentSchema, PaymentUpdateSchema, StudentSchema, StudentCreateSchema, StudentUpdateSchema
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
 router = Router(tags=["Students"])
 
 
 @router.get("/", response=list[StudentSchema])
 def list_students(request):
-    return Student.objects.all()
+    students = Student.objects.all()
+
+    # Фильтрация для начальников лагеря/лаборатории
+    if request.user.role in ["camp_head", "lab_head"]:
+        user_branch = request.user.branch
+        if user_branch:
+            students = students.filter(
+                Q(schedule__branch=user_branch) | Q(schedule__isnull=True)
+            )
+
+    return students
 
 
 @router.get("/{student_id}/", response=StudentSchema)
@@ -104,4 +115,3 @@ def delete_payment(request, student_id: int, payment_id: int):
     payment = get_object_or_404(Payment, id=payment_id, student=student)
     payment.delete()
     return {"success": True}
-

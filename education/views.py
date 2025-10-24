@@ -8,7 +8,8 @@ from core.utils import role_required
 from education.forms import RegulationForm
 from .models import Regulation
 
-@role_required(['manager', 'admin'])
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def regulation_list(request):
     """
     Список обучающих материалов и регламентов.
@@ -17,7 +18,7 @@ def regulation_list(request):
     return render(request, 'education/regulation_list.html', {'regulations': regulations})
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def regulation_create(request):
     if request.method == "POST":
         form = RegulationForm(request.POST, request.FILES)
@@ -46,7 +47,7 @@ def regulation_create(request):
     return render(request, "education/regulation_form.html", {"form": form})
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def regulation_download(request, pk):
     regulation = get_object_or_404(Regulation, pk=pk)
     filename = regulation.file.name.split("/")[-1]  # оригинальное имя на диске
@@ -58,7 +59,7 @@ def regulation_download(request, pk):
     return response
 
 
-@role_required(["manager", "admin"])
+@role_required(["manager", "admin", "camp_head", "lab_head"])
 def regulation_delete(request, pk):
     """
     Удаление обучающего материала.

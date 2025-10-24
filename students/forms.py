@@ -1,22 +1,38 @@
 from django import forms
 
+from schedule.models import Schedule
+
 from .models import Balance, Payment, Student
+
 
 class StudentForm(forms.ModelForm):
     """
     Форма для создания и редактирования ученика.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+
+        # Фильтрация смен по филиалу для начальников
+        if self.request and self.request.user.role in ["camp_head", "lab_head"]:
+            user_branch = self.request.user.branch
+            if user_branch:
+                self.fields["schedule"].queryset = Schedule.objects.filter(
+                    branch=user_branch
+                )
+
     class Meta:
         model = Student
         fields = [
-            'full_name',
-            'phone',
-            'parent_name',
-            'schedule',
-            'attendance_type',
-            'default_price',
-            'individual_price',
-            'price_comment',
+            "full_name",
+            "phone",
+            "parent_name",
+            "schedule",
+            "attendance_type",
+            "default_price",
+            "individual_price",
+            "price_comment",
         ]
 
 

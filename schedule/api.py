@@ -11,9 +11,15 @@ from django.db.models import Sum
 router = Router(tags=["Schedules"])
 filters_router = Router(tags=["Schedule filters"])
 
+
 @router.get("/", response=list[ScheduleSchema])
 def list_schedules(request):
+    # ФИЛЬТРАЦИЯ ДЛЯ НАЧАЛЬНИКОВ
+    user = request.user
+    if hasattr(user, "role") and user.role in ["camp_head", "lab_head"]:
+        return Schedule.objects.filter(branch=user.branch)
     return Schedule.objects.all()
+
 
 @router.get("/{schedule_id}/", response=ScheduleSchema)
 def get_schedule(request, schedule_id: int):

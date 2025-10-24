@@ -22,13 +22,14 @@ from .models import Employee, EmployeeAttendance
 
 logger = logging.getLogger(__name__)
 
+
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def employees_list(request):
     """
     Выводит список сотрудников, фильтруя по роли пользователя:
     - Менеджер видит всех.
     - Администратор видит только сотрудников своего филиала.
-    - Начальник лагеря/лаборатории видит сотрудников своей смены.
+    - Начальник лагеря/лаборатории видит сотрудников своего филиала.
     """
     user = request.user
 
@@ -37,7 +38,8 @@ def employees_list(request):
     elif user.role == "admin":
         employees = Employee.objects.filter(branch=user.branch)
     else:  # camp_head, lab_head
-        employees = Employee.objects.filter(schedule__in=user.schedule_set.all())
+        # Начальники видят сотрудников своего филиала
+        employees = Employee.objects.filter(branch=user.branch)
 
     # Добавляем дополнительные данные для формы создания
     branches = Branch.objects.all()
