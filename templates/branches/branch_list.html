@@ -143,6 +143,16 @@
             <label for="branch-address" class="form-label">Адрес</label>
             <textarea class="form-control" id="branch-address" name="address" rows="3"></textarea>
           </div>
+          <!-- Добавлено поле города -->
+          <div class="mb-3">
+            <label for="branch-city" class="form-label">Город</label>
+            <select class="form-control" id="branch-city" name="city_id">
+              <option value="">--- Выберите город ---</option>
+              {% for city in cities %}
+              <option value="{{ city.id }}">{{ city.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -152,6 +162,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- Модальное окно для редактирования филиала -->
 <div class="modal fade" id="editBranchModal" tabindex="-1" aria-labelledby="editBranchModalLabel" aria-hidden="true">
@@ -172,6 +183,16 @@
           <div class="mb-3">
             <label for="edit-branch-address" class="form-label">Адрес</label>
             <textarea class="form-control" id="edit-branch-address" name="address" rows="3"></textarea>
+          </div>
+          <!-- Добавлено поле города -->
+          <div class="mb-3">
+            <label for="edit-branch-city" class="form-label">Город</label>
+            <select class="form-control" id="edit-branch-city" name="city_id">
+              <option value="">--- Выберите город ---</option>
+              {% for city in cities %}
+              <option value="{{ city.id }}">{{ city.name }}</option>
+              {% endfor %}
+            </select>
           </div>
         </form>
       </div>
@@ -209,7 +230,12 @@
 <script>
   const CSRF_TOKEN = "{{ csrf_token }}";
   const API_BRANCHES_URL = "/api/branches/";
-  const API_EMPLOYEES_URL = "/api/employees/";  // Добавляем URL API сотрудников
+  const API_EMPLOYEES_URL = "/api/employees/";
+  
+  // Добавляем информацию о пользователе
+  const USER_ROLE = "{{ user.role }}";
+  const USER_CITY_ID = "{{ user.city.id|default:'' }}";
+  const USER_CITY_NAME = "{{ user.city.name|default:'' }}";
 </script>
 <script src="{% static 'js/branch_list.js' %}"></script>
 <script src="{% static 'js/utils.js' %}"></script>

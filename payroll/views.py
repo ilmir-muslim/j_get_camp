@@ -9,32 +9,53 @@ from payroll.forms import ExpenseForm, SalaryForm
 from schedule.models import Schedule
 from .models import Expense, Salary
 
-@role_required(['manager', 'admin'])
+
+@role_required(["manager", "admin"])
 def expense_list(request):
     """
     Список расходов с фильтрацией по сменам и выводом итоговой суммы.
     """
     user = request.user
 
-    if user.role == 'manager':
+    if user.role == "manager":
         expenses = Expense.objects.all()
     else:
-        expenses = Expense.objects.filter(schedule__branch=user.branch)
+        # Для администраторов показываем только расходы смен их города
+        if user.city:
+            expenses = Expense.objects.filter(schedule__branch__city=user.city)
+        else:
+            expenses = Expense.objects.none()
 
-    total_amount = expenses.aggregate(models.Sum('amount'))['amount__sum'] or 0
+    total_amount = expenses.aggregate(models.Sum("amount"))["amount__sum"] or 0
 
-    return render(request, 'payroll/expense_list.html', {
-        'expenses': expenses,
-        'total_amount': total_amount,
-    })
+    return render(
+        request,
+        "payroll/expense_list.html",
+        {
+            "expenses": expenses,
+            "total_amount": total_amount,
+        },
+    )
 
 
 @role_required(["manager", "admin"])
 def salary_list(request):
-    if request.user.role == "manager":
+    user = request.user
+
+    if user.role == "manager":
         salaries = Salary.objects.all()
+        employees = Employee.objects.all()
+        schedules = Schedule.objects.all()
     else:
-        salaries = Salary.objects.filter(schedule__branch=request.user.branch)
+        # Для администраторов показываем только зарплаты смен их города
+        if user.city:
+            salaries = Salary.objects.filter(schedule__branch__city=user.city)
+            employees = Employee.objects.filter(branch__city=user.city)
+            schedules = Schedule.objects.filter(branch__city=user.city)
+        else:
+            salaries = Salary.objects.none()
+            employees = Employee.objects.none()
+            schedules = Schedule.objects.none()
 
     # Добавляем вычисляемое поле
     for salary in salaries:
@@ -58,8 +79,8 @@ def salary_list(request):
         {
             "salaries": salaries,
             "total_salary": total_salary,
-            "employees": Employee.objects.all(),
-            "schedules": Schedule.objects.all(),
+            "employees": employees,
+            "schedules": schedules,
         },
     )
 
@@ -70,7 +91,7 @@ def salary_create(request):
     Создание новой зарплаты.
     """
     if request.method == "POST":
-        form = SalaryForm(request.POST)
+        form = SalaryForm(request.POST, user=request.user)  # Передаем пользователя
         if form.is_valid():
             salary = form.save()
 
@@ -86,7 +107,7 @@ def salary_create(request):
             )
             return JsonResponse({"success": False, "form_html": html})
     else:
-        form = SalaryForm()
+        form = SalaryForm(user=request.user)  # Передаем пользователя
 
     # Для AJAX-запросов возвращаем только HTML формы
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -108,7 +129,9 @@ def salary_edit(request, pk):
     salary = get_object_or_404(Salary, pk=pk)
 
     if request.method == "POST":
-        form = SalaryForm(request.POST, instance=salary)
+        form = SalaryForm(
+            request.POST, instance=salary, user=request.user
+        )  # Передаем пользователя
         if form.is_valid():
             salary = form.save()
 
@@ -124,7 +147,7 @@ def salary_edit(request, pk):
             )
             return JsonResponse({"success": False, "form_html": html})
     else:
-        form = SalaryForm(instance=salary)
+        form = SalaryForm(instance=salary, user=request.user)  # Передаем пользователя
 
     # Для AJAX-запросов
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -166,7 +189,7 @@ def expense_create(request):
     )
 
     if request.method == "POST":
-        form = ExpenseForm(request.POST)
+        form = ExpenseForm(request.POST, user=request.user)  # Передаем пользователя
         if form.is_valid():
             expense = form.save()
 
@@ -185,7 +208,7 @@ def expense_create(request):
                 )
             return redirect("expense_list")
     else:
-        form = ExpenseForm(initial=initial)
+        form = ExpenseForm(initial=initial, user=request.user)  # Передаем пользователя
 
     # Для AJAX-запросов возвращаем только HTML формы
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -207,7 +230,9 @@ def expense_edit(request, pk):
     expense = get_object_or_404(Expense, pk=pk)
 
     if request.method == "POST":
-        form = ExpenseForm(request.POST, instance=expense)
+        form = ExpenseForm(
+            request.POST, instance=expense, user=request.user
+        )  # Передаем пользователя
         if form.is_valid():
             expense = form.save()
 
@@ -226,7 +251,7 @@ def expense_edit(request, pk):
                 )
             return redirect("expense_list")
     else:
-        form = ExpenseForm(instance=expense)
+        form = ExpenseForm(instance=expense, user=request.user)  # Передаем пользователя
 
     # Для AJAX-запросов
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -242,19 +267,19 @@ def expense_edit(request, pk):
     )
 
 
-@role_required(['manager', 'admin'])
+@role_required(["manager", "admin"])
 def expense_delete(request, pk):
     """
     Удаление расхода.
     """
     expense = get_object_or_404(Expense, pk=pk)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         expense.delete()
 
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest': 
-            return JsonResponse({'success': True})
-        return redirect('expense_list')
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest': 
-        return JsonResponse({'success': False, 'error': 'Invalid request method'})
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True})
+        return redirect("expense_list")
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"success": False, "error": "Invalid request method"})

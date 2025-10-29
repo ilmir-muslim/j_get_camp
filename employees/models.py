@@ -1,6 +1,6 @@
 # employees/models.py
 from django.db import models
-from branches.models import Branch
+from branches.models import Branch, City
 from schedule.models import Schedule
 
 
@@ -13,7 +13,7 @@ class Employee(models.Model):
     ]
 
     full_name = models.CharField(max_length=255, verbose_name="ФИО")
-    
+
     position = models.CharField(
         max_length=50, choices=POSITION_CHOICES, verbose_name="Должность"
     )
@@ -25,6 +25,9 @@ class Employee(models.Model):
     )
     rate_per_day = models.DecimalField(
         max_digits=10, decimal_places=2, default=0, verbose_name="Ставка за день"
+    )
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE, verbose_name="Город", related_name="employees", null=True, blank=True
     )
 
     class Meta:

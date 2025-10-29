@@ -28,21 +28,32 @@ def employees_list(request):
     """
     Выводит список сотрудников, фильтруя по роли пользователя:
     - Менеджер видит всех.
-    - Администратор видит только сотрудников своего филиала.
+    - Администратор видит только сотрудников своего города.
     - Начальник лагеря/лаборатории видит сотрудников своего филиала.
     """
     user = request.user
 
     if user.role == "manager":
         employees = Employee.objects.all()
+        branches = Branch.objects.all()  # Менеджер видит все филиалы
     elif user.role == "admin":
         employees = Employee.objects.filter(branch=user.branch)
+        # Администратор видит только филиалы своего города
+        branches = (
+            Branch.objects.filter(city=user.city)
+            if user.city
+            else Branch.objects.none()
+        )
     else:  # camp_head, lab_head
         # Начальники видят сотрудников своего филиала
         employees = Employee.objects.filter(branch=user.branch)
+        branches = (
+            Branch.objects.filter(city=user.city)
+            if user.city
+            else Branch.objects.none()
+        )
 
     # Добавляем дополнительные данные для формы создания
-    branches = Branch.objects.all()
     schedules = Schedule.objects.all()
 
     return render(
@@ -58,12 +69,12 @@ def employee_create(request):
     Представление для создания сотрудника.
     """
     if request.method == "POST":
-        form = EmployeeForm(request.POST)
+        form = EmployeeForm(request.POST, user=request.user)  # Передаем пользователя
         if form.is_valid():
             form.save()
             return redirect("employees_list")
     else:
-        form = EmployeeForm()
+        form = EmployeeForm(user=request.user)  # Передаем пользователя
 
     return render(request, "employees/employee_form.html", {"form": form})
 
@@ -76,12 +87,16 @@ def employee_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
 
     if request.method == "POST":
-        form = EmployeeForm(request.POST, instance=employee)
+        form = EmployeeForm(
+            request.POST, instance=employee, user=request.user
+        )  # Передаем пользователя
         if form.is_valid():
             form.save()
             return redirect("employees_list")
     else:
-        form = EmployeeForm(instance=employee)
+        form = EmployeeForm(
+            instance=employee, user=request.user
+        )  # Передаем пользователя
 
     return render(request, "employees/employee_form.html", {"form": form})
 
@@ -247,7 +262,9 @@ def employee_quick_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
 
     if request.method == "POST":
-        form = EmployeeForm(request.POST, instance=employee)
+        form = EmployeeForm(
+            request.POST, instance=employee, user=request.user
+        )  # Передаем пользователя
         if form.is_valid():
             employee = form.save()
             return JsonResponse(
@@ -259,17 +276,17 @@ def employee_quick_edit(request, pk):
                         "position_display": employee.get_position_display(),
                         "branch_name": (
                             employee.branch.name if employee.branch else None
-                        ), 
+                        ),
                         "schedule_name": (
                             employee.schedule.name if employee.schedule else None
-                        ), 
+                        ),
                         "rate_per_day": employee.rate_per_day,
                     },
                 }
             )
         return JsonResponse({"success": False, "errors": form.errors})
     # GET-запрос — отрисовать форму
-    form = EmployeeForm(instance=employee)
+    form = EmployeeForm(instance=employee, user=request.user)  # Передаем пользователя
     return render(
         request,
         "employees/employee_quick_form.html",
@@ -288,7 +305,7 @@ def employee_create_ajax(request):
         if "schedule_id" in data:
             data["schedule"] = data.pop("schedule_id") or None
 
-        form = EmployeeForm(data)
+        form = EmployeeForm(data, user=request.user)  # Передаем пользователя
         if form.is_valid():
             employee = form.save()
             return JsonResponse(

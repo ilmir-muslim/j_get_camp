@@ -1,6 +1,9 @@
 # employees / api.py
 from ninja import Router
+
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from branches.models import Branch
 from employees.models import Employee, EmployeeAttendance
 from employees.schemas import (
     EmployeeAttendanceUpdateSchema,
@@ -21,7 +24,13 @@ def employees_list(request, branch_id: int = None):
     """
     Получить список сотрудников с возможностью фильтрации по филиалу.
     """
-    queryset = Employee.objects.all()
+    user = request.user
+    if user.is_authenticated and user.role == "admin" and user.city:
+        # Администратор видит только сотрудников своего города
+        queryset = Employee.objects.filter(branch__city=user.city)
+    else:
+        queryset = Employee.objects.all()
+
     if branch_id:
         queryset = queryset.filter(branch_id=branch_id)
     return queryset
@@ -34,7 +43,21 @@ def employee_detail(request, employee_id: int):
 
 @employees_router.post("/", response=EmployeeSchema)
 def employee_create(request, data: EmployeeCreateSchema):
-    employee = Employee.objects.create(**data.dict())
+    employee_data = data.dict()
+
+    # Проверяем доступ администратора к филиалу
+    user = request.user
+    if user.is_authenticated and user.role == "admin" and user.city:
+        branch_id = employee_data.get("branch_id")
+        if branch_id:
+            try:
+                branch = Branch.objects.get(id=branch_id)
+                if branch.city != user.city:
+                    return JsonResponse({"error": "Доступ запрещен"}, status=403)
+            except Branch.DoesNotExist:
+                pass
+
+    employee = Employee.objects.create(**employee_data)
     return employee
 
 

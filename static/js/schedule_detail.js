@@ -1150,16 +1150,12 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
     btn.disabled = true;
 
-    const full_name = document.getElementById('employee_full_name').value;
-    const position = document.getElementById('position').value;
-    const rate_per_day = document.getElementById('rate_per_day').value;
+    const formData = new FormData(document.getElementById('create-employee-form'));
+    const data = Object.fromEntries(formData.entries());
 
-    if (!full_name) {
-      showToast('ФИО сотрудника обязательно', 'error');
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-      return;
-    }
+    // Преобразуем пустые строки в null для необязательных полей
+    if (!data.branch_id) data.branch_id = null;
+    if (!data.schedule_id) data.schedule_id = null;
 
     fetch('/employees/create/ajax/', {
       method: 'POST',
@@ -1167,11 +1163,7 @@ document.addEventListener('DOMContentLoaded', function () {
         'Content-Type': 'application/json',
         'X-CSRFToken': CSRF_TOKEN
       },
-      body: JSON.stringify({
-        full_name: full_name,
-        position: position,
-        rate_per_day: rate_per_day
-      })
+      body: JSON.stringify(data)
     })
       .then(response => response.json())
       .then(data => {
@@ -1179,15 +1171,18 @@ document.addEventListener('DOMContentLoaded', function () {
           const modal = bootstrap.Modal.getInstance(document.getElementById('createEmployeeModal'));
           modal.hide();
 
-          // Обновляем выпадающий список
+          // Обновляем выпадающий список сотрудников
           const select = document.querySelector('#employee-form select[name="employee"]');
           const option = document.createElement('option');
           option.value = data.employee.id;
-          option.textContent = `${data.employee.full_name} (${data.employee.get_position_display})`;
+          option.textContent = `${data.employee.full_name} (${data.employee.position_display})`;
           select.appendChild(option);
 
           // Автоматически выбираем нового сотрудника
           select.value = data.employee.id;
+
+          // Очищаем форму
+          document.getElementById('create-employee-form').reset();
 
           showToast('Сотрудник успешно создан', 'success');
         } else {

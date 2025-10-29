@@ -165,7 +165,7 @@ def student_create_ajax(request):
         if request.user.role in ["camp_head", "lab_head"]:
             user_branch = request.user.branch
             if user_branch:
-                schedule_id = data.get("schedule_id")
+                schedule_id = data.get("schedule")
                 if schedule_id:
                     # Проверяем, принадлежит ли выбранная смена филиалу пользователя
                     try:
@@ -191,55 +191,26 @@ def student_create_ajax(request):
                     status=400,
                 )
 
-        # Извлекаем schedule_id из данных (если есть)
-        schedule_id = data.pop("schedule_id", None)
-
         form = StudentForm(data)
         if form.is_valid():
             student = form.save()
 
-            # Создаем платеж если указана смена
-            payment_data = None
-            if schedule_id:
-                try:
-                    schedule = Schedule.objects.get(id=schedule_id)
-                    amount = student.individual_price or student.default_price
-
-                    payment = Payment.objects.create(
-                        student=student,
-                        schedule=schedule,
-                        amount=amount,
-                        date=timezone.now().date(),
-                        comment="Автоматически созданный платеж",
-                    )
-
-                    # Создаем операцию списания
-                    Balance.objects.create(
-                        student=student,
-                        amount=amount,
-                        operation_type="payment",
-                        comment=f"Автоматически созданный платеж за смену {schedule.name}",
-                        created_by=request.user,
-                    )
-
-                    payment_data = {
-                        "id": payment.id,
-                        "amount": str(payment.amount),
-                        "date": payment.date.strftime("%Y-%m-%d"),
-                    }
-                except Schedule.DoesNotExist:
-                    # Не прерываем создание студента, но логируем ошибку
-                    pass
-                except Exception as e:
-                    # Не прерываем создание студента, но логируем ошибку
-                    pass
-
-            # Возвращаем больше данных о созданном студенте
+            # Возвращаем те же данные, что и при редактировании
             response_data = {
                 "success": True,
                 "student": {
                     "id": student.id,
                     "full_name": student.full_name,
+                    "phone": student.phone,
+                    "parent_name": student.parent_name,
+                    "schedule_name": (
+                        student.schedule.name if student.schedule else None
+                    ),
+                    "branch_name": (
+                        student.schedule.branch.name
+                        if student.schedule and student.schedule.branch
+                        else "—"
+                    ),
                     "attendance_type_display": student.get_attendance_type_display(),
                     "default_price": str(student.default_price),
                     "individual_price": (
@@ -247,14 +218,13 @@ def student_create_ajax(request):
                         if student.individual_price
                         else None
                     ),
+                    "price_comment": student.price_comment,
                 },
             }
 
-            # Добавляем информацию о платеже если он был создан
-            if payment_data:
-                response_data["payment"] = payment_data
-
             return JsonResponse(response_data)
+        else:
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
 
     except json.JSONDecodeError:
         return JsonResponse(
@@ -280,6 +250,11 @@ def student_quick_edit(request, pk):
                         "parent_name": student.parent_name,
                         "schedule_name": (
                             student.schedule.name if student.schedule else None
+                        ),
+                        "branch_name": (
+                            student.schedule.branch.name
+                            if student.schedule and student.schedule.branch
+                            else "—"
                         ),
                         "attendance_type_display": student.get_attendance_type_display(),
                         "default_price": str(student.default_price),

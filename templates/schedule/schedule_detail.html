@@ -450,42 +450,60 @@
         </div>
     </div>
 
-    <div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="create-employee-form">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="employee_full_name" class="form-label">ФИО *</label>
-                            <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="position" class="form-label">Должность *</label>
-                            <select class="form-select" id="position" name="position" required>
-                                <option value="teacher">Преподаватель</option>
-                                <option value="assistant">Ассистент</option>
-                                <option value="camp_head">Начальник лагеря</option>
-                                <option value="lab_head">Начальник лаборатории</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="rate_per_day" class="form-label">Ставка за день</label>
-                            <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
-                </div>
+<div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-employee-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="employee_full_name" class="form-label">ФИО *</label>
+                        <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="position" class="form-label">Должность *</label>
+                        <select class="form-select" id="position" name="position" required>
+                            <option value="teacher">Преподаватель</option>
+                            <option value="assistant">Ассистент</option>
+                            <option value="camp_head">Начальник лагеря</option>
+                            <option value="lab_head">Начальник лаборатории</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="branch" class="form-label">Филиал</label>
+                        <select class="form-select" id="branch" name="branch_id">
+                            <option value="">Выберите филиал</option>
+                            {% for branch in available_branches %}
+                            <option value="{{ branch.id }}">{{ branch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="schedule" class="form-label">Смена</label>
+                        <select class="form-select" id="schedule" name="schedule_id">
+                            <option value="">Выберите смену</option>
+                            {% for schedule in available_schedules %}
+                            <option value="{{ schedule.id }}">{{ schedule.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rate_per_day" class="form-label">Ставка за день</label>
+                        <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Модальное окно для формы расхода -->
     <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">

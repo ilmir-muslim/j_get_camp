@@ -1,27 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.utils.translation import gettext_lazy as _
-from .models import CustomUser
-
-
-class CustomUserCreationForm(UserCreationForm):
-    class Meta:
-        model = CustomUser
-        fields = ("username", "role", "branch")
-
-
-class CustomUserChangeForm(UserChangeForm):
-    class Meta:
-        model = CustomUser
-        fields = "__all__"
+from .models import CustomUser, Ticket
 
 
 class CustomUserAdmin(UserAdmin):
-    add_form = CustomUserCreationForm
-    form = CustomUserChangeForm
-
-    # Поля при создании пользователя
+    # Упрощенные поля при создании пользователя
     add_fieldsets = (
         (
             None,
@@ -32,24 +16,11 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
-    # Поля при редактировании пользователя
+    # Упрощенные поля при редактировании пользователя
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name", "email")}),
-        (
-            _("Permissions"),
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "groups",
-                    "user_permissions",
-                ),
-            },
-        ),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
-        (_("Custom fields"), {"fields": ("role", "branch", "schedules")}),
+        (_("Custom fields"), {"fields": ("role", "branch")}),  # Убрали schedules
     )
 
     list_display = (
@@ -59,11 +30,26 @@ class CustomUserAdmin(UserAdmin):
         "last_name",
         "role",
         "branch",
+        "city",
         "is_staff",
     )
-    list_filter = ("role", "branch", "is_staff", "is_superuser", "is_active")
+    list_filter = ("role", "branch", "city", "is_staff")
     search_fields = ("username", "first_name", "last_name", "email")
-    filter_horizontal = ("groups", "user_permissions", "schedules")
+
+    def save_model(self, request, obj, form, change):
+        # Автоматически устанавливаем город из филиала
+        if obj.branch and obj.branch.city:
+            obj.city = obj.branch.city
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ["subject", "user", "status", "created_at"]
+    list_filter = ["status", "created_at"]
+    search_fields = ["subject", "description", "user__username"]
+    readonly_fields = ["created_at", "updated_at"]
+    list_editable = ["status"]
 
 
 admin.site.register(CustomUser, CustomUserAdmin)

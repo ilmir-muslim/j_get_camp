@@ -5,7 +5,21 @@
 <div class="modal-body">
   <form id="employee-quick-edit-form" method="post" action="{% url 'employee_quick_edit' employee.id %}">
     {% csrf_token %}
-    {{ form.as_p }}
+    
+    {% for field in form %}
+      <div class="mb-3">
+        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          <div class="invalid-feedback d-block">
+            {% for error in field.errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    
     <div class="d-flex justify-content-between">
       <button type="submit" class="btn btn-primary">Сохранить</button>
       {% if request.resolver_match.url_name == 'employees_list' %}

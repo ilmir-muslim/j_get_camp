@@ -97,9 +97,11 @@ def schedule_calendar(request):
         weeks.append((current, friday))
         current += timedelta(days=7)
 
-    # ФИЛЬТРАЦИЯ ФИЛИАЛОВ ДЛЯ НАЧАЛЬНИКОВ
+    # ФИЛЬТРАЦИЯ ФИЛИАЛОВ ДЛЯ АДМИНИСТРАТОРОВ И НАЧАЛЬНИКОВ
     user = request.user
-    if user.role in ["camp_head", "lab_head"]:
+    if user.role == "admin" and user.city:
+        branches = Branch.objects.filter(city=user.city)
+    elif user.role in ["camp_head", "lab_head"]:
         branches = Branch.objects.filter(id=user.branch.id)
     else:
         branches = Branch.objects.all()
@@ -439,6 +441,16 @@ def schedule_detail(request, pk):
                     return JsonResponse({"success": False, "error": "Ученик не выбран"})
                 return redirect("schedule_detail", pk=pk)
 
+    if user.role == "admin" and user.city:
+        available_branches = Branch.objects.filter(city=user.city)
+        available_schedules = Schedule.objects.filter(branch__city=user.city)
+    elif user.role in ["camp_head", "lab_head"]:
+        available_branches = Branch.objects.filter(id=user.branch.id)
+        available_schedules = Schedule.objects.filter(branch=user.branch)
+    else:
+        available_branches = Branch.objects.all()
+        available_schedules = Schedule.objects.all()
+
     context = {
         "schedule": schedule,
         "employees": employees,
@@ -455,6 +467,8 @@ def schedule_detail(request, pk):
         "student_total_payments": student_total_payments,
         "total_payments": total_payments,
         "from_schedule_list": from_schedule_list,
+        "available_branches": available_branches,
+        "available_schedules": available_schedules,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
@@ -566,9 +580,15 @@ def export_schedule_students_pdf(request, pk):
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def schedule_list(request):
-    # ФИЛЬТРАЦИЯ СМЕН ДЛЯ НАЧАЛЬНИКОВ
+    # ФИЛЬТРАЦИЯ СМЕН ДЛЯ АДМИНИСТРАТОРОВ И НАЧАЛЬНИКОВ
     user = request.user
-    if user.role in ["camp_head", "lab_head"]:
+    if user.role == "admin" and user.city:
+        schedules = (
+            Schedule.objects.select_related("branch")
+            .prefetch_related("employee_set", "student_set")
+            .filter(branch__city=user.city)
+        )
+    elif user.role in ["camp_head", "lab_head"]:
         schedules = (
             Schedule.objects.select_related("branch")
             .prefetch_related("employee_set", "student_set")
@@ -583,11 +603,8 @@ def schedule_list(request):
 
     schedule_data = []
     for schedule in schedules:
-        # Получаем начальника лагеря
         camp_head = schedule.employee_set.filter(position="camp_head").first()
-        # Получаем начальника лаборатории
         lab_head = schedule.employee_set.filter(position="lab_head").first()
-        # Считаем количество студентов
         student_count = schedule.student_set.count()
 
         schedule_data.append(

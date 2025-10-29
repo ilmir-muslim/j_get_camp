@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Управление тикетами</h1>
+    <div class="btn-group">
+        <a href="?status=open" class="btn btn-outline-danger {% if current_filter == 'open' %}active{% endif %}">
+            Открытые <span class="badge bg-danger">{{ open_tickets_count }}</span>
+        </a>
+        <a href="?status=in_progress" class="btn btn-outline-warning {% if current_filter == 'in_progress' %}active{% endif %}">
+            В работе <span class="badge bg-warning">{{ in_progress_count }}</span>
+        </a>
+        <a href="?status=resolved" class="btn btn-outline-success {% if current_filter == 'resolved' %}active{% endif %}">
+            Решенные
+        </a>
+        <a href="?status=closed" class="btn btn-outline-secondary {% if current_filter == 'closed' %}active{% endif %}">
+            Закрытые
+        </a>
+        <a href="{% url 'ticket_list' %}" class="btn btn-outline-primary {% if not current_filter %}active{% endif %}">
+            Все <span class="badge bg-primary">{{ total_tickets }}</span>
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Тема</th>
+                        <th>Пользователь</th>
+                        <th>Статус</th>
+                        <th>Дата создания</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in page_obj %}
+                    <tr style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#ticketModal{{ ticket.id }}">
+                        <td>{{ ticket.subject }}</td>
+                        <td>{{ ticket.user.username }} ({{ ticket.user.get_role_display }})</td>
+                        <td>
+                            <span class="badge 
+                                {% if ticket.status == 'open' %}bg-danger
+                                {% elif ticket.status == 'in_progress' %}bg-warning
+                                {% elif ticket.status == 'resolved' %}bg-success
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ticket.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+
+                    <!-- Модальное окно для каждого тикета -->
+                    <div class="modal fade" id="ticketModal{{ ticket.id }}" tabindex="-1" aria-labelledby="ticketModalLabel{{ ticket.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title" id="ticketModalLabel{{ ticket.id }}">Тикет #{{ ticket.id }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form method="post" action="{% url 'update_ticket' ticket.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label"><strong>Пользователь</strong></label>
+                                                    <p>{{ ticket.user.username }} ({{ ticket.user.get_role_display }})</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label"><strong>Дата создания</strong></label>
+                                                    <p>{{ ticket.created_at|date:"d.m.Y H:i" }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label"><strong>Тема</strong></label>
+                                            <p>{{ ticket.subject }}</p>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label"><strong>Описание проблемы</strong></label>
+                                            <div class="border p-2 bg-light rounded">
+                                                {{ ticket.description|linebreaks }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="status{{ ticket.id }}" class="form-label"><strong>Статус</strong></label>
+                                            <select class="form-select" id="status{{ ticket.id }}" name="status">
+                                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Открыт</option>
+                                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>В работе</option>
+                                                <option value="resolved" {% if ticket.status == 'resolved' %}selected{% endif %}>Решен</option>
+                                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Закрыт</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="admin_notes{{ ticket.id }}" class="form-label"><strong>Комментарий администратора</strong></label>
+                                            <textarea class="form-control" id="admin_notes{{ ticket.id }}" name="admin_notes" rows="3" placeholder="Оставьте комментарий для пользователя...">{{ ticket.admin_notes }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">Тикетов не найдено</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Пагинация -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_filter %}&status={{ current_filter }}{% endif %}">Первая</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">Назад</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_filter %}&status={{ current_filter }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">Вперед</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filter %}&status={{ current_filter }}{% endif %}">Последняя</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

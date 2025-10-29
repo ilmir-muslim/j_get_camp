@@ -28,12 +28,15 @@ class StudentForm(forms.ModelForm):
             "full_name",
             "phone",
             "parent_name",
-            "schedule",
+            "schedule",  # Убедитесь, что это поле есть
             "attendance_type",
             "default_price",
             "individual_price",
             "price_comment",
         ]
+        widgets = {
+            "schedule": forms.Select(attrs={"class": "form-select"}),
+        }
 
 
 class PaymentForm(forms.ModelForm):

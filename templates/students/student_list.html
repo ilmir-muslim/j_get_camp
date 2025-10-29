@@ -127,7 +127,7 @@
           </div>
           <div class="mb-3">
             <label for="schedule" class="form-label">Смена</label>
-            <select class="form-select" id="schedule" name="schedule_id">
+            <select class="form-select" id="schedule" name="schedule">
               <option value="">Выберите смену</option>
               {% for schedule in schedules %}
               <option value="{{ schedule.id }}">{{ schedule.name }}</option>

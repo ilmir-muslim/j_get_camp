@@ -1,15 +1,116 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>Аналитика</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Аналитика</h1>
+    <div class="text-muted">
+        <strong>Город:</strong> {{ user_city }}
+    </div>
+</div>
+{% comment %} 
+<!-- Общая статистика -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Общая статистика</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col mb-3">
+                <div class="card text-center border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.schedule_count }}</h3>
+                        <p class="text-muted mb-0">Смены</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card text-center border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.employee_count }}</h3>
+                        <p class="text-muted mb-0">Сотрудники</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card text-center border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.student_count }}</h3>
+                        <p class="text-muted mb-0">Ученики</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card text-center border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.total_expenses }} руб.</h3>
+                        <p class="text-muted mb-0">Расходы</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card text-center border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.total_salaries }} руб.</h3>
+                        <p class="text-muted mb-0">Зарплаты</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> {% endcomment %}
 
-<ul class="list-group">
-    <li class="list-group-item">Количество смен: {{ stats.schedule_count }}</li>
-    <li class="list-group-item">Количество сотрудников: {{ stats.employee_count }}</li>
-    <li class="list-group-item">Количество учеников: {{ stats.student_count }}</li>
-    <li class="list-group-item">Общая сумма расходов: {{ stats.total_expenses }} руб.</li>
-    <li class="list-group-item">Общая сумма зарплат: {{ stats.total_salaries }} руб.</li>
-</ul>
+<!-- Статистика по филиалам -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0">Статистика по филиалам</h5>
+    </div>
+    <div class="card-body">
+        {% if branches_stats %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Филиал</th>
+                        <th>Город</th>
+                        <th>Адрес</th>
+                        <th>Смены</th>
+                        <th>Сотрудники</th>
+                        <th>Ученики</th>
+                        <th>Расходы</th>
+                        <th>Зарплаты</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for branch in branches_stats %}
+                    <tr>
+                        <td><strong>{{ branch.name }}</strong></td>
+                        <td>{{ branch.city }}</td>
+                        <td>{{ branch.address|default:"-" }}</td>
+                        <td>{{ branch.schedule_count }}</td>
+                        <td>{{ branch.employee_count }}</td>
+                        <td>{{ branch.student_count }}</td>
+                        <td>{{ branch.total_expenses }} руб.</td>
+                        <td>{{ branch.total_salaries }} руб.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="3"><strong>Итого:</strong></td>
+                        <td><strong>{{ stats.schedule_count }}</strong></td>
+                        <td><strong>{{ stats.employee_count }}</strong></td>
+                        <td><strong>{{ stats.student_count }}</strong></td>
+                        <td><strong>{{ stats.total_expenses }} руб.</strong></td>
+                        <td><strong>{{ stats.total_salaries }} руб.</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-muted">Нет данных для отображения.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
-
-

@@ -36,6 +36,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // Открытие модального окна для создания филиала
     addBranchBtn.addEventListener('click', function () {
         document.getElementById('create-branch-form').reset();
+
+        // Для администраторов автоматически устанавливаем город и блокируем поле
+        if (USER_ROLE === 'admin' && USER_CITY_ID) {
+            const cityField = document.getElementById('branch-city');
+            cityField.value = USER_CITY_ID;
+            cityField.disabled = true;
+
+            // Добавляем подсказку, что город установлен автоматически
+            const cityGroup = cityField.closest('.mb-3');
+            const existingHint = cityGroup.querySelector('.admin-city-hint');
+            if (!existingHint) {
+                const hint = document.createElement('div');
+                hint.className = 'form-text admin-city-hint text-info';
+                hint.textContent = 'Город автоматически установлен согласно вашему профилю';
+                cityGroup.appendChild(hint);
+            }
+        } else {
+            // Для не-администраторов поле города доступно
+            const cityField = document.getElementById('branch-city');
+            cityField.disabled = false;
+
+            // Убираем подсказку, если была
+            const cityGroup = cityField.closest('.mb-3');
+            const existingHint = cityGroup.querySelector('.admin-city-hint');
+            if (existingHint) {
+                existingHint.remove();
+            }
+        }
+
         createBranchModal.show();
     });
 
@@ -46,6 +75,12 @@ document.addEventListener('DOMContentLoaded', function () {
             name: formData.get('name'),
             address: formData.get('address')
         };
+
+        // Для администраторов city_id не передаем - он установится автоматически на сервере
+        // Для других ролей передаем выбранный город
+        if (USER_ROLE !== 'admin') {
+            data.city_id = formData.get('city_id') ? parseInt(formData.get('city_id')) : null;
+        }
 
         fetch(API_BRANCHES_URL, {
             method: 'POST',
@@ -91,6 +126,36 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('edit-branch-id').value = branch.id;
                     document.getElementById('edit-branch-name').value = branch.name;
                     document.getElementById('edit-branch-address').value = branch.address;
+
+                    const cityField = document.getElementById('edit-branch-city');
+
+                    // Для администраторов блокируем поле города и устанавливаем их город
+                    if (USER_ROLE === 'admin' && USER_CITY_ID) {
+                        cityField.value = USER_CITY_ID;
+                        cityField.disabled = true;
+
+                        // Добавляем подсказку
+                        const cityGroup = cityField.closest('.mb-3');
+                        const existingHint = cityGroup.querySelector('.admin-city-hint');
+                        if (!existingHint) {
+                            const hint = document.createElement('div');
+                            hint.className = 'form-text admin-city-hint text-info';
+                            hint.textContent = 'Город автоматически установлен согласно вашему профилю';
+                            cityGroup.appendChild(hint);
+                        }
+                    } else {
+                        // Для не-администраторов устанавливаем текущее значение и оставляем поле доступным
+                        cityField.value = branch.city_id || '';
+                        cityField.disabled = false;
+
+                        // Убираем подсказку, если была
+                        const cityGroup = cityField.closest('.mb-3');
+                        const existingHint = cityGroup.querySelector('.admin-city-hint');
+                        if (existingHint) {
+                            existingHint.remove();
+                        }
+                    }
+
                     editBranchModal.show();
                 })
                 .catch(error => {
@@ -122,6 +187,12 @@ document.addEventListener('DOMContentLoaded', function () {
             name: formData.get('name'),
             address: formData.get('address')
         };
+
+        // Для администраторов city_id не передаем - на сервере он не будет изменен
+        // Для других ролей передаем выбранный город
+        if (USER_ROLE !== 'admin') {
+            data.city_id = formData.get('city_id') ? parseInt(formData.get('city_id')) : null;
+        }
 
         fetch(`${API_BRANCHES_URL}${currentBranchId}/`, {
             method: 'PUT',
@@ -298,6 +369,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 "'": '&#39;'
             };
             return escapes[match];
+        });
+    }
+
+    // Функция для показа уведомлений (если не реализована в utils.js)
+    function showToast(message, type = 'info') {
+        // Создаем элемент тоста, если его нет
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' :
+            type === 'error' ? 'bg-danger' :
+                type === 'warning' ? 'bg-warning' : 'bg-info';
+
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert">
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+        toast.show();
+
+        // Удаляем toast из DOM после скрытия
+        toastElement.addEventListener('hidden.bs.toast', function () {
+            toastElement.remove();
         });
     }
 });

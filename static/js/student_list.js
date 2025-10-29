@@ -36,13 +36,15 @@ function loadStudentEditForm(studentId) {
                                 // Обновляем данные в таблице
                                 const row = document.getElementById(`student-${data.student.id}`);
                                 if (row) {
-                                    row.cells[3].textContent = data.student.full_name;
+                                    row.cells[2].textContent = data.student.full_name;
                                     row.cells[4].textContent = data.student.phone;
                                     row.cells[5].textContent = data.student.parent_name;
                                     row.cells[6].textContent = data.student.schedule_name || '—';
-                                    row.cells[7].textContent = data.student.attendance_type_display;
-                                    row.cells[8].textContent = data.student.individual_price || data.student.default_price;
-                                    row.cells[9].textContent = data.student.price_comment || '';
+                                    // Обновляем филиал
+                                    row.cells[7].textContent = data.student.branch_name || '—';
+                                    row.cells[8].textContent = data.student.attendance_type_display;
+                                    row.cells[9].textContent = data.student.individual_price || data.student.default_price;
+                                    row.cells[10].textContent = data.student.price_comment || '';
                                 }
 
                                 modal.hide();
@@ -63,6 +65,7 @@ function loadStudentEditForm(studentId) {
             showToast('Произошла ошибка при загрузке формы', 'error');
         });
 }
+
 
 // Функция удаления ученика
 function deleteStudent(studentId) {
@@ -167,31 +170,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     const newRow = document.createElement('tr');
                     newRow.id = `student-${data.student.id}`;
                     newRow.innerHTML = `
-              <td>${tableBody.children.length + 1}</td>
-              <td>
-                <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
-                        data-student-id="${data.student.id}">
-                  <i class="bi bi-pencil text-primary"></i>
-                </button>
-                <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
-                        data-student-id="${data.student.id}">
-                  <i class="bi bi-trash text-danger"></i>
-                </button>
-                <button class="btn p-0 border-0 bg-transparent icon-btn add-balance-btn"
-                        data-student-id="${data.student.id}"
-                        data-bs-toggle="tooltip" title="Пополнить баланс">
-                  <i class="bi bi-wallet2 text-success"></i>
-                </button>
-              </td>
-              <td>${data.student.full_name}</td>
-              <td class="balance-cell" id="balance-${data.student.id}">0 руб.</td>
-              <td>${data.student.phone || ''}</td>
-              <td>${data.student.parent_name || ''}</td>
-              <td>—</td>
-              <td>${data.student.attendance_type_display}</td>
-              <td>${data.student.individual_price || data.student.default_price}</td>
-              <td>${data.student.price_comment || ''}</td>
-            `;
+                    <td>${tableBody.children.length + 1}</td>
+                    <td>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
+                                data-student-id="${data.student.id}">
+                            <i class="bi bi-pencil text-primary"></i>
+                        </button>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
+                                data-student-id="${data.student.id}">
+                            <i class="bi bi-trash text-danger"></i>
+                        </button>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn add-balance-btn"
+                                data-student-id="${data.student.id}"
+                                data-bs-toggle="tooltip" title="Пополнить баланс">
+                            <i class="bi bi-wallet2 text-success"></i>
+                        </button>
+                    </td>
+                    <td>${data.student.full_name}</td>
+                    <td class="balance-cell" id="balance-${data.student.id}">0</td>
+                    <td>${data.student.phone || ''}</td>
+                    <td>${data.student.parent_name || ''}</td>
+                    <td>${data.student.schedule_name || '—'}</td>
+                    <td>${data.student.branch_name || '—'}</td>
+                    <td>${data.student.attendance_type_display}</td>
+                    <td>${data.student.individual_price || data.student.default_price}</td>
+                    <td>${data.student.price_comment || ''}</td>
+                `;
+
                     tableBody.appendChild(newRow);
                     updateRowNumbers();
 
@@ -217,6 +222,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         modal.show();
                     });
 
+                    // Очищаем форму
+                    document.getElementById('create-student-form').reset();
                     // Закрываем модальное окно и показываем уведомление
                     bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
                     showToast('Ученик успешно создан');
@@ -289,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.success) {
                     // Обновляем отображение баланса в таблице
                     document.getElementById(`balance-${studentId}`).textContent =
-                        `${data.new_balance} руб.`;
+                        `${data.new_balance}`;
 
                     // Закрываем модальное окно
                     bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();
@@ -329,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     // При закрытии модального окна активируем вкладку пополнения
     document.getElementById('balanceModal').addEventListener('hidden.bs.modal', function () {
         const addBalanceTab = new bootstrap.Tab(document.getElementById('add-balance-tab'));
