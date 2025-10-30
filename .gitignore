@@ -9,4 +9,4 @@ __pycache__/
 *.py[cod]
 mok_data_fixtures/initial_data.json
 
-regulations/
+media/

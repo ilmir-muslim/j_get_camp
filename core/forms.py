@@ -24,7 +24,7 @@ class BaseDateForm(forms.ModelForm):
 class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
-        fields = ["subject", "description"]
+        fields = ["subject", "description", "screenshot"]
         widgets = {
             "subject": forms.TextInput(
                 attrs={
@@ -39,10 +39,12 @@ class TicketForm(forms.ModelForm):
                     "placeholder": "Подробное описание проблемы, шаги для воспроизведения и т.д.",
                 }
             ),
+            "screenshot": forms.FileInput(attrs={"class": "form-control"}),
         }
         labels = {
             "subject": "Тема обращения",
             "description": "Описание проблемы",
+            "screenshot": "Скриншот (опционально)",
         }
 
 

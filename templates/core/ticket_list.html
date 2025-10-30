@@ -88,6 +88,21 @@
                                                 {{ ticket.description|linebreaks }}
                                             </div>
                                         </div>
+
+                                        <!-- Блок для отображения скриншота -->
+                                        {% if ticket.screenshot %}
+                                        <div class="mb-3">
+                                            <label class="form-label"><strong>Скриншот</strong></label>
+                                            <div class="border p-2 bg-light rounded">
+                                                <img src="{{ ticket.screenshot.url }}" alt="Скриншот проблемы" class="img-fluid rounded" style="max-height: 400px;">
+                                                <div class="mt-2">
+                                                    <a href="{{ ticket.screenshot.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        Открыть в полном размере
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                         
                                         <div class="mb-3">
                                             <label for="status{{ ticket.id }}" class="form-label"><strong>Статус</strong></label>

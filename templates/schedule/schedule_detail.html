@@ -86,7 +86,8 @@
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                             data-employee-id="{{ employee.id }}"
                                             data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
-                                            data-schedule-id="{{ schedule.id }}">
+                                            data-schedule-id="{{ schedule.id }}"
+                                            data-bs-toggle="tooltip" title="Удалить">
                                     <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
@@ -247,15 +248,23 @@
                                     <button class="btn p-0 border-0 bg-transparent icon-btn student-payment-btn"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
-                                            data-schedule-id="{{ schedule.id }}">
+                                            data-schedule-id="{{ schedule.id }}"
+                                            data-bs-toggle="tooltip" title="Добавить платеж">
                                         <i class="bi bi-cash text-success fs-5"></i>
+                                    </button>
+                                    <!-- Кнопка пополнения баланса -->
+                                    <button class="btn p-0 border-0 bg-transparent icon-btn add-balance-btn"
+                                            data-student-id="{{ student.id }}"
+                                            data-bs-toggle="tooltip" title="Пополнить баланс">
+                                    <i class="bi bi-wallet2 text-success"></i>
                                     </button>
                                     
                                     <!-- Кнопка удаления -->
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-student-attendance"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
-                                            data-schedule-id="{{ schedule.id }}">
+                                            data-schedule-id="{{ schedule.id }}"
+                                            data-bs-toggle="tooltip" title="Удалить">
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
@@ -351,7 +360,8 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                                            data-expense-id="{{ expense.id }}">
+                                            data-expense-id="{{ expense.id }}"
+                                            data-bs-toggle="tooltip" title="Удалить">
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
@@ -468,7 +478,7 @@
                         <label for="position" class="form-label">Должность *</label>
                         <select class="form-select" id="position" name="position" required>
                             <option value="teacher">Преподаватель</option>
-                            <option value="assistant">Ассистент</option>
+                            <option value="admin">Администратор</option>
                             <option value="camp_head">Начальник лагеря</option>
                             <option value="lab_head">Начальник лаборатории</option>
                         </select>
@@ -521,6 +531,79 @@
         </div>
     </div>
 </div>
+<!-- Модальное окно для пополнения баланса -->
+<div class="modal fade" id="balanceModal" tabindex="-1" aria-labelledby="balanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="balanceModalLabel">Управление балансом</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="balanceTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="add-balance-tab" data-bs-toggle="tab" data-bs-target="#add-balance" type="button" role="tab" aria-controls="add-balance" aria-selected="true">
+                            Пополнение
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
+                            История операций
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3" id="balanceTabContent">
+                    <!-- Вкладка пополнения баланса -->
+                    <div class="tab-pane fade show active" id="add-balance" role="tabpanel" aria-labelledby="add-balance-tab">
+                        <form id="balance-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="student_id" id="balance-student-id">
+                            <input type="hidden" name="operation_type" value="deposit">
+                            <div class="mb-3">
+                                <label for="balance-amount" class="form-label">Сумма пополнения *</label>
+                                <input type="number" class="form-control" id="balance-amount" name="amount" 
+                                       min="0" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="balance-comment" class="form-label">Комментарий</label>
+                                <input type="text" class="form-control" id="balance-comment" name="comment">
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Вкладка истории операций -->
+                    <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="balance-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Тип операции</th>
+                                        <th>Сумма</th>
+                                        <th>Комментарий</th>
+                                        <th>Кто внес</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="balance-history-body">
+                                    <!-- История будет загружаться динамически -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="balance-history-empty" class="text-center py-4 d-none">
+                            <p class="text-muted">Нет операций по балансу</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="save-balance-btn">Пополнить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}

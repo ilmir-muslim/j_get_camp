@@ -114,11 +114,11 @@ def analytics_dashboard(request):
 @login_required
 def create_ticket(request):
     if request.method == "POST":
-        form = TicketForm(request.POST)
+        form = TicketForm(request.POST, request.FILES)  # Добавлен request.FILES
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.user = request.user
-            ticket.save()  # Сигнал автоматически отправит уведомление
+            ticket.save()
 
             messages.success(
                 request,

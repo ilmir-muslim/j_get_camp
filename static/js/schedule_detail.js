@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+
   // Вызываем при загрузке страницы
   document.addEventListener('DOMContentLoaded', function () {
     updatePaymentButtonsText();
@@ -91,6 +92,74 @@ document.addEventListener('DOMContentLoaded', function () {
     // Загружаем баланс при открытии модального окна
     updatePaymentFormBalance();
   }
+
+  // Обработчик для кнопки пополнения баланса
+  document.addEventListener('click', function (e) {
+    const addBalanceBtn = e.target.closest('.add-balance-btn');
+    if (addBalanceBtn) {
+      e.preventDefault();
+      e.stopImmediatePropagation(); // Изменено с stopPropagation()
+
+      const studentId = addBalanceBtn.dataset.studentId;
+      document.getElementById('balance-student-id').value = studentId;
+      document.getElementById('balance-amount').value = '';
+      document.getElementById('balance-comment').value = '';
+
+      // Загружаем историю баланса при открытии модального окна
+      loadBalanceHistory(studentId);
+
+      const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
+      modal.show();
+    }
+  });
+
+  // Обработчик переключения вкладок в модальном окне баланса
+  document.getElementById('balanceTabs')?.addEventListener('shown.bs.tab', function (event) {
+    const targetTab = event.target.getAttribute('data-bs-target');
+    if (targetTab === '#history') {
+      const studentId = document.getElementById('balance-student-id').value;
+      loadBalanceHistory(studentId);
+    }
+  });
+
+  // Обработчик сохранения баланса
+  document.getElementById('save-balance-btn')?.addEventListener('click', function () {
+    const formData = new FormData(document.getElementById('balance-form'));
+    const studentId = formData.get('student_id');
+
+    addBalance(studentId, formData.get('amount'), formData.get('comment'))
+      .then(data => {
+        if (data.success) {
+          // Закрываем модальное окно
+          bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();
+          showToast(data.message);
+        } else {
+          if (data.errors) {
+            const errors = JSON.parse(data.errors);
+            let errorMessage = 'Ошибка при пополнении баланса: ';
+            for (const field in errors) {
+              errorMessage += errors[field].join(', ') + ' ';
+            }
+            showToast(errorMessage, 'error');
+          } else {
+            showToast(data.error || 'Ошибка при пополнении баланса', 'error');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при пополнении баланса', 'error');
+      });
+  });
+
+  // При закрытии модального окна активируем вкладку пополнения
+  document.getElementById('balanceModal')?.addEventListener('hidden.bs.modal', function () {
+    const addBalanceTab = document.getElementById('add-balance-tab');
+    if (addBalanceTab) {
+      const tab = new bootstrap.Tab(addBalanceTab);
+      tab.show();
+    }
+  });
 
   // Функция обновления баланса в форме платежа
   function updatePaymentFormBalance() {
@@ -565,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast('Произошла ошибка при удалении ученика', 'error');
           });
       }
-    }c
+    }
   });
 
   // Функция для запроса обновленных данных с сервера
@@ -808,28 +877,6 @@ document.addEventListener('DOMContentLoaded', function () {
     loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
   });
 
-  // Для учеников
-  document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
-    row.addEventListener('click', function (e) {
-      // Игнорируем клики на ячейках посещения и кнопке удаления
-      const ignoredElements = [
-        '.attendance-cell',
-        '.remove-student-attendance',
-        '.student-payment-btn',
-        '.bi-cash' // Иконка внутри кнопки
-      ];
-      let shouldIgnore = false;
-      for (const selector of ignoredElements) {
-        if (e.target.closest(selector)) {
-          shouldIgnore = true;
-          break;
-        }
-      }
-      if (shouldIgnore) return;
-      const studentId = this.dataset.studentId;
-      loadFormIntoModal(`/students/${studentId}/quick_edit/`);
-    });
-  });
 
   // Обработчик отправки формы платежа
   document.addEventListener('submit', function (e) {
@@ -911,6 +958,66 @@ document.addEventListener('DOMContentLoaded', function () {
       updateTotalPayments();
       updateFinanceSummary();
     }
+  }
+
+  // Функция для загрузки истории баланса
+  function loadBalanceHistory(studentId) {
+    fetch(`/students/${studentId}/balance_history/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const historyBody = document.getElementById('balance-history-body');
+          const emptyMessage = document.getElementById('balance-history-empty');
+
+          // Очищаем предыдущие данные
+          historyBody.innerHTML = '';
+
+          if (data.operations.length > 0) {
+            emptyMessage.classList.add('d-none');
+
+            // Заполняем таблицу данными
+            data.operations.forEach(operation => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                            <td>${operation.date}</td>
+                            <td>${operation.operation_type}</td>
+                            <td class="${operation.operation_type === 'Пополнение' ? 'text-success' : 'text-danger'}">
+                                ${operation.amount} руб.
+                            </td>
+                            <td>${operation.comment}</td>
+                            <td>${operation.created_by}</td>
+                        `;
+              historyBody.appendChild(row);
+            });
+          } else {
+            emptyMessage.classList.remove('d-none');
+          }
+        } else {
+          console.error('Ошибка при загрузке истории баланса');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при загрузке истории баланса:', error);
+      });
+  }
+
+  // Функция пополнения баланса
+  function addBalance(studentId, amount, comment) {
+    const formData = new FormData();
+    formData.append('student_id', studentId);
+    formData.append('amount', amount);
+    formData.append('comment', comment);
+    formData.append('operation_type', 'deposit');
+
+    return fetch(`/students/${studentId}/add_balance/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+      .then(response => response.json());
   }
 
   // Функция обновления итоговой суммы платежей
@@ -1400,11 +1507,24 @@ document.addEventListener('DOMContentLoaded', function () {
       // - ячейках посещения
       // - кнопке удаления
       // - кнопке платежа
-      if (e.target.closest('.attendance-cell') ||
-        e.target.closest('.remove-student-attendance') ||
-        e.target.closest('.student-payment-btn')) {
-        return;
+      // - кнопке пополнения баланса
+      const ignoredElements = [
+        '.attendance-cell',
+        '.remove-student-attendance',
+        '.student-payment-btn',
+        '.add-balance-btn',
+        '.bi-cash', // Иконка внутри кнопки платежа
+        '.bi-wallet2' // Иконка внутри кнопки пополнения баланса
+      ];
+      let shouldIgnore = false;
+      for (const selector of ignoredElements) {
+        if (e.target.closest(selector)) {
+          shouldIgnore = true;
+          break;
+        }
       }
+      if (shouldIgnore) return;
+
       const studentId = this.dataset.studentId;
       loadFormIntoModal(`/students/${studentId}/quick_edit/`);
     });

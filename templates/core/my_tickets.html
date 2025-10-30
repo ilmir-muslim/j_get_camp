@@ -3,55 +3,192 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Мои обращения</h1>
+    <a href="{% url 'create_ticket' %}" class="btn btn-primary">Создать новое обращение</a>
 </div>
 
 <div class="card">
     <div class="card-body">
         {% if tickets %}
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Тема</th>
-                        <th>Статус</th>
-                        <th>Дата создания</th>
-                        <th>Дата обновления</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ticket in tickets %}
-                    <tr>
-                        <td>{{ ticket.subject }}</td>
-                        <td>
-                            <span class="badge 
-                                {% if ticket.status == 'open' %}bg-danger
-                                {% elif ticket.status == 'in_progress' %}bg-warning
-                                {% elif ticket.status == 'resolved' %}bg-success
-                                {% else %}bg-secondary{% endif %}">
-                                {{ ticket.get_status_display }}
-                            </span>
-                        </td>
-                        <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
-                        <td>{{ ticket.updated_at|date:"d.m.Y H:i" }}</td>
-                    </tr>
-                    {% if ticket.admin_notes %}
-                    <tr>
-                        <td colspan="4" class="bg-light">
-                            <strong>Комментарий администратора:</strong><br>
-                            {{ ticket.admin_notes }}
-                        </td>
-                    </tr>
+        <div class="tickets-list">
+            {% for ticket in tickets %}
+            <div class="card ticket-card mb-4 border border-dark">
+                <div class="card-header d-flex justify-content-between align-items-center text-white
+                    {% if ticket.status == 'open' %}bg-status-open
+                    {% elif ticket.status == 'in_progress' %}bg-status-in-progress
+                    {% elif ticket.status == 'resolved' %}bg-status-resolved
+                    {% else %}bg-status-closed{% endif %}">
+                    <div>
+                        <h5 class="card-title mb-0">{{ ticket.subject }}</h5>
+                        <small class="opacity-90">Создано: {{ ticket.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark">
+                            {{ ticket.get_status_display }}
+                        </span>
+                        <div class="mt-1">
+                            <small class="opacity-90">Обновлено: {{ ticket.updated_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Описание проблемы -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Описание проблемы:</h6>
+                        <div class="border-start border-3 border-secondary ps-3 py-2 bg-light rounded">
+                            {{ ticket.description|linebreaks }}
+                        </div>
+                    </div>
+
+                    <!-- Скриншот -->
+                    {% if ticket.screenshot %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Прикрепленный скриншот:</h6>
+                        <div class="text-center">
+                            <img src="{{ ticket.screenshot.url }}" alt="Скриншот проблемы" 
+                                 class="img-thumbnail screenshot-img" 
+                                 data-bs-toggle="modal" data-bs-target="#screenshotModal{{ ticket.id }}">
+                            <div class="mt-2">
+                                <a href="{{ ticket.screenshot.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    📎 Открыть в полном размере
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Модальное окно для просмотра скриншота -->
+                    <div class="modal fade" id="screenshotModal{{ ticket.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Скриншот: {{ ticket.subject }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <img src="{{ ticket.screenshot.url }}" alt="Скриншот проблемы" class="img-fluid rounded">
+                                </div>
+                                <div class="modal-footer">
+                                    <a href="{{ ticket.screenshot.url }}" target="_blank" class="btn btn-primary">
+                                        Открыть в новой вкладке
+                                    </a>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
+
+                    <!-- Комментарий администратора -->
+                    {% if ticket.admin_notes %}
+                    <div class="admin-response mt-3">
+                        <h6 class="text-muted mb-2">💬 Ответ администратора:</h6>
+                        <div class="border-start border-3 border-info ps-3 py-2 bg-light rounded">
+                            <div class="mb-2">{{ ticket.admin_notes|linebreaks }}</div>
+                            <small class="text-muted">Последнее обновление: {{ ticket.updated_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light border mt-3">
+                        <small class="text-muted">
+                            ⏳ Ваше обращение находится на рассмотрении. Мы свяжемся с вами в ближайшее время.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-4">
-            <p class="text-muted">Вы еще не создавали обращений.</p>
-            <a href="{% url 'create_ticket' %}" class="btn btn-primary">Создать первое обращение</a>
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-chat-square-text display-1 text-muted"></i>
+            </div>
+            <h3 class="text-muted">У вас пока нет обращений</h3>
+            <p class="text-muted mb-4">Если у вас возникли проблемы с системой, создайте первое обращение</p>
+            <a href="{% url 'create_ticket' %}" class="btn btn-primary btn-lg">Создать первое обращение</a>
         </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+.ticket-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ticket-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 1rem 1.25rem;
+}
+
+.card-header h5 {
+    font-weight: 600;
+}
+
+.card-header small {
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+
+.screenshot-img {
+    max-height: 300px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+    border: 1px solid #dee2e6;
+}
+
+.screenshot-img:hover {
+    transform: scale(1.01);
+}
+
+/* Цвета статусов в синей палитре проекта */
+
+/* Открыт - синий */
+.bg-status-open {
+    background-color: #0d6efd !important;
+}
+
+/* В работе - голубой */
+.bg-status-in-progress {
+    background-color: #0dcaf0 !important;
+}
+
+/* Решен - зеленый (сохраним для позитивного статуса) */
+.bg-status-resolved {
+    background-color: #198754 !important;
+}
+
+/* Закрыт - серый */
+.bg-status-closed {
+    background-color: #6c757d !important;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.admin-response {
+    border-radius: 6px;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.border-info {
+    border-left-color: #0dcaf0 !important;
+}
+
+.border-secondary {
+    border-left-color: #6c757d !important;
+}
+</style>
 {% endblock %}

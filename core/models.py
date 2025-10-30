@@ -44,6 +44,9 @@ class Ticket(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     admin_notes = models.TextField(blank=True, verbose_name="Заметки администратора")
+    screenshot = models.ImageField(
+        upload_to="screenshots/", blank=True, null=True, verbose_name="Скриншот"
+    )
 
     def __str__(self):
         return f"{self.subject} ({self.get_status_display()})"
@@ -52,3 +55,4 @@ class Ticket(models.Model):
         verbose_name = "Тикет"
         verbose_name_plural = "Тикеты"
         ordering = ["-created_at"]
+

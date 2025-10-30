@@ -23,7 +23,7 @@ from education.api import router as education_router
 from schedule.api import router as schedule_router
 from schedule.api import filters_router
 
-# Подключаем роутеры 
+# Подключаем роутеры
 api.add_router("", core_router) 
 api.add_router("students/", students_router)
 api.add_router("employees/", employees_router)
@@ -46,10 +46,12 @@ urlpatterns = [
     path("payroll/", include("payroll.urls")),
     path("education/", include("education.urls")),
     path("branches/", include("branches.urls")),
-
-    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
+    path(
+        "login/",
+        auth_views.LoginView.as_view(template_name="core/login.html"),
+        name="login",
+    ),
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
-
     path("api/", api.urls),
 ]
 
