@@ -20,6 +20,14 @@ def list_students(request):
                 Q(schedule__branch=user_branch) | Q(schedule__isnull=True)
             )
 
+    # Фильтрация по городу для администратора
+    elif request.user.role == "admin":
+        user_city = request.user.city
+        if user_city:
+            students = students.filter(
+                Q(schedule__branch__city=user_city) | Q(schedule__isnull=True)
+            )
+
     return students
 
 

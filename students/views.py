@@ -37,6 +37,17 @@ def student_list(request):
                 | Q(schedule__isnull=True)  # Или ученики без смены
             )
 
+    # Фильтрация по городу для администратора
+    elif request.user.role == "admin":
+        # Получаем город пользователя
+        user_city = request.user.city
+        if user_city:
+            # Фильтруем учеников по сменам, принадлежащим филиалам города пользователя
+            students = students.filter(
+                Q(schedule__branch__city=user_city)
+                | Q(schedule__isnull=True)  # Или ученики без смены
+            )
+
     schedules = Schedule.objects.all()
 
     # Для начальников показываем только смены их филиала
@@ -44,6 +55,12 @@ def student_list(request):
         user_branch = request.user.branch
         if user_branch:
             schedules = schedules.filter(branch=user_branch)
+
+    # Для администраторов показываем только смены их города
+    elif request.user.role == "admin":
+        user_city = request.user.city
+        if user_city:
+            schedules = schedules.filter(branch__city=user_city)
 
     return render(
         request,
@@ -161,16 +178,31 @@ def student_export_pdf(request):
 def student_create_ajax(request):
     try:
         data = json.loads(request.body)
-        # Фильтрация смен по филиалу для начальников
+
+        # Фильтрация смен по филиалу для начальников и по городу для администратора
         if request.user.role in ["camp_head", "lab_head"]:
             user_branch = request.user.branch
             if user_branch:
                 schedule_id = data.get("schedule")
                 if schedule_id:
-                    # Проверяем, принадлежит ли выбранная смена филиалу пользователя
                     try:
                         schedule = Schedule.objects.get(
                             id=schedule_id, branch=user_branch
+                        )
+                    except Schedule.DoesNotExist:
+                        return JsonResponse(
+                            {"success": False, "error": "Недоступная смена"}, status=400
+                        )
+
+        # Фильтрация по городу для администратора
+        elif request.user.role == "admin":
+            user_city = request.user.city
+            if user_city:
+                schedule_id = data.get("schedule")
+                if schedule_id:
+                    try:
+                        schedule = Schedule.objects.get(
+                            id=schedule_id, branch__city=user_city
                         )
                     except Schedule.DoesNotExist:
                         return JsonResponse(
@@ -191,7 +223,8 @@ def student_create_ajax(request):
                     status=400,
                 )
 
-        form = StudentForm(data)
+        # Передаем request в форму для правильной фильтрации
+        form = StudentForm(data, request=request)
         if form.is_valid():
             student = form.save()
 

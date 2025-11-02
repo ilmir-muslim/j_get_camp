@@ -45,34 +45,47 @@
             <i class="bi bi-bug"></i> Сообщить об ошибке
           </a>
 
-          <!-- Ссылка на мои обращения для всех пользователей -->
-          <a href="{% url 'my_tickets' %}" class="btn btn-outline-light me-2">
+          <!-- Ссылка на мои обращения для всех пользователей с счетчиком новых ответов -->
+          <a href="{% url 'my_tickets' %}" class="btn btn-outline-light me-2 position-relative">
             Мои обращения
-          </a>
-          <!-- Ссылка на список тикетов ТОЛЬКО для менеджера с счетчиком -->
-          {% if user.role == "manager" %} {% if open_tickets_count > 0 %}
-          <a
-            href="{% url 'ticket_list' %}"
-            class="btn btn-danger position-relative me-2"
-          >
-            Тикеты
-            <span
-              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-            >
-              {{ open_tickets_count }}
+            {% if unread_tickets_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ unread_tickets_count }}
             </span>
+            {% endif %}
           </a>
-          {% else %}
-          <a href="{% url 'ticket_list' %}" class="btn btn-outline-light me-2">
-            Тикеты
-          </a>
-          {% endif %} {% endif %}
+
+          <!-- Ссылка на список тикетов ТОЛЬКО для менеджера с счетчиком -->
+          {% if user.role == "manager" %} 
+            {% if open_tickets_count > 0 %}
+            <a
+              href="{% url 'ticket_list' %}"
+              class="btn btn-danger position-relative me-2"
+            >
+              Тикеты
+              <span
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              >
+                {{ open_tickets_count }}
+              </span>
+            </a>
+            {% else %}
+            <a href="{% url 'ticket_list' %}" class="btn btn-outline-light me-2">
+              Тикеты
+            </a>
+            {% endif %} 
+          {% endif %}
+          
           <a href="{% url 'dashboard' %}" class="btn btn-secondary"
             >На главную</a
           >
-          {% endif %} {% if user.is_authenticated and user.role in "manager" %}
+          {% endif %} 
+          
+          {% if user.is_authenticated and user.role in "manager" %}
           <a href="/admin/" class="btn btn-secondary">Админ панель</a>
-          {% endif %} {% if user.is_authenticated %}
+          {% endif %} 
+          
+          {% if user.is_authenticated %}
           <form action="{% url 'logout' %}" method="post">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-light">Выйти</button>

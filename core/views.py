@@ -133,6 +133,11 @@ def create_ticket(request):
 
 @login_required
 def my_tickets(request):
+    if request.method == "GET":
+        Ticket.objects.filter(user=request.user, has_unread_admin_response=True).update(
+            has_unread_admin_response=False
+        )
+
     tickets = Ticket.objects.filter(user=request.user).order_by("-created_at")
     return render(request, "core/my_tickets.html", {"tickets": tickets})
 

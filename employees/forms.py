@@ -25,6 +25,14 @@ class EmployeeForm(forms.ModelForm):
             self.fields["schedule"].queryset = Schedule.objects.filter(
                 branch__city=self.user.city
             )
+        elif self.user and self.user.role in ["camp_head", "lab_head"]:
+            # Для начальников лагеря/лаборатории ограничиваем выбор своим филиалом
+            self.fields["branch"].queryset = Branch.objects.filter(
+                id=self.user.branch.id
+            )
+            self.fields["schedule"].queryset = Schedule.objects.filter(
+                branch=self.user.branch
+            )
 
         self.fields["branch"].empty_label = "Выберите филиал"
         self.fields["schedule"].empty_label = "Выберите смену"
@@ -35,10 +43,11 @@ class EmployeeAttendanceForm(BaseDateForm):
     """
     Форма для создания и редактирования посещения сотрудника.
     """
+
     class Meta:
         model = EmployeeAttendance
-        fields = ['employee', 'date']
+        fields = ["employee", "date"]
         labels = {
-            'employee': 'Сотрудник',
-            'date': 'Дата посещения',
+            "employee": "Сотрудник",
+            "date": "Дата посещения",
         }

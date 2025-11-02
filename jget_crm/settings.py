@@ -78,6 +78,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.views.get_open_tickets_count",
+                "core.context_processors.unread_tickets_count",
             ],
         },
     },

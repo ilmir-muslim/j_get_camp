@@ -22,13 +22,21 @@ class StudentForm(forms.ModelForm):
                     branch=user_branch
                 )
 
+        # Фильтрация смен по городу для администратора
+        elif self.request and self.request.user.role == "admin":
+            user_city = self.request.user.city
+            if user_city:
+                self.fields["schedule"].queryset = Schedule.objects.filter(
+                    branch__city=user_city
+                )
+
     class Meta:
         model = Student
         fields = [
             "full_name",
             "phone",
             "parent_name",
-            "schedule",  # Убедитесь, что это поле есть
+            "schedule",
             "attendance_type",
             "default_price",
             "individual_price",

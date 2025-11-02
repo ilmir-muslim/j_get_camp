@@ -67,8 +67,8 @@
 #students-table th:nth-child(9),
 #students-table td:nth-child(9) {
     width: 100px;
-    min-width: 80px;
-    max-width: 120px;
+    min-width: 120px;
+    max-width: 140px;
     text-align: right;
 }
 

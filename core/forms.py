@@ -39,13 +39,34 @@ class TicketForm(forms.ModelForm):
                     "placeholder": "Подробное описание проблемы, шаги для воспроизведения и т.д.",
                 }
             ),
-            "screenshot": forms.FileInput(attrs={"class": "form-control"}),
+            "screenshot": forms.FileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",  # Ограничиваем тип файлов
+                }
+            ),
         }
         labels = {
             "subject": "Тема обращения",
             "description": "Описание проблемы",
             "screenshot": "Скриншот (опционально)",
         }
+
+    def clean_screenshot(self):
+        screenshot = self.cleaned_data.get("screenshot")
+        if screenshot:
+            # Проверяем размер файла (максимум 5MB)
+            if screenshot.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("Размер файла не должен превышать 5MB")
+
+            # Проверяем тип файла
+            valid_types = ["image/jpeg", "image/png", "image/gif", "image/bmp"]
+            if screenshot.content_type not in valid_types:
+                raise forms.ValidationError(
+                    "Поддерживаются только изображения (JPEG, PNG, GIF, BMP)"
+                )
+
+        return screenshot
 
 
 class TicketAdminForm(forms.ModelForm):
@@ -62,3 +83,11 @@ class TicketAdminForm(forms.ModelForm):
                 }
             ),
         }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if instance.admin_notes:
+            instance.has_unread_admin_response = True
+        if commit:
+            instance.save()
+        return instance

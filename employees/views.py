@@ -1,4 +1,3 @@
-# employees/views.py
 import io
 import json
 import logging
@@ -10,6 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
+from django.db.models import Q
 
 from weasyprint import HTML
 
@@ -55,6 +55,12 @@ def employees_list(request):
 
     # Добавляем дополнительные данные для формы создания
     schedules = Schedule.objects.all()
+
+    # ФИЛЬТРАЦИЯ СМЕН ДЛЯ АДМИНИСТРАТОРОВ И НАЧАЛЬНИКОВ
+    if user.role == "admin" and user.city:
+        schedules = schedules.filter(branch__city=user.city)
+    elif user.role in ["camp_head", "lab_head"]:
+        schedules = schedules.filter(branch=user.branch)
 
     return render(
         request,
@@ -147,8 +153,20 @@ def employee_attendance_list(request):
         start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)
     ]
 
-    # Получаем сотрудников
-    employees = Employee.objects.all()
+    # Получаем сотрудников с фильтрацией по роли
+    user = request.user
+    if user.role == "manager":
+        employees = Employee.objects.all()
+    elif user.role == "admin" and user.city:
+        employees = Employee.objects.filter(
+            Q(branch__city=user.city) | Q(branch__isnull=True)
+        )
+    elif user.role in ["camp_head", "lab_head"]:
+        employees = Employee.objects.filter(
+            Q(branch=user.branch) | Q(branch__isnull=True)
+        )
+    else:
+        employees = Employee.objects.all()
 
     # Получаем посещения за период
     attendances = EmployeeAttendance.objects.filter(date__range=(start_date, end_date))
@@ -335,7 +353,20 @@ def employee_create_ajax(request):
 
 @role_required(["manager", "admin"])
 def employee_export_excel(request):
-    employees = Employee.objects.all()
+    # ФИЛЬТРАЦИЯ СОТРУДНИКОВ ДЛЯ ЭКСПОРТА
+    user = request.user
+    if user.role == "manager":
+        employees = Employee.objects.all()
+    elif user.role == "admin" and user.city:
+        employees = Employee.objects.filter(
+            Q(branch__city=user.city) | Q(branch__isnull=True)
+        )
+    elif user.role in ["camp_head", "lab_head"]:
+        employees = Employee.objects.filter(
+            Q(branch=user.branch) | Q(branch__isnull=True)
+        )
+    else:
+        employees = Employee.objects.all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -371,7 +402,20 @@ def employee_export_pdf(request):
     """
     Выгрузка списка сотрудников в формате PDF.
     """
-    employees = Employee.objects.all()
+    # ФИЛЬТРАЦИЯ СОТРУДНИКОВ ДЛЯ ЭКСПОРТА
+    user = request.user
+    if user.role == "manager":
+        employees = Employee.objects.all()
+    elif user.role == "admin" and user.city:
+        employees = Employee.objects.filter(
+            Q(branch__city=user.city) | Q(branch__isnull=True)
+        )
+    elif user.role in ["camp_head", "lab_head"]:
+        employees = Employee.objects.filter(
+            Q(branch=user.branch) | Q(branch__isnull=True)
+        )
+    else:
+        employees = Employee.objects.all()
 
     html_string = render_to_string(
         "employees/employee_pdf_template.html", {"employees": employees}
