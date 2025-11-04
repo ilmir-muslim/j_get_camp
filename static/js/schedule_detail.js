@@ -93,19 +93,38 @@ document.addEventListener('DOMContentLoaded', function () {
     updatePaymentFormBalance();
   }
 
-  // Обработчик для кнопки пополнения баланса
+  // Функция для загрузки текущего баланса студента
+  function loadCurrentBalance(studentId) {
+    fetch(`/students/${studentId}/check_balance/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.balance !== undefined) {
+          // Обновляем отображение баланса в модальном окне
+          const balanceElement = document.getElementById('current-balance-amount');
+          if (balanceElement) {
+            balanceElement.textContent = data.balance.toLocaleString('ru-RU');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при загрузке баланса:', error);
+      });
+  }
+
+  // Обновите обработчик кнопки пополнения баланса
   document.addEventListener('click', function (e) {
     const addBalanceBtn = e.target.closest('.add-balance-btn');
     if (addBalanceBtn) {
       e.preventDefault();
-      e.stopImmediatePropagation(); // Изменено с stopPropagation()
+      e.stopImmediatePropagation();
 
       const studentId = addBalanceBtn.dataset.studentId;
       document.getElementById('balance-student-id').value = studentId;
       document.getElementById('balance-amount').value = '';
       document.getElementById('balance-comment').value = '';
 
-      // Загружаем историю баланса при открытии модального окна
+      // Загружаем текущий баланс и историю
+      loadCurrentBalance(studentId);
       loadBalanceHistory(studentId);
 
       const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
@@ -130,6 +149,9 @@ document.addEventListener('DOMContentLoaded', function () {
     addBalance(studentId, formData.get('amount'), formData.get('comment'))
       .then(data => {
         if (data.success) {
+          // Обновляем отображение баланса в модальном окне
+          document.getElementById('current-balance-amount').textContent = data.new_balance;
+
           // Закрываем модальное окно
           bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();
           showToast(data.message);
@@ -173,15 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
           document.getElementById('current-balance').textContent =
             `${data.balance.toLocaleString('ru-RU')} руб.`;
 
-          // Проверяем достаточно ли средств
-          if (amountInput && amountInput.value) {
-            const amount = parseFloat(amountInput.value);
-            if (amount > data.balance) {
-              document.getElementById('balance-warning').classList.remove('d-none');
-            } else {
-              document.getElementById('balance-warning').classList.add('d-none');
-            }
-          }
         }
       });
   }

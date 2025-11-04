@@ -253,7 +253,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Обработчик кнопки пополнения баланса
+    // Функция для загрузки текущего баланса студента
+    function loadCurrentBalance(studentId) {
+        fetch(`/students/${studentId}/check_balance/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.balance !== undefined) {
+                    // Обновляем отображение баланса в модальном окне
+                    const balanceElement = document.getElementById('current-balance-amount');
+                    if (balanceElement) {
+                        balanceElement.textContent = data.balance.toLocaleString('ru-RU');
+                    }
+
+                    // Также обновляем баланс в таблице (если элемент существует)
+                    const tableBalanceElement = document.getElementById(`balance-${studentId}`);
+                    if (tableBalanceElement) {
+                        tableBalanceElement.textContent = data.balance.toLocaleString('ru-RU');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке баланса:', error);
+            });
+    }
+
+    // Обновите обработчик кнопки пополнения баланса
     document.querySelectorAll('.add-balance-btn').forEach(button => {
         button.addEventListener('click', function () {
             const studentId = this.dataset.studentId;
@@ -261,7 +285,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('balance-amount').value = '';
             document.getElementById('balance-comment').value = '';
 
-            // Загружаем историю баланса при открытии модального окна
+            // Загружаем текущий баланс и историю
+            loadCurrentBalance(studentId);
             loadBalanceHistory(studentId);
 
             const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
@@ -278,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Обработчик сохранения баланса
+    // Обновите обработчик сохранения баланса для обновления отображения
     document.getElementById('save-balance-btn').addEventListener('click', function () {
         const formData = new FormData(document.getElementById('balance-form'));
         const studentId = formData.get('student_id');
@@ -294,9 +319,11 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Обновляем отображение баланса в модальном окне
+                    document.getElementById('current-balance-amount').textContent = data.new_balance;
+
                     // Обновляем отображение баланса в таблице
-                    document.getElementById(`balance-${studentId}`).textContent =
-                        `${data.new_balance}`;
+                    document.getElementById(`balance-${studentId}`).textContent = data.new_balance;
 
                     // Закрываем модальное окно
                     bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();

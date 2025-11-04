@@ -540,6 +540,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <!-- Добавлен блок с текущим балансом -->
+                <div class="alert alert-info mb-3">
+                    <strong>Текущий баланс: <span id="current-balance-amount">0</span> руб.</strong>
+                </div>
+
                 <ul class="nav nav-tabs" id="balanceTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="add-balance-tab" data-bs-toggle="tab" data-bs-target="#add-balance" type="button" role="tab" aria-controls="add-balance" aria-selected="true">

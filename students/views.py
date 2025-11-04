@@ -377,34 +377,20 @@ def get_balance_history(request, student_id):
 @require_GET
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def check_balance(request, student_id):
-    """Проверить достаточно ли средств на балансе для платежа"""
+    """Проверить баланс студента (без блокировки платежа)"""
     student = get_object_or_404(Student, id=student_id)
     amount = request.GET.get("amount", 0)
-    schedule_id = request.GET.get("schedule_id")
 
     try:
         amount = Decimal(amount)
 
-        # Проверяем, есть ли существующий платеж для этой смены
-        existing_payment = None
-        if schedule_id:
-            existing_payment = Payment.objects.filter(
-                student_id=student_id, schedule_id=schedule_id
-            ).first()
-
-        # При редактировании платежа мы сначала "возвращаем" старую сумму
-        if existing_payment:
-            available_balance = student.current_balance + existing_payment.amount
-        else:
-            available_balance = student.current_balance
-
-        can_pay = available_balance >= amount
+        can_pay = True
 
         return JsonResponse(
             {
-                "can_pay": can_pay,
+                "can_pay": True,
                 "balance": float(student.current_balance),
-                "required": float(amount),
+                "required": 0,
             }
         )
     except (ValueError, TypeError):

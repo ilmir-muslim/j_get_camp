@@ -77,7 +77,6 @@ class Student(models.Model):
     def __str__(self):
         return self.full_name
 
-
     def get_total_paid_for_schedule(self, schedule):
         total = self.payments.filter(schedule=schedule).aggregate(Sum("amount"))[
             "amount__sum"
@@ -85,7 +84,7 @@ class Student(models.Model):
         return total or 0
 
     def can_make_payment(self, amount):
-        return self.current_balance >= amount
+        return True
 
 
 class Payment(models.Model):
