@@ -104,7 +104,15 @@
                                 </td>
                                 <td class="student-column">{{ employee.full_name }}</td>
                                 <td>{{ employee.get_position_display }}</td>
-                                <td class="salary-amount">{{ employee_salaries|get_item:employee.id|default:0|floatformat:2 }}</td>  
+                                <td class="salary-amount">
+                                    {% with paid_info=employee_paid_salaries|get_item:employee.id %}
+                                        {% if paid_info.is_paid %}
+                                            <span class="text-success">выплачено {{ paid_info.amount|floatformat:2 }}</span>
+                                        {% else %}
+                                            {{ paid_info.amount|floatformat:2 }}
+                                        {% endif %}
+                                    {% endwith %}
+                                </td> 
                                 <td>{{ employee.rate_per_day }}</td>
                                 <td class="text-center">{{ employee_attendance_counts|get_item:employee.id }}</td>
                                 {% for date in dates %}

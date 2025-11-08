@@ -255,14 +255,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const salaryCell = row.querySelector('td:nth-child(5)'); // Начисленная зарплата
 
     if (rateCell && salaryCell) {
-      const rate = parseFloat(rateCell.textContent) || 0;
+      const rate = parseFloat(normalizeDecimal(rateCell.textContent)) || 0;
       const salary = rate * attendanceCount;
-      salaryCell.textContent = salary.toFixed(2);
 
-      // Обновляем data-атрибут для кнопки выплаты
-      const payBtn = row.querySelector('.pay-salary-btn');
-      if (payBtn) {
-        payBtn.dataset.salaryAmount = salary.toFixed(2);
+      // Проверяем, не выплачена ли уже зарплата
+      const isAlreadyPaid = salaryCell.querySelector('.text-success');
+
+      if (!isAlreadyPaid) {
+        salaryCell.textContent = salary.toFixed(2);
+
+        // Обновляем data-атрибут для кнопки выплаты
+        const payBtn = row.querySelector('.pay-salary-btn');
+        if (payBtn) {
+          payBtn.dataset.salaryAmount = salary.toFixed(2);
+        }
       }
     }
   }
@@ -1678,8 +1684,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const employeeId = payBtn.dataset.employeeId;
       const employeeName = payBtn.dataset.employeeName;
-      const salaryAmount = payBtn.dataset.salaryAmount;
+      let salaryAmount = payBtn.dataset.salaryAmount;
       const scheduleId = payBtn.dataset.scheduleId;
+
+      // Нормализуем сумму (заменяем запятую на точку если нужно)
+      salaryAmount = salaryAmount.replace(',', '.');
 
       if (confirm(`Выплатить зарплату сотруднику ${employeeName} в размере ${salaryAmount} руб.?`)) {
         paySalary(employeeId, employeeName, salaryAmount, scheduleId);
@@ -1687,12 +1696,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  // Функция для нормализации числовых значений (запятая -> точка)
+  function normalizeDecimal(value) {
+    if (typeof value === 'string') {
+      return value.replace(',', '.');
+    }
+    return value;
+  }
   // Функция для выплаты зарплаты
   function paySalary(employeeId, employeeName, salaryAmount, scheduleId) {
+    // Преобразуем сумму зарплаты в формат с точкой для десятичных
+    const normalizedAmount = salaryAmount.replace(',', '.');
+
     const formData = new FormData();
     formData.append('action', 'pay_salary');
     formData.append('employee_id', employeeId);
-    formData.append('amount', salaryAmount);
+    formData.append('amount', normalizedAmount);
 
     fetch(`/schedule/${scheduleId}/`, {
       method: 'POST',
@@ -1706,6 +1725,9 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => {
         if (data.success) {
           showToast('Зарплата успешно выплачена', 'success');
+
+          // Обновляем отображение зарплаты
+          updateSalaryDisplay(employeeId, salaryAmount);
 
           // Обновляем таблицу расходов
           updateExpensesTable(data.expense);
@@ -1724,6 +1746,24 @@ document.addEventListener('DOMContentLoaded', function () {
         showToast('Произошла ошибка при выплате зарплаты', 'error');
       });
   }
+
+
+  // Функция для обновления отображения зарплаты после выплаты
+  function updateSalaryDisplay(employeeId, amount) {
+    const salaryCell = document.querySelector(`#employee-${employeeId} .salary-amount`);
+    if (salaryCell) {
+      // Форматируем сумму с запятой для отображения
+      const formattedAmount = parseFloat(amount).toFixed(2).replace('.', ',');
+      salaryCell.innerHTML = `<span class="text-success">выплачено ${formattedAmount}</span>`;
+    }
+
+    // Скрываем кнопку выплаты
+    const payBtn = document.querySelector(`.pay-salary-btn[data-employee-id="${employeeId}"]`);
+    if (payBtn) {
+      payBtn.style.display = 'none';
+    }
+  }
+
 
   // Функция для обновления таблицы расходов после выплаты зарплаты
   function updateExpensesTable(expenseData) {

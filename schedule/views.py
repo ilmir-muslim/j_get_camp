@@ -1,4 +1,5 @@
 # schedule/views.py
+from decimal import Decimal, InvalidOperation
 import io
 import json
 import openpyxl
@@ -18,7 +19,7 @@ from branches.models import Branch
 from core.utils import role_required
 from employees.models import Employee, EmployeeAttendance
 from payroll.forms import PaymentForm
-from payroll.models import Expense, ExpenseCategory
+from payroll.models import Expense, ExpenseCategory, Salary
 from students.models import Balance, Payment, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
@@ -212,8 +213,11 @@ def schedule_detail(request, pk):
 
     employee_attendance = {}
     employee_attendance_counts = {}
-    # РАСЧЕТ ЗАРПЛАТ СОТРУДНИКОВ
+
+    # РАСЧЕТ ЗАРПЛАТ СОТРУДНИКОВ И ИНФОРМАЦИЯ О ВЫПЛАТАХ
     employee_salaries = {}
+    employee_paid_salaries = {}
+
     for employee in employees:
         total = 0
         for date in dates:
@@ -237,7 +241,29 @@ def schedule_detail(request, pk):
 
         # Рассчитываем зарплату: ставка * количество посещений
         rate = employee.rate_per_day or 0
-        employee_salaries[employee.id] = rate * total
+        calculated_salary = rate * total
+
+        # Проверяем, есть ли уже выплаченная зарплата для этого сотрудника и смены
+        paid_salary = Salary.objects.filter(
+            employee=employee, schedule=schedule, is_paid=True
+        ).first()
+
+        if paid_salary:
+            # Если зарплата уже выплачена, используем сумму из выплаты
+            employee_salaries[employee.id] = paid_salary.total_payment
+            employee_paid_salaries[employee.id] = {
+                "amount": paid_salary.total_payment,
+                "is_paid": True,
+                "salary_id": paid_salary.id,
+            }
+        else:
+            # Иначе используем рассчитанную сумму
+            employee_salaries[employee.id] = calculated_salary
+            employee_paid_salaries[employee.id] = {
+                "amount": calculated_salary,
+                "is_paid": False,
+                "salary_id": None,
+            }
 
     student_total_payments = {}
     for student in students:
@@ -344,9 +370,19 @@ def schedule_detail(request, pk):
                         employee=employee, date__in=dates, present=True
                     ).count()
 
-                    # Обновляем расчет зарплаты
-                    rate = employee.rate_per_day or 0
-                    employee_salaries[employee.id] = rate * total_attendance
+                    # Обновляем расчет зарплаты только если зарплата еще не выплачена
+                    paid_salary = Salary.objects.filter(
+                        employee=employee, schedule=schedule, is_paid=True
+                    ).first()
+
+                    if not paid_salary:
+                        rate = employee.rate_per_day or 0
+                        employee_salaries[employee.id] = rate * total_attendance
+                        employee_paid_salaries[employee.id] = {
+                            "amount": rate * total_attendance,
+                            "is_paid": False,
+                            "salary_id": None,
+                        }
 
                     return JsonResponse(
                         {
@@ -381,7 +417,7 @@ def schedule_detail(request, pk):
                     employee.save()
 
                     # Создание записей посещаемости для каждого дня смены
-                    employee_attendance = {}
+                    employee_attendance_data = {}
                     total_attendance = 0
                     for date in dates:
                         att, created = EmployeeAttendance.objects.get_or_create(
@@ -397,11 +433,17 @@ def schedule_detail(request, pk):
                             status = "excused"
                         else:
                             status = "absent"
-                        employee_attendance[key] = status
+                        employee_attendance_data[key] = status
 
                     # Рассчитываем зарплату для нового сотрудника
                     rate = employee.rate_per_day or 0
-                    employee_salaries[employee.id] = rate * total_attendance
+                    calculated_salary = rate * total_attendance
+                    employee_salaries[employee.id] = calculated_salary
+                    employee_paid_salaries[employee.id] = {
+                        "amount": calculated_salary,
+                        "is_paid": False,
+                        "salary_id": None,
+                    }
 
                     if is_ajax:
                         return JsonResponse(
@@ -412,11 +454,9 @@ def schedule_detail(request, pk):
                                     "full_name": employee.full_name,
                                     "position": employee.get_position_display(),
                                     "rate_per_day": employee.rate_per_day,
-                                    "attendance": employee_attendance,
+                                    "attendance": employee_attendance_data,
                                     "total_attendance": total_attendance,
-                                    "calculated_salary": float(
-                                        employee_salaries[employee.id]
-                                    ),
+                                    "calculated_salary": float(calculated_salary),
                                 },
                             }
                         )
@@ -484,13 +524,53 @@ def schedule_detail(request, pk):
                 if employee_id and amount:
                     employee = get_object_or_404(Employee, id=employee_id)
 
+                    # Нормализуем десятичный разделитель
+                    if amount:
+                        amount = amount.replace(",", ".")
+
+                    try:
+                        amount_decimal = Decimal(amount)
+                    except (InvalidOperation, ValueError):
+                        if is_ajax:
+                            return JsonResponse(
+                                {"success": False, "error": "Неверный формат суммы"}
+                            )
+                        return redirect("schedule_detail", pk=pk)
+
+                    # Создаем или обновляем запись о зарплате в таблице payroll_salary
+                    salary, created = Salary.objects.get_or_create(
+                        employee=employee,
+                        schedule=schedule,
+                        defaults={
+                            "payment_type": "fixed",
+                            "daily_rate": employee.rate_per_day,
+                            "percent_rate": 0,
+                            "total_payment": amount_decimal,
+                            "is_paid": True,
+                        },
+                    )
+
+                    if not created:
+                        # Если запись уже существует, обновляем ее
+                        salary.total_payment = amount_decimal
+                        salary.is_paid = True
+                        salary.save()
+
                     # Создаем запись расхода для выплаты зарплаты
                     expense = Expense.objects.create(
                         schedule=schedule,
                         category=salary_category,
                         comment=f"Выплата зарплаты сотруднику {employee.full_name}",
-                        amount=amount,
+                        amount=amount_decimal,
                     )
+
+                    # Обновляем информацию о выплаченной зарплате
+                    employee_paid_salaries[employee.id] = {
+                        "amount": amount_decimal,
+                        "is_paid": True,
+                        "salary_id": salary.id,
+                    }
+                    employee_salaries[employee.id] = amount_decimal
 
                     if is_ajax:
                         return JsonResponse(
@@ -501,6 +581,11 @@ def schedule_detail(request, pk):
                                     "category_display": expense.category.name,
                                     "comment": expense.comment,
                                     "amount": float(expense.amount),
+                                },
+                                "salary": {
+                                    "id": salary.id,
+                                    "is_paid": salary.is_paid,
+                                    "total_payment": float(salary.total_payment),
                                 },
                             }
                         )
@@ -528,14 +613,15 @@ def schedule_detail(request, pk):
         "expenses": expenses,
         "employee_attendance": employee_attendance,
         "employee_attendance_counts": employee_attendance_counts,
-        "employee_salaries": employee_salaries, 
+        "employee_salaries": employee_salaries,
+        "employee_paid_salaries": employee_paid_salaries,
         "total_expenses_sum": total_expenses_sum,
         "student_total_payments": student_total_payments,
         "total_payments": total_payments,
         "from_schedule_list": from_schedule_list,
         "available_branches": available_branches,
         "available_schedules": available_schedules,
-        "salary_category_id": salary_category.id, 
+        "salary_category_id": salary_category.id,
     }
     return render(request, "schedule/schedule_detail.html", context)
 

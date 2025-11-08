@@ -283,3 +283,8 @@
 .collapsible-content.collapsed>* {
   opacity: 0;
 }
+
+.salary-amount .text-success {
+  font-weight: 600;
+  font-style: italic;
+}
