@@ -524,6 +524,38 @@ def schedule_detail(request, pk):
                 if employee_id and amount:
                     employee = get_object_or_404(Employee, id=employee_id)
 
+                    # ПРОВЕРКА: не была ли уже выплачена зарплата за эту смену
+                    existing_salary = Salary.objects.filter(
+                        employee=employee, schedule=schedule, is_paid=True
+                    ).first()
+
+                    if existing_salary:
+                        if is_ajax:
+                            return JsonResponse(
+                                {
+                                    "success": False,
+                                    "error": f"Зарплата для сотрудника {employee.full_name} уже выплачена за эту смену",
+                                }
+                            )
+                        return redirect("schedule_detail", pk=pk)
+
+                    # ПРОВЕРКА: нет ли уже расхода на выплату зарплаты этому сотруднику за эту смену
+                    existing_expense = Expense.objects.filter(
+                        schedule=schedule,
+                        category=salary_category,
+                        comment=f"Выплата зарплаты сотруднику {employee.full_name}",
+                    ).first()
+
+                    if existing_expense:
+                        if is_ajax:
+                            return JsonResponse(
+                                {
+                                    "success": False,
+                                    "error": f"Расход на выплату зарплаты сотруднику {employee.full_name} уже существует",
+                                }
+                            )
+                        return redirect("schedule_detail", pk=pk)
+
                     # Нормализуем десятичный разделитель
                     if amount:
                         amount = amount.replace(",", ".")
@@ -537,24 +569,16 @@ def schedule_detail(request, pk):
                             )
                         return redirect("schedule_detail", pk=pk)
 
-                    # Создаем или обновляем запись о зарплате в таблице payroll_salary
-                    salary, created = Salary.objects.get_or_create(
+                    # Создаем запись о зарплате в таблице payroll_salary
+                    salary = Salary.objects.create(
                         employee=employee,
                         schedule=schedule,
-                        defaults={
-                            "payment_type": "fixed",
-                            "daily_rate": employee.rate_per_day,
-                            "percent_rate": 0,
-                            "total_payment": amount_decimal,
-                            "is_paid": True,
-                        },
+                        payment_type="fixed",
+                        daily_rate=employee.rate_per_day,
+                        percent_rate=0,
+                        total_payment=amount_decimal,
+                        is_paid=True,
                     )
-
-                    if not created:
-                        # Если запись уже существует, обновляем ее
-                        salary.total_payment = amount_decimal
-                        salary.is_paid = True
-                        salary.save()
 
                     # Создаем запись расхода для выплаты зарплаты
                     expense = Expense.objects.create(
@@ -571,6 +595,12 @@ def schedule_detail(request, pk):
                         "salary_id": salary.id,
                     }
                     employee_salaries[employee.id] = amount_decimal
+
+                    # Обновляем переменную expenses для контекста
+                    expenses = Expense.objects.filter(schedule=schedule)
+                    total_expenses_sum = (
+                        expenses.aggregate(total=Sum("amount"))["total"] or 0
+                    )
 
                     if is_ajax:
                         return JsonResponse(

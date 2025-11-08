@@ -17,8 +17,9 @@ class ExpenseCategory(models.Model):
 
 
 class Expense(models.Model):
-
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='expenses')
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, related_name="expenses"
+    )
     category = models.ForeignKey(
         ExpenseCategory, on_delete=models.CASCADE, verbose_name="Категория"
     )
@@ -26,7 +27,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.get_category_display()} — {self.amount}"
+        return f"{self.category.name} — {self.amount}"
 
 
 class Salary(models.Model):

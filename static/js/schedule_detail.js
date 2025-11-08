@@ -1417,19 +1417,17 @@ document.addEventListener('DOMContentLoaded', function () {
             if (expenseRow) {
               // Обновляем существующую строку
               expenseRow.innerHTML = `
-              <td>${expenseRow.querySelector('td:first-child').textContent}</td>
-              <td>
-                  <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                          data-expense-id="${data.expense.id}">
-                      <i class="bi bi-trash text-danger fs-5"></i>
-                  </button>
-              </td>
-              <td>${data.expense.category_display}</td>
-              <td>${data.expense.comment || ''}</td>
-              <td>${data.expense.amount} </td>
-            `;
-              updateFinanceSummary(); // Добавляем обновление сальдо
-              document.dispatchEvent(new CustomEvent('expenseUpdated'));
+                    <td>${expenseRow.querySelector('td:first-child').textContent}</td>
+                    <td>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
+                                data-expense-id="${data.expense.id}">
+                            <i class="bi bi-trash text-danger fs-5"></i>
+                        </button>
+                    </td>
+                    <td>${data.expense.category_display}</td>  <!-- Исправлено: используем category_display -->
+                    <td>${data.expense.comment || ''}</td>
+                    <td>${data.expense.amount}</td>
+                  `;
             } else {
               // Добавляем новую строку
               const emptyRow = tableBody.querySelector('tr td[colspan]');
@@ -1441,26 +1439,24 @@ document.addEventListener('DOMContentLoaded', function () {
               newRow.dataset.expenseId = data.expense.id;
               newRow.className = 'clickable-expense-row';
               newRow.innerHTML = `
-              <td></td> <!-- Пустая ячейка для номера -->
-              <td>
-                  <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                          data-expense-id="${data.expense.id}">
-                      <i class="bi bi-trash text-danger fs-5"></i>
-                  </button>
-              </td>
-              <td>${data.expense.category_display}</td>
-              <td>${data.expense.comment || ''}</td>
-              <td>${data.expense.amount} </td>
-            `;
+                    <td></td>
+                    <td>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
+                                data-expense-id="${data.expense.id}">
+                            <i class="bi bi-trash text-danger fs-5"></i>
+                        </button>
+                    </td>
+                    <td>${data.expense.category_display}</td>  <!-- Исправлено: используем category_display -->
+                    <td>${data.expense.comment || ''}</td>
+                    <td>${data.expense.amount}</td>
+                  `;
               tableBody.appendChild(newRow);
-
-              // Обновляем нумерацию после добавления
-              updateExpenseRowNumbers();
             }
 
             showToast('Расход успешно сохранен', 'success');
             updateFinanceSummary();
             updateExpensesTotal();
+            updateExpenseRowNumbers();
             document.dispatchEvent(new Event('expenseUpdated'));
           } else {
             // Обновляем содержимое модального окна с ошибками
@@ -1726,7 +1722,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data.success) {
           showToast('Зарплата успешно выплачена', 'success');
 
-          // Обновляем отображение зарплаты
+          // Обновляем отображение зарплаты и скрываем кнопку
           updateSalaryDisplay(employeeId, salaryAmount);
 
           // Обновляем таблицу расходов
@@ -1764,6 +1760,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Функция для инициализации состояния кнопок выплаты при загрузке страницы
+  function initializePaymentButtons() {
+    document.querySelectorAll('.pay-salary-btn').forEach(btn => {
+      const employeeId = btn.dataset.employeeId;
+      const salaryCell = document.querySelector(`#employee-${employeeId} .salary-amount`);
+
+      // Если в ячейке зарплаты уже есть текст "выплачено", скрываем кнопку
+      if (salaryCell && salaryCell.querySelector('.text-success')) {
+        btn.style.display = 'none';
+      }
+    });
+  }
 
   // Функция для обновления таблицы расходов после выплаты зарплаты
   function updateExpensesTable(expenseData) {
@@ -1785,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <i class="bi bi-trash text-danger fs-5"></i>
         </button>
       </td>
-      <td>${expenseData.category_display}</td>
+      <td>${expenseData.category_display || expenseData.category}</td>  <!-- Поддержка обоих форматов -->
       <td>${expenseData.comment || ''}</td>
       <td>${expenseData.amount}</td>
     `;
@@ -1793,8 +1801,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Обновляем нумерацию
     updateExpenseRowNumbers();
-  }
 
+    // Обновляем общую сумму расходов
+    updateExpensesTotal();
+  }
+  
   const employeeCardHeader = document.querySelector('.card .card-header.bg-primary.text-white');
   if (employeeCardHeader && employeeCardHeader.textContent.includes('Сотрудники группы')) {
     const employeeCard = employeeCardHeader.closest('.card');
@@ -1844,6 +1855,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Инициализация при загрузке страницы
   document.addEventListener('DOMContentLoaded', function () {
+    initializePaymentButtons();
     // Обновляем финансовую сводку
     updateFinanceSummary();
 

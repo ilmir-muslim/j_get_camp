@@ -84,24 +84,30 @@
                             <tr id="employee-{{ employee.id }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
-                                        <!-- Кнопка выплаты зарплаты -->
-                                    <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
-                                            data-employee-id="{{ employee.id }}"
-                                            data-employee-name="{{ employee.full_name }}"
-                                            data-salary-amount="{{ employee_salaries|get_item:employee.id|default:0 }}"
-                                            data-schedule-id="{{ schedule.id }}"
-                                            data-bs-toggle="tooltip" title="Выплатить зарплату">
-                                        <i class="bi bi-cash-coin text-success fs-5"></i>
-                                    </button>
+                                    <!-- Кнопка выплаты зарплаты - показываем только если зарплата не выплачена -->
+                                    {% with paid_info=employee_paid_salaries|get_item:employee.id %}
+                                        {% if not paid_info.is_paid %}
+                                            <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
+                                                    data-employee-id="{{ employee.id }}"
+                                                    data-employee-name="{{ employee.full_name }}"
+                                                    data-salary-amount="{{ paid_info.amount|floatformat:2 }}"
+                                                    data-schedule-id="{{ schedule.id }}"
+                                                    data-bs-toggle="tooltip" title="Выплатить зарплату">
+                                                <i class="bi bi-cash-coin text-success fs-5"></i>
+                                            </button>
+                                        {% endif %}
+                                    {% endwith %}
+                                    
                                     <!-- Кнопка удаления -->
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                             data-employee-id="{{ employee.id }}"
                                             data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
                                             data-schedule-id="{{ schedule.id }}"
                                             data-bs-toggle="tooltip" title="Удалить">
-                                    <i class="bi bi-trash text-danger fs-5"></i>
+                                        <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
+
                                 <td class="student-column">{{ employee.full_name }}</td>
                                 <td>{{ employee.get_position_display }}</td>
                                 <td class="salary-amount">
@@ -112,7 +118,7 @@
                                             {{ paid_info.amount|floatformat:2 }}
                                         {% endif %}
                                     {% endwith %}
-                                </td> 
+                                </td>
                                 <td>{{ employee.rate_per_day }}</td>
                                 <td class="text-center">{{ employee_attendance_counts|get_item:employee.id }}</td>
                                 {% for date in dates %}
@@ -384,7 +390,7 @@
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
-                                <td>{{ expense.get_category_display }}</td>
+                                <td>{{ expense.category.name }}</td>
                                 <td>{{ expense.comment }}</td>
                                 <td>{{ expense.amount }}</td>
                             </tr>
