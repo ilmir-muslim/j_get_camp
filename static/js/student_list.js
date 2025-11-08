@@ -66,7 +66,6 @@ function loadStudentEditForm(studentId) {
         });
 }
 
-
 // Функция удаления ученика
 function deleteStudent(studentId) {
     if (confirm('Вы уверены, что хотите удалить этого ученика?')) {
@@ -97,47 +96,6 @@ function deleteStudent(studentId) {
                 showToast('Произошла ошибка при удалении ученика', 'error');
             });
     }
-}
-
-// Функция для загрузки истории баланса
-function loadBalanceHistory(studentId) {
-    fetch(`/students/${studentId}/balance_history/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const historyBody = document.getElementById('balance-history-body');
-                const emptyMessage = document.getElementById('balance-history-empty');
-
-                // Очищаем предыдущие данные
-                historyBody.innerHTML = '';
-
-                if (data.operations.length > 0) {
-                    emptyMessage.classList.add('d-none');
-
-                    // Заполняем таблицу данными
-                    data.operations.forEach(operation => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${operation.date}</td>
-                            <td>${operation.operation_type}</td>
-                            <td class="${operation.operation_type === 'Пополнение' ? 'text-success' : 'text-danger'}">
-                                ${operation.amount} руб.
-                            </td>
-                            <td>${operation.comment}</td>
-                            <td>${operation.created_by}</td>
-                        `;
-                        historyBody.appendChild(row);
-                    });
-                } else {
-                    emptyMessage.classList.remove('d-none');
-                }
-            } else {
-                console.error('Ошибка при загрузке истории баланса');
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка при загрузке истории баланса:', error);
-        });
 }
 
 // Обработчики событий
@@ -180,11 +138,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                 data-student-id="${data.student.id}">
                             <i class="bi bi-trash text-danger"></i>
                         </button>
-                        <button class="btn p-0 border-0 bg-transparent icon-btn add-balance-btn"
-                                data-student-id="${data.student.id}"
-                                data-bs-toggle="tooltip" title="Пополнить баланс">
-                            <i class="bi bi-wallet2 text-success"></i>
-                        </button>
                     </td>
                     <td>${data.student.full_name}</td>
                     <td class="balance-cell" id="balance-${data.student.id}">0</td>
@@ -207,19 +160,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     newRow.querySelector('.delete-student-btn').addEventListener('click', function () {
                         deleteStudent(data.student.id);
-                    });
-
-                    newRow.querySelector('.add-balance-btn').addEventListener('click', function () {
-                        const studentId = this.dataset.studentId;
-                        document.getElementById('balance-student-id').value = studentId;
-                        document.getElementById('balance-amount').value = '';
-                        document.getElementById('balance-comment').value = '';
-
-                        // Загружаем историю баланса при открытии модального окна
-                        loadBalanceHistory(studentId);
-
-                        const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
-                        modal.show();
                     });
 
                     // Очищаем форму
@@ -253,101 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Функция для загрузки текущего баланса студента
-    function loadCurrentBalance(studentId) {
-        fetch(`/students/${studentId}/check_balance/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.balance !== undefined) {
-                    // Обновляем отображение баланса в модальном окне
-                    const balanceElement = document.getElementById('current-balance-amount');
-                    if (balanceElement) {
-                        balanceElement.textContent = data.balance.toLocaleString('ru-RU');
-                    }
-
-                    // Также обновляем баланс в таблице (если элемент существует)
-                    const tableBalanceElement = document.getElementById(`balance-${studentId}`);
-                    if (tableBalanceElement) {
-                        tableBalanceElement.textContent = data.balance.toLocaleString('ru-RU');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка при загрузке баланса:', error);
-            });
-    }
-
-    // Обновите обработчик кнопки пополнения баланса
-    document.querySelectorAll('.add-balance-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const studentId = this.dataset.studentId;
-            document.getElementById('balance-student-id').value = studentId;
-            document.getElementById('balance-amount').value = '';
-            document.getElementById('balance-comment').value = '';
-
-            // Загружаем текущий баланс и историю
-            loadCurrentBalance(studentId);
-            loadBalanceHistory(studentId);
-
-            const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
-            modal.show();
-        });
-    });
-
-    // Обработчик переключения вкладок
-    document.getElementById('balanceTabs').addEventListener('shown.bs.tab', function (event) {
-        const targetTab = event.target.getAttribute('data-bs-target');
-        if (targetTab === '#history') {
-            const studentId = document.getElementById('balance-student-id').value;
-            loadBalanceHistory(studentId);
-        }
-    });
-
-    // Обновите обработчик сохранения баланса для обновления отображения
-    document.getElementById('save-balance-btn').addEventListener('click', function () {
-        const formData = new FormData(document.getElementById('balance-form'));
-        const studentId = formData.get('student_id');
-
-        fetch(`/students/${studentId}/add_balance/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': CSRF_TOKEN,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Обновляем отображение баланса в модальном окне
-                    document.getElementById('current-balance-amount').textContent = data.new_balance;
-
-                    // Обновляем отображение баланса в таблице
-                    document.getElementById(`balance-${studentId}`).textContent = data.new_balance;
-
-                    // Закрываем модальное окно
-                    bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();
-
-                    showToast(data.message);
-                } else {
-                    if (data.errors) {
-                        const errors = JSON.parse(data.errors);
-                        let errorMessage = 'Ошибка при пополнении баланса: ';
-                        for (const field in errors) {
-                            errorMessage += errors[field].join(', ') + ' ';
-                        }
-                        showToast(errorMessage, 'error');
-                    } else {
-                        showToast(data.error || 'Ошибка при пополнении баланса', 'error');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Произошла ошибка при пополнении баланса', 'error');
-            });
-    });
-
+    // Поиск учеников
     document.getElementById('student-search').addEventListener('input', function (e) {
         const searchText = e.target.value.toLowerCase();
         const rows = document.querySelectorAll('#students-table tbody tr');
@@ -362,11 +208,5 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.style.display = 'none';
             }
         });
-    });
-
-    // При закрытии модального окна активируем вкладку пополнения
-    document.getElementById('balanceModal').addEventListener('hidden.bs.modal', function () {
-        const addBalanceTab = new bootstrap.Tab(document.getElementById('add-balance-tab'));
-        addBalanceTab.show();
     });
 });

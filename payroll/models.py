@@ -3,27 +3,35 @@ from django.db import models
 from employees.models import Employee
 from schedule.models import Schedule
 
+
+class ExpenseCategory(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Название категории")
+    description = models.TextField(blank=True, verbose_name="Описание")
+
+    class Meta:
+        verbose_name = "Категория расходов"
+        verbose_name_plural = "Категории расходов"
+
+    def __str__(self):
+        return self.name
+
+
 class Expense(models.Model):
-    CATEGORY_CHOICES = [
-        ('food', 'Питание'),
-        ('materials', 'Материалы'),
-        ('transport', 'Транспорт'),
-        ('rent', 'Аренда'),
-        ('other', 'Прочее'),
-    ]
 
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='expenses')
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    category = models.ForeignKey(
+        ExpenseCategory, on_delete=models.CASCADE, verbose_name="Категория"
+    )
     comment = models.CharField(max_length=255, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.get_category_display()} — {self.amount} руб."
+        return f"{self.get_category_display()} — {self.amount}"
 
 
 class Salary(models.Model):
     """
-    Зарплата сотрудника за смену с учётом типа выплаты.
+    Зарплата сотрудника за смену с учётом типа выплаты.                                                                                              
     """
 
     PAYMENT_TYPE_CHOICES = [

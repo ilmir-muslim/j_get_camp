@@ -1,7 +1,7 @@
 from django import forms
 
 from students.models import Payment
-from .models import Expense, Salary
+from .models import Expense, ExpenseCategory, Salary
 
 
 class SalaryForm(forms.ModelForm):
@@ -70,7 +70,9 @@ class ExpenseForm(forms.ModelForm):
             self.fields["schedule"].queryset = self.fields["schedule"].queryset.filter(
                 branch__city=self.user.city
             )
-        # Для менеджеров оставляем все смены
+
+        # Загружаем все категории расходов
+        self.fields["category"].queryset = ExpenseCategory.objects.all()
 
 
 class PaymentForm(forms.ModelForm):

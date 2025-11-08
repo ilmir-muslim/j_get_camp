@@ -1,6 +1,29 @@
 document.addEventListener('DOMContentLoaded', function () {
   colorizePaymentCells();
   setupStudentSearch();
+
+  // Функция для добавления ученика обратно в datalist
+  function addStudentToDatalist(studentId, studentName) {
+    const datalist = document.getElementById('students-datalist');
+
+    // Проверяем, нет ли уже такого ученика в списке
+    const existingOption = datalist.querySelector(`option[data-id="${studentId}"]`);
+    if (!existingOption) {
+      const option = document.createElement('option');
+      option.value = studentName;
+      option.setAttribute('data-id', studentId);
+      datalist.appendChild(option);
+
+      // Сортируем опции по алфавиту
+      const options = Array.from(datalist.options);
+      options.sort((a, b) => a.value.localeCompare(b.value));
+
+      // Очищаем и перезаполняем datalist
+      datalist.innerHTML = '';
+      options.forEach(opt => datalist.appendChild(opt));
+    }
+  }
+
   // Функция для загрузки формы в модальное окно
   function loadFormIntoModal(url) {
     fetch(url)
@@ -26,12 +49,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
   }
-
-
-  // Вызываем при загрузке страницы
-  document.addEventListener('DOMContentLoaded', function () {
-    updatePaymentButtonsText();
-  });
 
   // Функция для загрузки формы расхода
   function loadExpenseForm(url) {
@@ -93,96 +110,6 @@ document.addEventListener('DOMContentLoaded', function () {
     updatePaymentFormBalance();
   }
 
-  // Функция для загрузки текущего баланса студента
-  function loadCurrentBalance(studentId) {
-    fetch(`/students/${studentId}/check_balance/`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.balance !== undefined) {
-          // Обновляем отображение баланса в модальном окне
-          const balanceElement = document.getElementById('current-balance-amount');
-          if (balanceElement) {
-            balanceElement.textContent = data.balance.toLocaleString('ru-RU');
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Ошибка при загрузке баланса:', error);
-      });
-  }
-
-  // Обновите обработчик кнопки пополнения баланса
-  document.addEventListener('click', function (e) {
-    const addBalanceBtn = e.target.closest('.add-balance-btn');
-    if (addBalanceBtn) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-
-      const studentId = addBalanceBtn.dataset.studentId;
-      document.getElementById('balance-student-id').value = studentId;
-      document.getElementById('balance-amount').value = '';
-      document.getElementById('balance-comment').value = '';
-
-      // Загружаем текущий баланс и историю
-      loadCurrentBalance(studentId);
-      loadBalanceHistory(studentId);
-
-      const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
-      modal.show();
-    }
-  });
-
-  // Обработчик переключения вкладок в модальном окне баланса
-  document.getElementById('balanceTabs')?.addEventListener('shown.bs.tab', function (event) {
-    const targetTab = event.target.getAttribute('data-bs-target');
-    if (targetTab === '#history') {
-      const studentId = document.getElementById('balance-student-id').value;
-      loadBalanceHistory(studentId);
-    }
-  });
-
-  // Обработчик сохранения баланса
-  document.getElementById('save-balance-btn')?.addEventListener('click', function () {
-    const formData = new FormData(document.getElementById('balance-form'));
-    const studentId = formData.get('student_id');
-
-    addBalance(studentId, formData.get('amount'), formData.get('comment'))
-      .then(data => {
-        if (data.success) {
-          // Обновляем отображение баланса в модальном окне
-          document.getElementById('current-balance-amount').textContent = data.new_balance;
-
-          // Закрываем модальное окно
-          bootstrap.Modal.getInstance(document.getElementById('balanceModal')).hide();
-          showToast(data.message);
-        } else {
-          if (data.errors) {
-            const errors = JSON.parse(data.errors);
-            let errorMessage = 'Ошибка при пополнении баланса: ';
-            for (const field in errors) {
-              errorMessage += errors[field].join(', ') + ' ';
-            }
-            showToast(errorMessage, 'error');
-          } else {
-            showToast(data.error || 'Ошибка при пополнении баланса', 'error');
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при пополнении баланса', 'error');
-      });
-  });
-
-  // При закрытии модального окна активируем вкладку пополнения
-  document.getElementById('balanceModal')?.addEventListener('hidden.bs.modal', function () {
-    const addBalanceTab = document.getElementById('add-balance-tab');
-    if (addBalanceTab) {
-      const tab = new bootstrap.Tab(addBalanceTab);
-      tab.show();
-    }
-  });
-
   // Функция обновления баланса в форме платежа
   function updatePaymentFormBalance() {
     const studentId = document.querySelector('#payment-form input[name="student"]').value;
@@ -193,8 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => {
         if (data.balance !== undefined) {
           document.getElementById('current-balance').textContent =
-            `${data.balance.toLocaleString('ru-RU')} руб.`;
-
+            `${data.balance.toLocaleString('ru-RU')}`;
         }
       });
   }
@@ -230,7 +156,6 @@ document.addEventListener('DOMContentLoaded', function () {
         historyContainer.innerHTML = '<div class="text-center text-muted">Ошибка загрузки истории</div>';
       });
   }
-
 
   // Функция для обновления нумерации строк в таблице сотрудников
   function updateEmployeeRowNumbers() {
@@ -282,10 +207,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.employee_id) {
               const row = document.getElementById(`employee-${data.employee_id}`);
               if (row) {
-                const countCell = row.querySelector('td:nth-child(6)');
+                const countCell = row.querySelector('td:nth-child(7)'); // Обновлен индекс из-за нового столбца
                 if (countCell) {
                   countCell.textContent = data.total_attendance;
                 }
+
+                // Обновляем зарплату сотрудника
+                updateEmployeeSalary(data.employee_id, data.total_attendance);
               }
             }
             updateAttendanceTotals(); // Обновляем итоги
@@ -318,6 +246,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Функция обновления зарплаты сотрудника
+  function updateEmployeeSalary(employeeId, attendanceCount) {
+    const row = document.getElementById(`employee-${employeeId}`);
+    if (!row) return;
+
+    const rateCell = row.querySelector('td:nth-child(6)'); // Ставка
+    const salaryCell = row.querySelector('td:nth-child(5)'); // Начисленная зарплата
+
+    if (rateCell && salaryCell) {
+      const rate = parseFloat(rateCell.textContent) || 0;
+      const salary = rate * attendanceCount;
+      salaryCell.textContent = salary.toFixed(2);
+
+      // Обновляем data-атрибут для кнопки выплаты
+      const payBtn = row.querySelector('.pay-salary-btn');
+      if (payBtn) {
+        payBtn.dataset.salaryAmount = salary.toFixed(2);
+      }
+    }
+  }
+
   // Обновление внешнего вида ячейки
   function updateAttendanceCell(cell, data) {
     cell.classList.remove('bg-success', 'bg-warning', 'bg-danger');
@@ -344,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (!row) return;
 
-    const countCell = row.querySelector('td:nth-child(7)');
+    const countCell = row.querySelector('td:nth-child(8)'); // Обновлен индекс
     if (countCell) {
       countCell.textContent = count;
       row.dataset.visits = count;
@@ -467,6 +416,14 @@ document.addEventListener('DOMContentLoaded', function () {
             newRow.innerHTML = `
                     <td>${rowNumber}</td>
                     <td>
+                        <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
+                                data-employee-id="${data.employee.id}"
+                                data-employee-name="${data.employee.full_name}"
+                                data-salary-amount="${data.employee.calculated_salary || 0}"
+                                data-schedule-id="${SCHEDULE_ID}"
+                                data-bs-toggle="tooltip" title="Выплатить зарплату">
+                            <i class="bi bi-cash-coin text-success fs-5"></i>
+                        </button>
                         <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                 data-employee-id="${data.employee.id}"
                                 data-employee-display="${data.employee.full_name} (${data.employee.position})" 
@@ -476,6 +433,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </td>
                     <td>${data.employee.full_name}</td>
                     <td>${data.employee.position}</td>
+                    <td class="salary-amount">${data.employee.calculated_salary || 0}</td>
                     <td>${data.employee.rate_per_day}</td>
                     <td class="text-center">${data.employee.total_attendance}</td>
                     ${attendanceCells}
@@ -506,7 +464,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.target.id === 'student-form-attendance') {
       e.preventDefault();
       const form = e.target;
-      const studentId = document.getElementById('student-id-input').value; // Получаем ID из скрытого поля
+      const studentId = document.getElementById('student-id-input').value;
+      const studentName = document.getElementById('student-search-input').value;
 
       if (!studentId) {
         showToast('Выберите ученика из списка', 'error');
@@ -515,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const formData = new FormData();
       formData.append('action', 'add_student');
-      formData.append('student', studentId); // Используем правильное имя поля
+      formData.append('student', studentId);
 
       fetch(`/schedule/${SCHEDULE_ID}/`, {
         method: 'POST',
@@ -528,7 +487,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            showToast('Ученик успешно добавлен в смену', 'success');
+            // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST ПРИ УСПЕШНОМ ДОБАВЛЕНИИ
+            removeStudentFromDatalist(studentId);
+
+            showToast('Ученик успешно добавлен в смену. Списано ' + data.student.price + ' руб.', 'success');
             updateAttendanceTotals();
             setTimeout(() => {
               window.location.reload();
@@ -543,6 +505,41 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
   });
+
+  // Функция для удаления ученика из datalist
+  function removeStudentFromDatalist(studentId) {
+    const datalist = document.getElementById('students-datalist');
+    const optionToRemove = datalist.querySelector(`option[data-id="${studentId}"]`);
+    if (optionToRemove) {
+      optionToRemove.remove();
+    }
+  }
+
+  // Функция для добавления сотрудника обратно в select
+  function addEmployeeToSelect(employeeId, employeeDisplay) {
+    const select = document.querySelector('#employee-form select[name="employee"]');
+
+    // Проверяем, нет ли уже такого сотрудника в списке
+    const existingOption = select.querySelector(`option[value="${employeeId}"]`);
+    if (!existingOption) {
+      const option = document.createElement('option');
+      option.value = employeeId;
+      option.textContent = employeeDisplay;
+      select.appendChild(option);
+
+      // Сортируем опции по алфавиту
+      const options = Array.from(select.options);
+      options.sort((a, b) => a.textContent.localeCompare(b.textContent));
+
+      // Очищаем и перезаполняем select
+      select.innerHTML = '<option value="">Выберите сотрудника</option>';
+      options.forEach(opt => {
+        if (opt.value) { // Пропускаем пустую опцию
+          select.appendChild(opt);
+        }
+      });
+    }
+  }
 
   // Удаление сотрудника
   document.addEventListener('click', function (e) {
@@ -593,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function () {
               }
 
               showToast('Сотрудник удален из смены', 'success');
+              addEmployeeToSelect(employeeId, employeeDisplay);
               updateAttendanceTotals(); // Обновляем итоги
             }
           })
@@ -634,10 +632,13 @@ document.addEventListener('DOMContentLoaded', function () {
               updateFinanceSummary();
               updateAttendanceTotals();
 
+              // ДОБАВЛЯЕМ УЧЕНИКА ОБРАТНО В DATALIST
+              addStudentToDatalist(studentId, studentName);
+
               // Запрашиваем обновленные данные с сервера
               fetchUpdatedScheduleData(scheduleId);
 
-              showToast('Ученик удален из смены', 'success');
+              showToast('Ученик удален из смены. Списание отменено.', 'success');
             } else {
               showToast(data.error || 'Ошибка при удалении ученика', 'error');
             }
@@ -881,15 +882,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = e.target.closest('tr[id^="employee-"]');
     if (!row) return;
 
-    // Игнорируем клики на кнопке удаления и ячейках посещаемости
-    if (e.target.closest('.remove-employee') || e.target.closest('.attendance-cell')) {
+    // Игнорируем клики на кнопке удаления, ячейках посещаемости и кнопке выплаты зарплаты
+    if (e.target.closest('.remove-employee') || e.target.closest('.attendance-cell') || e.target.closest('.pay-salary-btn')) {
       return;
     }
 
     const employeeId = row.id.split('-')[1];
     loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
   });
-
 
   // Обработчик отправки формы платежа
   document.addEventListener('submit', function (e) {
@@ -951,11 +951,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateStudentPaymentData(studentId, scheduleId, paymentAmount, totalPaid) {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (row) {
-      // Обновляем ячейку с платежами
+      // Обновляем ячейку с платежами (4-я ячейка)
       const paymentCell = row.cells[3];
       paymentCell.textContent = totalPaid > 0 ? totalPaid.toFixed(2) : '—';
 
-      // Обновляем цвет ячейки
+      // Обновляем цвет ячейки платежей
       const costCell = row.cells[2];
       const cost = parseFloat(costCell.textContent) || 0;
 
@@ -967,70 +967,25 @@ document.addEventListener('DOMContentLoaded', function () {
         paymentCell.classList.remove('payment-success');
       }
 
+      // ОБНОВЛЯЕМ БАЛАНС (5-я ячейка) - теперь баланс = платежи - стоимость
+      const balanceCell = row.cells[4];
+      const newBalance = totalPaid - cost;
+      balanceCell.textContent = newBalance.toFixed(2);
+
+      // Обновляем классы для цвета баланса
+      balanceCell.className = '';
+      if (newBalance > 0) {
+        balanceCell.classList.add('text-success', 'balance-positive');
+      } else if (newBalance < 0) {
+        balanceCell.classList.add('text-danger', 'balance-negative');
+      } else {
+        balanceCell.classList.add('text-muted', 'balance-zero');
+      }
+
       // Обновляем итоговую сумму платежей
       updateTotalPayments();
       updateFinanceSummary();
     }
-  }
-
-  // Функция для загрузки истории баланса
-  function loadBalanceHistory(studentId) {
-    fetch(`/students/${studentId}/balance_history/`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const historyBody = document.getElementById('balance-history-body');
-          const emptyMessage = document.getElementById('balance-history-empty');
-
-          // Очищаем предыдущие данные
-          historyBody.innerHTML = '';
-
-          if (data.operations.length > 0) {
-            emptyMessage.classList.add('d-none');
-
-            // Заполняем таблицу данными
-            data.operations.forEach(operation => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                            <td>${operation.date}</td>
-                            <td>${operation.operation_type}</td>
-                            <td class="${operation.operation_type === 'Пополнение' ? 'text-success' : 'text-danger'}">
-                                ${operation.amount} руб.
-                            </td>
-                            <td>${operation.comment}</td>
-                            <td>${operation.created_by}</td>
-                        `;
-              historyBody.appendChild(row);
-            });
-          } else {
-            emptyMessage.classList.remove('d-none');
-          }
-        } else {
-          console.error('Ошибка при загрузке истории баланса');
-        }
-      })
-      .catch(error => {
-        console.error('Ошибка при загрузке истории баланса:', error);
-      });
-  }
-
-  // Функция пополнения баланса
-  function addBalance(studentId, amount, comment) {
-    const formData = new FormData();
-    formData.append('student_id', studentId);
-    formData.append('amount', amount);
-    formData.append('comment', comment);
-    formData.append('operation_type', 'deposit');
-
-    return fetch(`/students/${studentId}/add_balance/`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-CSRFToken': CSRF_TOKEN,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-    })
-      .then(response => response.json());
   }
 
   // Функция обновления итоговой суммы платежей
@@ -1095,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (row) {
       row.cells[2].textContent = employee.full_name;
       row.cells[3].textContent = employee.position_display;
-      row.cells[4].textContent = `${employee.rate_per_day}`;
+      row.cells[5].textContent = `${employee.rate_per_day}`; // Обновлен индекс
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-employee');
@@ -1465,7 +1420,7 @@ document.addEventListener('DOMContentLoaded', function () {
               </td>
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
-              <td>${data.expense.amount} руб.</td>
+              <td>${data.expense.amount} </td>
             `;
               updateFinanceSummary(); // Добавляем обновление сальдо
               document.dispatchEvent(new CustomEvent('expenseUpdated'));
@@ -1489,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
               </td>
               <td>${data.expense.category_display}</td>
               <td>${data.expense.comment || ''}</td>
-              <td>${data.expense.amount} руб.</td>
+              <td>${data.expense.amount} </td>
             `;
               tableBody.appendChild(newRow);
 
@@ -1520,14 +1475,11 @@ document.addEventListener('DOMContentLoaded', function () {
       // - ячейках посещения
       // - кнопке удаления
       // - кнопке платежа
-      // - кнопке пополнения баланса
       const ignoredElements = [
         '.attendance-cell',
         '.remove-student-attendance',
         '.student-payment-btn',
-        '.add-balance-btn',
-        '.bi-cash', // Иконка внутри кнопки платежа
-        '.bi-wallet2' // Иконка внутри кнопки пополнения баланса
+        '.bi-cash' // Иконка внутри кнопки платежа
       ];
       let shouldIgnore = false;
       for (const selector of ignoredElements) {
@@ -1556,7 +1508,6 @@ document.addEventListener('DOMContentLoaded', function () {
       loadPaymentForm(`/students/${studentId}/payments/add_payment_form/?schedule_id=${scheduleId}`);
     }
   });
-
 
   // Инициализируем баланс при загрузке формы
   document.addEventListener('DOMContentLoaded', function () {
@@ -1645,6 +1596,19 @@ document.addEventListener('DOMContentLoaded', function () {
         paymentCell.classList.add('payment-danger');
         paymentCell.classList.remove('payment-success');
       }
+
+      // ОБНОВЛЯЕМ БАЛАНС АВТОМАТИЧЕСКИ
+      const balanceCell = row.cells[4];
+      const balance = payment - cost;
+      balanceCell.textContent = balance.toFixed(2);
+      balanceCell.className = '';
+      if (balance > 0) {
+        balanceCell.classList.add('text-success', 'balance-positive');
+      } else if (balance < 0) {
+        balanceCell.classList.add('text-danger', 'balance-negative');
+      } else {
+        balanceCell.classList.add('text-muted', 'balance-zero');
+      }
     });
   }
 
@@ -1666,38 +1630,37 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Функция для обработки выбора ученика из datalist
-function setupStudentSearch() {
+  function setupStudentSearch() {
     const searchInput = document.getElementById('student-search-input');
     const idInput = document.getElementById('student-id-input');
     const datalist = document.getElementById('students-datalist');
-    
+
     if (!searchInput || !idInput) return;
 
     // Обработчик изменения значения в поле поиска
-    searchInput.addEventListener('input', function() {
-        const value = this.value.trim();
-        const option = Array.from(datalist.options).find(opt => opt.value === value);
-        
-        if (option) {
-            idInput.value = option.getAttribute('data-id');
-        } else {
-            idInput.value = '';
-        }
+    searchInput.addEventListener('input', function () {
+      const value = this.value.trim();
+      const option = Array.from(datalist.options).find(opt => opt.value === value);
+
+      if (option) {
+        idInput.value = option.getAttribute('data-id');
+      } else {
+        idInput.value = '';
+      }
     });
 
     // Обработчик отправки формы - проверяем, что ученик выбран
     const form = document.getElementById('student-form-attendance');
     if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!idInput.value) {
-                e.preventDefault();
-                showToast('Пожалуйста, выберите ученика из списка', 'error');
-                searchInput.focus();
-            }
-        });
+      form.addEventListener('submit', function (e) {
+        if (!idInput.value) {
+          e.preventDefault();
+          showToast('Пожалуйста, выберите ученика из списка', 'error');
+          searchInput.focus();
+        }
+      });
     }
-}
-
+  }
 
   // Обновляем доступный баланс при изменении суммы
   document.addEventListener('input', function (e) {
@@ -1705,6 +1668,130 @@ function setupStudentSearch() {
       updatePaymentFormBalance();
     }
   });
+
+  // Обработчик для кнопки выплаты зарплаты
+  document.addEventListener('click', function (e) {
+    const payBtn = e.target.closest('.pay-salary-btn');
+    if (payBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const employeeId = payBtn.dataset.employeeId;
+      const employeeName = payBtn.dataset.employeeName;
+      const salaryAmount = payBtn.dataset.salaryAmount;
+      const scheduleId = payBtn.dataset.scheduleId;
+
+      if (confirm(`Выплатить зарплату сотруднику ${employeeName} в размере ${salaryAmount} руб.?`)) {
+        paySalary(employeeId, employeeName, salaryAmount, scheduleId);
+      }
+    }
+  });
+
+  // Функция для выплаты зарплаты
+  function paySalary(employeeId, employeeName, salaryAmount, scheduleId) {
+    const formData = new FormData();
+    formData.append('action', 'pay_salary');
+    formData.append('employee_id', employeeId);
+    formData.append('amount', salaryAmount);
+
+    fetch(`/schedule/${scheduleId}/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Зарплата успешно выплачена', 'success');
+
+          // Обновляем таблицу расходов
+          updateExpensesTable(data.expense);
+
+          // Обновляем финансовую сводку
+          updateFinanceSummary();
+
+          // Обновляем итоги расходов
+          updateExpensesTotal();
+        } else {
+          showToast(data.error || 'Ошибка при выплате зарплаты', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при выплате зарплаты', 'error');
+      });
+  }
+
+  // Функция для обновления таблицы расходов после выплаты зарплаты
+  function updateExpensesTable(expenseData) {
+    const tableBody = document.getElementById('expenses-table-body');
+    const emptyRow = tableBody.querySelector('tr td[colspan]');
+
+    if (emptyRow) {
+      emptyRow.closest('tr').remove();
+    }
+
+    const newRow = document.createElement('tr');
+    newRow.dataset.expenseId = expenseData.id;
+    newRow.className = 'clickable-expense-row';
+    newRow.innerHTML = `
+      <td></td>
+      <td>
+        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
+                data-expense-id="${expenseData.id}">
+          <i class="bi bi-trash text-danger fs-5"></i>
+        </button>
+      </td>
+      <td>${expenseData.category_display}</td>
+      <td>${expenseData.comment || ''}</td>
+      <td>${expenseData.amount}</td>
+    `;
+    tableBody.appendChild(newRow);
+
+    // Обновляем нумерацию
+    updateExpenseRowNumbers();
+  }
+
+  const employeeCardHeader = document.querySelector('.card .card-header.bg-primary.text-white');
+  if (employeeCardHeader && employeeCardHeader.textContent.includes('Сотрудники группы')) {
+    const employeeCard = employeeCardHeader.closest('.card');
+    const employeeCardBody = employeeCard.querySelector('.card-body');
+
+    // Добавляем класс для анимации
+    employeeCardBody.classList.add('collapsible-content');
+
+    // Добавляем курсор pointer и стрелку для индикации кликабельности
+    employeeCardHeader.style.cursor = 'pointer';
+    employeeCardHeader.innerHTML = '<h3 class="d-flex justify-content-between align-items-center m-0">Сотрудники группы <span class="collapse-arrow">▼</span></h3>';
+
+    employeeCardHeader.addEventListener('click', function () {
+      if (employeeCardBody.classList.contains('collapsed')) {
+        // Разворачиваем
+        employeeCardBody.style.maxHeight = employeeCardBody.scrollHeight + 'px';
+        employeeCardBody.classList.remove('collapsed');
+        employeeCardHeader.querySelector('.collapse-arrow').textContent = '▼';
+
+        // Удаляем max-height после анимации для корректного отображения при изменении размера
+        setTimeout(() => {
+          if (!employeeCardBody.classList.contains('collapsed')) {
+            employeeCardBody.style.maxHeight = 'none';
+          }
+        }, 300);
+      } else {
+        // Сворачиваем
+        employeeCardBody.style.maxHeight = employeeCardBody.scrollHeight + 'px';
+        // Даем браузеру время применить max-height
+        requestAnimationFrame(() => {
+          employeeCardBody.style.maxHeight = '0';
+          employeeCardBody.classList.add('collapsed');
+          employeeCardHeader.querySelector('.collapse-arrow').textContent = '▶';
+        });
+      }
+    });
+  }
 
   updateExpensesTotal();
   // Обновляем финансовую сводку

@@ -69,6 +69,37 @@ class Student(models.Model):
             or 0
         )
         return deposits - payments + corrections
+    
+    def charge_for_schedule(self, schedule, user):
+        """Списание стоимости смены с баланса ученика"""
+        amount = self.individual_price or self.default_price
+        
+        # Создаем операцию списания
+        Balance.objects.create(
+            student=self,
+            amount=amount,
+            operation_type="payment",
+            comment=f"Списание за смену {schedule.name}",
+            created_by=user
+        )
+        
+        return amount
+    
+    def refund_schedule_charge(self, schedule, user):
+        """Возврат списания при удалении из смены"""
+        amount = self.individual_price or self.default_price
+        
+        # Создаем операцию возврата
+        Balance.objects.create(
+            student=self,
+            amount=amount,
+            operation_type="deposit",
+            comment=f"Возврат списания за смену {schedule.name}",
+            created_by=user
+        )
+        
+        return amount
+
 
     class Meta:
         verbose_name = "Ученик"

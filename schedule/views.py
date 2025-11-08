@@ -18,7 +18,7 @@ from branches.models import Branch
 from core.utils import role_required
 from employees.models import Employee, EmployeeAttendance
 from payroll.forms import PaymentForm
-from payroll.models import Expense
+from payroll.models import Expense, ExpenseCategory
 from students.models import Balance, Payment, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
@@ -212,6 +212,8 @@ def schedule_detail(request, pk):
 
     employee_attendance = {}
     employee_attendance_counts = {}
+    # РАСЧЕТ ЗАРПЛАТ СОТРУДНИКОВ
+    employee_salaries = {}
     for employee in employees:
         total = 0
         for date in dates:
@@ -230,7 +232,12 @@ def schedule_detail(request, pk):
             else:
                 status = "absent"
             employee_attendance[key] = status
+
         employee_attendance_counts[employee.id] = total
+
+        # Рассчитываем зарплату: ставка * количество посещений
+        rate = employee.rate_per_day or 0
+        employee_salaries[employee.id] = rate * total
 
     student_total_payments = {}
     for student in students:
@@ -250,6 +257,12 @@ def schedule_detail(request, pk):
 
     expenses = Expense.objects.filter(schedule=schedule)
     total_expenses_sum = expenses.aggregate(total=Sum("amount"))["total"] or 0
+
+    # Получаем категорию для выплаты зарплаты
+    salary_category, created = ExpenseCategory.objects.get_or_create(
+        name="выплата зарплаты",
+        defaults={"description": "Выплата заработной платы сотрудникам"},
+    )
 
     if request.method == "POST":
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -331,6 +344,10 @@ def schedule_detail(request, pk):
                         employee=employee, date__in=dates, present=True
                     ).count()
 
+                    # Обновляем расчет зарплаты
+                    rate = employee.rate_per_day or 0
+                    employee_salaries[employee.id] = rate * total_attendance
+
                     return JsonResponse(
                         {
                             "status": "success",
@@ -382,6 +399,10 @@ def schedule_detail(request, pk):
                             status = "absent"
                         employee_attendance[key] = status
 
+                    # Рассчитываем зарплату для нового сотрудника
+                    rate = employee.rate_per_day or 0
+                    employee_salaries[employee.id] = rate * total_attendance
+
                     if is_ajax:
                         return JsonResponse(
                             {
@@ -393,6 +414,9 @@ def schedule_detail(request, pk):
                                     "rate_per_day": employee.rate_per_day,
                                     "attendance": employee_attendance,
                                     "total_attendance": total_attendance,
+                                    "calculated_salary": float(
+                                        employee_salaries[employee.id]
+                                    ),
                                 },
                             }
                         )
@@ -414,6 +438,16 @@ def schedule_detail(request, pk):
                     student.schedule = schedule
                     student.save()
 
+                    # СПИСЫВАЕМ СТОИМОСТЬ СМЕНЫ С БАЛАНСА
+                    amount = student.individual_price or student.default_price
+                    Balance.objects.create(
+                        student=student,
+                        amount=amount,
+                        operation_type="payment",
+                        comment=f"Списание за смену {schedule.name}",
+                        created_by=request.user,
+                    )
+
                     # Создание записей посещаемости
                     for date in dates:
                         Attendance.objects.get_or_create(
@@ -432,6 +466,7 @@ def schedule_detail(request, pk):
                                     "attendance_type": student.get_attendance_type_display(),
                                     "price": student.individual_price
                                     or student.default_price,
+                                    "current_balance": float(student.current_balance),
                                 },
                             }
                         )
@@ -440,6 +475,36 @@ def schedule_detail(request, pk):
                 if is_ajax:
                     return JsonResponse({"success": False, "error": "Ученик не выбран"})
                 return redirect("schedule_detail", pk=pk)
+
+            # ОБРАБОТКА ВЫПЛАТЫ ЗАРПЛАТЫ
+            elif action == "pay_salary":
+                employee_id = request.POST.get("employee_id")
+                amount = request.POST.get("amount")
+
+                if employee_id and amount:
+                    employee = get_object_or_404(Employee, id=employee_id)
+
+                    # Создаем запись расхода для выплаты зарплаты
+                    expense = Expense.objects.create(
+                        schedule=schedule,
+                        category=salary_category,
+                        comment=f"Выплата зарплаты сотруднику {employee.full_name}",
+                        amount=amount,
+                    )
+
+                    if is_ajax:
+                        return JsonResponse(
+                            {
+                                "success": True,
+                                "expense": {
+                                    "id": expense.id,
+                                    "category_display": expense.category.name,
+                                    "comment": expense.comment,
+                                    "amount": float(expense.amount),
+                                },
+                            }
+                        )
+                    return redirect("schedule_detail", pk=pk)
 
     if user.role == "admin" and user.city:
         available_branches = Branch.objects.filter(city=user.city)
@@ -463,12 +528,14 @@ def schedule_detail(request, pk):
         "expenses": expenses,
         "employee_attendance": employee_attendance,
         "employee_attendance_counts": employee_attendance_counts,
+        "employee_salaries": employee_salaries, 
         "total_expenses_sum": total_expenses_sum,
         "student_total_payments": student_total_payments,
         "total_payments": total_payments,
         "from_schedule_list": from_schedule_list,
         "available_branches": available_branches,
         "available_schedules": available_schedules,
+        "salary_category_id": salary_category.id, 
     }
     return render(request, "schedule/schedule_detail.html", context)
 
@@ -492,7 +559,6 @@ def remove_student_from_schedule(request, schedule_id, student_id):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     student = get_object_or_404(Student, pk=student_id)
 
-
     # Получаем все платежи студента за эту смену
     payments = Payment.objects.filter(student=student, schedule=schedule)
 
@@ -501,14 +567,16 @@ def remove_student_from_schedule(request, schedule_id, student_id):
 
     # Если есть платежи, создаем операцию возврата на баланс
     if total_amount > 0:
-        # Создаем запись о возврате средств
         Balance.objects.create(
             student=student,
             amount=total_amount,
-            operation_type="deposit",  # Используем тип 'deposit' для возврата средств
+            operation_type="deposit",
             comment=f'Возврат средств при удалении из смены "{schedule.name}"',
             created_by=request.user,
         )
+
+    # Возвращаем списание за смену
+    student.refund_schedule_charge(schedule, request.user)
 
     # Удаляем все платежи студента за эту смену
     payments.delete()
@@ -518,7 +586,9 @@ def remove_student_from_schedule(request, schedule_id, student_id):
         student.schedule = None
         student.save()
 
-    return JsonResponse({"success": True})
+    return JsonResponse(
+        {"success": True, "student_id": student.id, "student_name": student.full_name}
+    )
 
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
@@ -863,6 +933,7 @@ def export_schedule_attendance_pdf(request, pk):
             "attendance_type": student.get_attendance_type_display(),
             "price": student.individual_price or student.default_price,
             "total_paid": total_paid,
+            "current_balance": student.current_balance,  # Добавляем баланс
             "attendance_count": attendance_count,
             "daily_attendance": [],
         }

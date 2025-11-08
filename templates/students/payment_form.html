@@ -11,13 +11,17 @@
   <div class="alert alert-info">
     <div class="d-flex justify-content-between">
       <span
-        ><strong>Баланс:</strong>
+        ><strong>Текущий баланс:</strong>
         <span id="current-balance">{{ student.current_balance }}</span>
-        руб.</span
+        </span
+      >
+      <span
+        ><strong>Стоимость смены:</strong>
+        {{ student.individual_price|default:student.default_price }} </span
       >
       <span
         ><strong>Оплачено за смену:</strong>
-        <span id="total-paid">{{ total_paid }}</span> руб.</span
+        <span id="total-paid">{{ total_paid }}</span> </span
       >
     </div>
   </div>
@@ -74,7 +78,7 @@
             required
             step="0.01"
             min="0"
-            oninput="updateBalanceWarning(this.value, {{ student.current_balance }})"
+            oninput="updateFutureBalance(this.value)"
           />
         </div>
 
@@ -114,3 +118,30 @@
     </div>
   </div>
 </div>
+
+<script>
+function updateFutureBalance(amount) {
+    const currentBalance = parseFloat({{ student.current_balance }});
+    const futureBalance = currentBalance + parseFloat(amount);
+    document.getElementById('future-balance').textContent = futureBalance.toFixed(2);
+    
+    // Подсветка в зависимости от будущего баланса
+    const element = document.getElementById('future-balance');
+    element.className = '';
+    if (futureBalance > 0) {
+        element.classList.add('text-success');
+    } else if (futureBalance < 0) {
+        element.classList.add('text-danger');
+    }
+}
+
+// Обновлять при изменении суммы платежа
+document.getElementById('amount').addEventListener('input', function(e) {
+    updateFutureBalance(e.target.value);
+});
+
+// Инициализировать при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    updateFutureBalance(document.getElementById('amount').value);
+});
+</script>

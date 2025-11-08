@@ -226,3 +226,60 @@
   color: #721c24 !important;
   font-weight: bold;
 }
+
+.balance-positive {
+  color: #198754 !important;
+  font-weight: 600;
+}
+
+.balance-negative {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
+.balance-zero {
+  color: #6c757d !important;
+}
+
+.card-header.bg-primary.text-white {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.3s ease;
+}
+
+.card-header.bg-primary.text-white:hover {
+  background-color: #3a8bc8 !important;
+}
+
+.collapse-arrow {
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+}
+
+.card-header.bg-primary.text-white:hover .collapse-arrow {
+  transform: scale(1.1);
+}
+
+/* Анимация для контента */
+.collapsible-content {
+  max-height: 5000px;
+  /* Большое значение для развернутого состояния */
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+  opacity: 1;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease-in, opacity 0.2s ease-in;
+}
+
+/* Плавное появление содержимого */
+.card-body>* {
+  transition: opacity 0.2s ease-out;
+}
+
+.collapsible-content.collapsed>* {
+  opacity: 0;
+}
