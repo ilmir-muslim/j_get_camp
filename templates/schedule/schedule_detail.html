@@ -148,7 +148,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="{{ 6|add:dates|length|add:1 }}" class="text-center"> 
+                                <td colspan="{{ 7|add:dates|length|add:1 }}" class="text-center"> 
                                     Нет сотрудников
                                 </td>
                             </tr>
@@ -156,7 +156,7 @@
                     </tbody>
                     <tfoot>
                         <tr id="employee-total-row">
-                            <td colspan="6" class="text-end"><strong>Итого</strong></td>
+                            <td colspan="7" class="text-end"><strong>Итого</strong></td>
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
                                     <div class="attendance-cell-wrapper">

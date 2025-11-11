@@ -1793,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <i class="bi bi-trash text-danger fs-5"></i>
         </button>
       </td>
-      <td>${expenseData.category_display || expenseData.category}</td>  <!-- Поддержка обоих форматов -->
+      <td>${expenseData.category_display || expenseData.category || ''}</td> <!-- Поддержка обоих форматов -->
       <td>${expenseData.comment || ''}</td>
       <td>${expenseData.amount}</td>
     `;

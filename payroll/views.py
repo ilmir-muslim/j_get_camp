@@ -200,7 +200,7 @@ def expense_create(request):
                         "expense": {
                             "id": expense.id,
                             "schedule_name": f"{expense.schedule.name} ({expense.schedule.start_date} - {expense.schedule.end_date})",
-                            "category_display": expense.get_category_display(),
+                            "category_display": expense.category.name,
                             "comment": expense.comment,
                             "amount": expense.amount,
                         },
@@ -243,7 +243,7 @@ def expense_edit(request, pk):
                         "expense": {
                             "id": expense.id,
                             "schedule_name": f"{expense.schedule.name} ({expense.schedule.start_date} - {expense.schedule.end_date})",
-                            "category_display": expense.get_category_display(),
+                            "category_display": expense.category.name,
                             "comment": expense.comment,
                             "amount": expense.amount,
                         },
