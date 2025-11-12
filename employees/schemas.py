@@ -6,19 +6,24 @@ from datetime import date
 from datetime import date as date_type
 
 
+class PositionSchema(Schema):
+    id: int
+    name: str
+    responsibilities: str
+
+
 class EmployeeSchema(Schema):
     id: int
     full_name: str
-    position: str
+    position_id: int
     branch_id: Optional[int] = None
     schedule_id: Optional[int] = None
     rate_per_day: float
-    
 
 
 class EmployeeCreateSchema(Schema):
     full_name: str
-    position: str
+    position_id: int
     branch_id: Optional[int] = None
     schedule_id: Optional[int] = None
     rate_per_day: float
@@ -28,7 +33,7 @@ class EmployeeAttendanceSchema(Schema):
     id: int
     employee_id: int
     date: date
-    present: bool 
+    present: bool
     comment: Optional[str] = None
 
 

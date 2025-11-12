@@ -276,13 +276,12 @@ def toggle_employee_attendance(request):
     return JsonResponse({"status": "error"}, status=400)
 
 
+@role_required(["manager", "admin"])
 def employee_quick_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
 
     if request.method == "POST":
-        form = EmployeeForm(
-            request.POST, instance=employee, user=request.user
-        )  # Передаем пользователя
+        form = EmployeeForm(request.POST, instance=employee, user=request.user)
         if form.is_valid():
             employee = form.save()
             return JsonResponse(
@@ -291,7 +290,8 @@ def employee_quick_edit(request, pk):
                     "employee": {
                         "id": employee.id,
                         "full_name": employee.full_name,
-                        "position_display": employee.get_position_display(),
+                        "position_name": employee.position.name,  # Добавьте это
+                        "position_display": employee.position.name,  # Для обратной совместимости
                         "branch_name": (
                             employee.branch.name if employee.branch else None
                         ),
@@ -303,8 +303,8 @@ def employee_quick_edit(request, pk):
                 }
             )
         return JsonResponse({"success": False, "errors": form.errors})
-    # GET-запрос — отрисовать форму
-    form = EmployeeForm(instance=employee, user=request.user)  # Передаем пользователя
+
+    form = EmployeeForm(instance=employee, user=request.user)
     return render(
         request,
         "employees/employee_quick_form.html",
@@ -317,13 +317,12 @@ def employee_quick_edit(request, pk):
 def employee_create_ajax(request):
     try:
         data = json.loads(request.body)
-        # Преобразуем ключи для формы
         if "branch_id" in data:
             data["branch"] = data.pop("branch_id") or None
         if "schedule_id" in data:
             data["schedule"] = data.pop("schedule_id") or None
 
-        form = EmployeeForm(data, user=request.user)  # Передаем пользователя
+        form = EmployeeForm(data, user=request.user)
         if form.is_valid():
             employee = form.save()
             return JsonResponse(
@@ -332,8 +331,9 @@ def employee_create_ajax(request):
                     "employee": {
                         "id": employee.id,
                         "full_name": employee.full_name,
-                        "position": employee.position,
-                        "position_display": employee.get_position_display(),
+                        "position": employee.position.id,
+                        "position_name": employee.position.name,  # Добавьте это
+                        "position_display": employee.position.name,  # Для обратной совместимости
                         "branch_name": (
                             employee.branch.name if employee.branch else None
                         ),

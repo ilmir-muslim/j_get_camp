@@ -432,13 +432,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
                         <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                 data-employee-id="${data.employee.id}"
-                                data-employee-display="${data.employee.full_name} (${data.employee.position})" 
+                                data-employee-display="${data.employee.full_name} (${data.employee.position_display || data.employee.position_name})"
+ 
                                 data-schedule-id="${SCHEDULE_ID}">
                             <i class="bi bi-trash text-danger fs-5"></i>
                         </button>
                     </td>
                     <td>${data.employee.full_name}</td>
-                    <td>${data.employee.position}</td>
+                    <td>${data.employee.position_display || data.employee.position_name}</td>
                     <td class="salary-amount">${data.employee.calculated_salary || 0}</td>
                     <td>${data.employee.rate_per_day}</td>
                     <td class="text-center">${data.employee.total_attendance}</td>
@@ -1055,13 +1056,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.getElementById(`employee-${employee.id}`);
     if (row) {
       row.cells[2].textContent = employee.full_name;
-      row.cells[3].textContent = employee.position_display;
+      row.cells[3].textContent = employee.position_display || employee.position_name;
       row.cells[5].textContent = `${employee.rate_per_day}`; // Обновлен индекс
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-employee');
       if (removeBtn) {
-        removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display})`;
+        removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display || employee.position_name})`;
       }
     }
   }
@@ -1256,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const select = document.querySelector('#employee-form select[name="employee"]');
           const option = document.createElement('option');
           option.value = data.employee.id;
-          option.textContent = `${data.employee.full_name} (${data.employee.position_display})`;
+          option.textContent = `${data.employee.full_name} (${data.employee.position_display || data.employee.position_name})`;
           select.appendChild(option);
 
           // Автоматически выбираем нового сотрудника

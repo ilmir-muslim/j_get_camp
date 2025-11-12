@@ -3,7 +3,7 @@ from django import forms
 from branches.models import Branch
 from core.forms import BaseDateForm
 from schedule.models import Schedule
-from .models import Employee, EmployeeAttendance
+from .models import Employee, EmployeeAttendance, Position
 
 
 class EmployeeForm(forms.ModelForm):
@@ -11,6 +11,7 @@ class EmployeeForm(forms.ModelForm):
         model = Employee
         fields = ["full_name", "position", "branch", "schedule", "rate_per_day"]
         widgets = {
+            "position": forms.Select(attrs={"class": "form-select"}),
             "branch": forms.Select(attrs={"class": "form-select"}),
             "schedule": forms.Select(attrs={"class": "form-select"}),
         }
@@ -34,6 +35,7 @@ class EmployeeForm(forms.ModelForm):
                 branch=self.user.branch
             )
 
+        self.fields["position"].empty_label = "Выберите должность"
         self.fields["branch"].empty_label = "Выберите филиал"
         self.fields["schedule"].empty_label = "Выберите смену"
         self.fields["rate_per_day"].initial = 1000

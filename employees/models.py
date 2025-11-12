@@ -4,18 +4,33 @@ from branches.models import Branch, City
 from schedule.models import Schedule
 
 
-class Employee(models.Model):
-    POSITION_CHOICES = [
-        ("teacher", "Преподаватель"),
-        ("admin", "Администратор"),
-        ("camp_head", "Начальник лагеря"),
-        ("lab_head", "Начальник лаборатории"),
-    ]
+class Position(models.Model):
+    """Модель для хранения должностей сотрудников"""
 
+    name = models.CharField(max_length=100, verbose_name="Название должности")
+    responsibilities = models.TextField(
+        verbose_name="Должностные обязанности",
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        verbose_name = "Должность"
+        verbose_name_plural = "Должности"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Employee(models.Model):
     full_name = models.CharField(max_length=255, verbose_name="ФИО")
 
-    position = models.CharField(
-        max_length=50, choices=POSITION_CHOICES, verbose_name="Должность"
+    position = models.ForeignKey(
+        Position,
+        on_delete=models.PROTECT,
+        verbose_name="Должность",
+        related_name="employees",
     )
     branch = models.ForeignKey(
         Branch, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Филиал"
@@ -27,7 +42,12 @@ class Employee(models.Model):
         max_digits=10, decimal_places=2, default=0, verbose_name="Ставка за день"
     )
     city = models.ForeignKey(
-        City, on_delete=models.CASCADE, verbose_name="Город", related_name="employees", null=True, blank=True
+        City,
+        on_delete=models.CASCADE,
+        verbose_name="Город",
+        related_name="employees",
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -50,7 +70,7 @@ class EmployeeAttendance(models.Model):
         verbose_name="Сотрудник",
     )
     date = models.DateField(verbose_name="Дата посещения")
-    present = models.BooleanField(default=True, verbose_name="Присутствовал") 
+    present = models.BooleanField(default=True, verbose_name="Присутствовал")
     excused = models.BooleanField(default=False, verbose_name="По уважительной причине")
 
     class Meta:
@@ -59,7 +79,7 @@ class EmployeeAttendance(models.Model):
         verbose_name_plural = "Посещения"
 
     def __str__(self):
-        if self.present:    
+        if self.present:
             status = "Присутствовал"
         elif self.excused:
             status = "По уважительной причине"

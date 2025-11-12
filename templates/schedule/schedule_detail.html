@@ -50,7 +50,7 @@
                             <select name="employee" class="form-select" required>
                                 <option value="">Выберите сотрудника</option>
                                 {% for emp in available_employees %}
-                                    <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.get_position_display }})</option>
+                                    <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.position.name }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -109,7 +109,7 @@
                                 </td>
 
                                 <td class="student-column">{{ employee.full_name }}</td>
-                                <td>{{ employee.get_position_display }}</td>
+                                <td>{{ employee.position.name }}</td>
                                 <td class="salary-amount">
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
                                         {% if paid_info.is_paid %}

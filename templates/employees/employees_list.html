@@ -64,7 +64,7 @@
                 </button>
               </td>
               <td>{{ employee.full_name }}</td>
-              <td>{{ employee.get_position_display }}</td>
+              <td>{{ employee.position.name }}</td>
               <td>{{ employee.branch.name|default:"—" }}</td>
               <td>{{ employee.schedule.name|default:"—" }}</td>
               <td>{{ employee.rate_per_day }}</td>
@@ -263,7 +263,7 @@ function updateRowNumbers() {
                   );
                   if (row) {
                     row.cells[2].textContent = data.employee.full_name;
-                    row.cells[3].textContent = data.employee.position_display;
+                    row.cells[3].textContent = data.employee.position_name;
                     row.cells[4].textContent = data.employee.branch_name || "—";
                     row.cells[5].textContent =
                       data.employee.schedule_name || "—";

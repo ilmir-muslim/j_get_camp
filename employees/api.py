@@ -3,19 +3,26 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Q
 from branches.models import Branch
-from employees.models import Employee, EmployeeAttendance
+from employees.models import Employee, EmployeeAttendance, Position
 from employees.schemas import (
     EmployeeAttendanceUpdateSchema,
     EmployeeSchema,
     EmployeeCreateSchema,
     EmployeeAttendanceSchema,
     EmployeeAttendanceCreateSchema,
+    PositionSchema,
 )
 from payroll.models import Salary
 from schedule.models import Schedule
 
 employees_router = Router(tags=["Employees"])
 attendances_router = Router(tags=["Attendances"])
+
+
+@employees_router.get("/positions/", response=list[PositionSchema])
+def positions_list(request):
+    """Получить список всех должностей"""
+    return Position.objects.all()
 
 
 # Объединяем оба эндпоинта в один с поддержкой фильтрации

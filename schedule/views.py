@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 
 from branches.models import Branch
 from core.utils import role_required
-from employees.models import Employee, EmployeeAttendance
+from employees.models import Employee, EmployeeAttendance, Position
 from payroll.forms import PaymentForm
 from payroll.models import Expense, ExpenseCategory, Salary
 from students.models import Balance, Payment, Student
@@ -493,7 +493,7 @@ def schedule_detail(request, pk):
                                 "employee": {
                                     "id": employee.id,
                                     "full_name": employee.full_name,
-                                    "position": employee.get_position_display(),
+                                    "position": employee.position.name(),
                                     "rate_per_day": employee.rate_per_day,
                                     "attendance": employee_attendance_data,
                                     "total_attendance": total_attendance,
@@ -795,8 +795,14 @@ def schedule_list(request):
 
     schedule_data = []
     for schedule in schedules:
-        camp_head = schedule.employee_set.filter(position="camp_head").first()
-        lab_head = schedule.employee_set.filter(position="lab_head").first()
+        # ИСПРАВЛЕНИЕ: Получаем позиции по их названию
+        camp_head_position = Position.objects.filter(name="Начальник лагеря").first()
+        lab_head_position = Position.objects.filter(
+            name="Начальник лаборатории"
+        ).first()
+
+        camp_head = schedule.employee_set.filter(position=camp_head_position).first()
+        lab_head = schedule.employee_set.filter(position=lab_head_position).first()
         student_count = schedule.student_set.count()
 
         schedule_data.append(
