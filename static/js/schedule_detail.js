@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST ПРИ УСПЕШНОМ ДОБАВЛЕНИИ
             removeStudentFromDatalist(studentId);
 
-            showToast('Ученик успешно добавлен в смену. Списано ' + data.student.price + ' руб.', 'success');
+            showToast('Ученик успешно добавлен в смену. Списано ' + data.student.price, 'success');
             updateAttendanceTotals();
             setTimeout(() => {
               window.location.reload();
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Обновляем финансовую сводку
     const financeIncomeElement = document.getElementById('finance-income');
     if (financeIncomeElement) {
-      financeIncomeElement.textContent = formattedTotal + ' руб.';
+      financeIncomeElement.textContent = formattedTotal;
     }
 
     return total;
@@ -1280,48 +1280,13 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   });
 
-  // Функция для обновления итоговой суммы расходов
-  function updateExpensesTotal() {
-    let total = 0;
-    // Собираем все строки расходов
-    document.querySelectorAll('#expenses-table-body tr[data-expense-id]').forEach(row => {
-      // Сумма находится в последней ячейке (индекс 4)
-      const amountCell = row.cells[4];
-      const amountText = amountCell.textContent.trim();
-      // Парсим число, удаляя все нечисловые символы
-      const amount = parseFloat(amountText.replace(/[^\d,.]/g, '').replace(',', '.')) || 0;
-      total += amount;
-    });
-
-    // Форматируем число с разделителем тысяч и двумя знаками после запятой
-    const formatter = new Intl.NumberFormat('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    const formattedTotal = formatter.format(total);
-
-    // Обновляем элемент с итогом в таблице расходов
-    const totalExpenseCell = document.querySelector('#expenses-table-body + tfoot .total-summary-row td:last-child');
-    if (totalExpenseCell) {
-      totalExpenseCell.textContent = formattedTotal + ' руб.';
-    }
-
-    // Обновляем элемент в финансовой сводке
-    const financeExpenseElement = document.getElementById('finance-expense');
-    if (financeExpenseElement) {
-      financeExpenseElement.textContent = formattedTotal + ' руб.';
-    }
-
-    return total;
-  }
-
-  // Функция для обновления нумерации строк в таблице расходов
+  // Функция для обновления нумерации строк в таблице финансовых операций
   function updateExpenseRowNumbers() {
     const tableBody = document.getElementById('expenses-table-body');
     const rows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
 
     rows.forEach((row, index) => {
-      // Пропускаем строку "Нет расходов"
+      // Пропускаем строку "Нет финансовых операций"
       if (!row.querySelector('td[colspan]')) {
         const numberCell = row.querySelector('td:first-child');
         if (numberCell) {
@@ -1336,23 +1301,40 @@ document.addEventListener('DOMContentLoaded', function () {
     loadExpenseForm(`/payroll/expenses/create/?schedule=${SCHEDULE_ID}`);
   });
 
-  // Обработчик кликов по строкам расходов
+  // Обработчик кликов по строкам финансовых операций (только для расходов)
   document.addEventListener('click', function (e) {
     const row = e.target.closest('tr.clickable-expense-row');
-    if (row && !e.target.closest('.delete-expense-btn')) {
-      const expenseId = row.dataset.expenseId;
-      loadExpenseForm(`/payroll/expenses/edit/${expenseId}/`);
+    if (row && !e.target.closest('.delete-record-btn')) {
+      const recordType = row.dataset.recordType;
+      const recordId = row.dataset.recordId;
+
+      // Редактирование только для расходов
+      if (recordType === 'expense') {
+        loadExpenseForm(`/payroll/expenses/edit/${recordId}/`);
+      }
+      // Для зарплат редактирование не предусмотрено, но можно добавить при необходимости
     }
   });
 
-  // Кнопки удаления расхода
+  // Универсальная функция удаления финансовой записи
   document.addEventListener('click', function (e) {
-    // Обработка кнопок удаления расходов
-    const deleteBtn = e.target.closest('.delete-expense-btn');
+    const deleteBtn = e.target.closest('.delete-record-btn');
     if (deleteBtn) {
-      const expenseId = deleteBtn.dataset.expenseId;
-      if (confirm('Удалить этот расход?')) {
-        fetch(`/payroll/expenses/delete/${expenseId}/`, {
+      const recordType = deleteBtn.dataset.recordType;
+      const recordId = deleteBtn.dataset.recordId;
+
+      let url, confirmMessage;
+
+      if (recordType === 'expense') {
+        url = `/payroll/expenses/delete/${recordId}/`;
+        confirmMessage = 'Удалить этот расход?';
+      } else if (recordType === 'salary') {
+        url = `/payroll/salaries/delete/${recordId}/`;
+        confirmMessage = 'Удалить запись о выплате зарплаты?';
+      }
+
+      if (confirm(confirmMessage)) {
+        fetch(url, {
           method: 'POST',
           headers: {
             'X-CSRFToken': CSRF_TOKEN,
@@ -1362,32 +1344,171 @@ document.addEventListener('DOMContentLoaded', function () {
           .then(response => response.json())
           .then(data => {
             if (data.success) {
-              const row = document.querySelector(`tr[data-expense-id="${expenseId}"]`);
+              const row = document.querySelector(`tr[data-record-id="${recordId}"][data-record-type="${recordType}"]`);
               if (row) row.remove();
 
-              // Обновляем таблицу если нет расходов
+              // Обновляем таблицу если нет записей
               if (!document.querySelector('#expenses-table-body tr')) {
                 document.getElementById('expenses-table-body').innerHTML =
-                  '<tr><td colspan="5" class="text-center">Нет расходов</td></tr>';
+                  '<tr><td colspan="5" class="text-center">Нет финансовых операций</td></tr>';
               } else {
                 // Обновляем нумерацию только если есть строки
                 updateExpenseRowNumbers();
               }
-              showToast('Расход успешно удален', 'success');
-              updateFinanceSummary()
+              showToast('Запись успешно удалена', 'success');
+              updateFinanceSummary();
               updateExpensesTotal(); // Обновляем сумму
               document.dispatchEvent(new CustomEvent('expenseUpdated'));
+
+              // Если удалена зарплата, обновляем отображение у сотрудника
+              if (recordType === 'salary') {
+                updateSalaryDisplayAfterDelete(recordId);
+              }
             }
           })
           .catch(error => {
             console.error('Error:', error);
-            showToast('Произошла ошибка при удалении расхода', 'error');
+            showToast('Произошла ошибка при удалении записи', 'error');
           });
       }
     }
   });
 
-  // Обработчик отправки формы расхода
+  // Функция для обновления отображения зарплаты после удаления
+  function updateSalaryDisplayAfterDelete(salaryId) {
+    // Находим все кнопки выплаты зарплаты и обновляем их состояние
+    document.querySelectorAll('.pay-salary-btn').forEach(btn => {
+      const employeeId = btn.dataset.employeeId;
+      const salaryCell = document.querySelector(`#employee-${employeeId} .salary-amount`);
+
+      if (salaryCell) {
+        // Показываем кнопку выплаты с правильными классами
+        btn.classList.remove('d-none');
+        btn.style.display = 'inline-block'; // Явно устанавливаем display
+        btn.classList.add('btn', 'p-0', 'border-0', 'bg-transparent', 'icon-btn', 'pay-salary-btn');
+
+        // Обновляем отображение зарплаты на рассчитанное значение
+        const rate = parseFloat(document.querySelector(`#employee-${employeeId} td:nth-child(6)`).textContent) || 0;
+        const attendanceCount = parseInt(document.querySelector(`#employee-${employeeId} td:nth-child(7)`).textContent) || 0;
+        const calculatedSalary = rate * attendanceCount;
+
+        salaryCell.textContent = calculatedSalary.toFixed(2);
+        salaryCell.classList.remove('text-success');
+
+        // Обновляем data-атрибут кнопки
+        btn.dataset.salaryAmount = calculatedSalary.toFixed(2);
+      }
+    });
+  }
+
+  // Функция для обновления таблицы финансовых операций после добавления расхода
+  function updateExpensesTable(expenseData) {
+    const tableBody = document.getElementById('expenses-table-body');
+    const emptyRow = tableBody.querySelector('tr td[colspan]');
+
+    if (emptyRow) {
+      emptyRow.closest('tr').remove();
+    }
+
+    const newRow = document.createElement('tr');
+    newRow.dataset.recordType = 'expense';
+    newRow.dataset.recordId = expenseData.id;
+    newRow.className = 'clickable-expense-row';
+    newRow.innerHTML = `
+      <td></td>
+      <td>
+        <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
+                data-record-type="expense"
+                data-record-id="${expenseData.id}">
+          <i class="bi bi-trash text-danger fs-5"></i>
+        </button>
+      </td>
+      <td>${expenseData.category_display || expenseData.category || ''}</td>
+      <td>${expenseData.comment || ''}</td>
+      <td>${expenseData.amount}</td>
+    `;
+    tableBody.appendChild(newRow);
+
+    // Обновляем нумерацию
+    updateExpenseRowNumbers();
+
+    // Обновляем общую сумму расходов
+    updateExpensesTotal();
+  }
+  
+  // Функция для обновления таблицы финансовых операций после выплаты зарплаты
+  function updateExpensesTableAfterSalary(recordData) {
+    const tableBody = document.getElementById('expenses-table-body');
+    const emptyRow = tableBody.querySelector('tr td[colspan]');
+
+    if (emptyRow) {
+      emptyRow.closest('tr').remove();
+    }
+
+    const newRow = document.createElement('tr');
+    newRow.dataset.recordType = 'salary';
+    newRow.dataset.recordId = recordData.id;
+    newRow.className = 'clickable-expense-row';
+    newRow.innerHTML = `
+      <td></td>
+      <td>
+        <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
+                data-record-type="salary"
+                data-record-id="${recordData.id}">
+          <i class="bi bi-trash text-danger fs-5"></i>
+        </button>
+      </td>
+      <td>Выплата зарплаты</td>
+      <td>${recordData.comment || ''}</td>
+      <td>${recordData.amount}</td>
+    `;
+    tableBody.appendChild(newRow);
+
+    // Обновляем нумерацию
+    updateExpenseRowNumbers();
+
+    // Обновляем общую сумму расходов
+    updateExpensesTotal();
+  }
+
+  // Функция для обновления итоговой суммы финансовых операций
+  function updateExpensesTotal() {
+    let total = 0;
+    // Собираем все строки финансовых операций
+    document.querySelectorAll('#expenses-table-body tr[data-record-id]').forEach(row => {
+      // Сумма находится в ячейке с индексом 4 (пятый столбец)
+      const amountCell = row.cells[4];
+      if (amountCell) {
+        const amountText = amountCell.textContent.trim();
+        // Парсим число, удаляя все нечисловые символы
+        const amount = parseFloat(amountText.replace(/[^\d,.]/g, '').replace(',', '.')) || 0;
+        total += amount;
+      }
+    });
+
+    // Форматируем число с разделителем тысяч и двумя знаками после запятой
+    const formatter = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    const formattedTotal = formatter.format(total);
+
+    // Обновляем элемент с итогом в таблице расходов
+    const totalExpenseCell = document.querySelector('#expenses-table-body + tfoot .total-summary-row td:last-child');
+    if (totalExpenseCell) {
+      totalExpenseCell.textContent = formattedTotal;
+    }
+
+    // Обновляем элемент в финансовой сводке
+    const financeExpenseElement = document.getElementById('finance-expense');
+    if (financeExpenseElement) {
+      financeExpenseElement.textContent = formattedTotal;
+    }
+
+    return total;
+  }
+
+  // Обновляем обработчик отправки формы расхода
   document.addEventListener('submit', function (e) {
     if (e.target.id === 'expense-form') {
       e.preventDefault();
@@ -1410,47 +1531,28 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
             if (modal) modal.hide();
 
-            // Обновляем таблицу расходов
+            // Обновляем таблицу финансовых операций
             const tableBody = document.getElementById('expenses-table-body');
-            const expenseRow = document.querySelector(`tr[data-expense-id="${data.expense.id}"]`);
+            const expenseRow = document.querySelector(`tr[data-record-id="${data.expense.id}"][data-record-type="expense"]`);
 
             if (expenseRow) {
               // Обновляем существующую строку
               expenseRow.innerHTML = `
                     <td>${expenseRow.querySelector('td:first-child').textContent}</td>
                     <td>
-                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                                data-expense-id="${data.expense.id}">
+                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
+                                data-record-type="expense"
+                                data-record-id="${data.expense.id}">
                             <i class="bi bi-trash text-danger fs-5"></i>
                         </button>
                     </td>
-                    <td>${data.expense.category_display}</td>  <!-- Исправлено: используем category_display -->
+                    <td>${data.expense.category_display}</td>
                     <td>${data.expense.comment || ''}</td>
                     <td>${data.expense.amount}</td>
                   `;
             } else {
               // Добавляем новую строку
-              const emptyRow = tableBody.querySelector('tr td[colspan]');
-              if (emptyRow) {
-                emptyRow.closest('tr').remove();
-              }
-
-              const newRow = document.createElement('tr');
-              newRow.dataset.expenseId = data.expense.id;
-              newRow.className = 'clickable-expense-row';
-              newRow.innerHTML = `
-                    <td></td>
-                    <td>
-                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                                data-expense-id="${data.expense.id}">
-                            <i class="bi bi-trash text-danger fs-5"></i>
-                        </button>
-                    </td>
-                    <td>${data.expense.category_display}</td>  <!-- Исправлено: используем category_display -->
-                    <td>${data.expense.comment || ''}</td>
-                    <td>${data.expense.amount}</td>
-                  `;
-              tableBody.appendChild(newRow);
+              updateExpensesTable(data.expense);
             }
 
             showToast('Расход успешно сохранен', 'success');
@@ -1470,7 +1572,56 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Обновить обработчик кликов по строкам учеников (игнорировать кнопки платежей)
+  // Обновляем обработчик выплаты зарплаты
+  function paySalary(employeeId, employeeName, salaryAmount, scheduleId) {
+    const normalizedAmount = salaryAmount.replace(',', '.');
+
+    const formData = new FormData();
+    formData.append('action', 'pay_salary');
+    formData.append('employee_id', employeeId);
+    formData.append('amount', normalizedAmount);
+
+    fetch(`/schedule/${scheduleId}/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Зарплата успешно выплачена', 'success');
+
+          // Обновляем отображение зарплаты и скрываем кнопку
+          updateSalaryDisplay(employeeId, salaryAmount);
+
+          // Обновляем таблицу финансовых операций
+          updateExpensesTableAfterSalary({
+            id: data.salary.id,
+            type: 'salary',
+            category_display: 'Выплата зарплаты',
+            comment: `Зарплата сотрудника ${employeeName}`,
+            amount: data.salary.total_payment
+          });
+
+          // Обновляем финансовую сводку
+          updateFinanceSummary();
+
+          // Обновляем итоги расходов
+          updateExpensesTotal();
+        } else {
+          showToast(data.error || 'Ошибка при выплате зарплаты', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при выплате зарплаты', 'error');
+      });
+  }
+
+  // Обновляем обработчик кликов по строкам учеников (игнорировать кнопки платежей)
   document.querySelectorAll('#attendance-body tr[data-student-id]').forEach(row => {
     row.addEventListener('click', function (e) {
       // Игнорируем клики на:
@@ -1535,7 +1686,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const income = parseFloat(
       incomeElement.textContent.replace(/[^\d,.]/g, '').replace(',', '.')
     ) || 0;
-
+    
     // Рассчитываем сальдо
     const balance = income - expense;
 
@@ -1547,7 +1698,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Обновляем отображение сальдо
     const balanceCell = document.getElementById('finance-balance');
-    balanceCell.textContent = formatter.format(balance) + ' руб.';
+    balanceCell.textContent = formatter.format(balance);
 
     // Добавляем цвет в зависимости от результата
     balanceCell.classList.remove('text-success', 'text-danger');
@@ -1699,50 +1850,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return value;
   }
-  // Функция для выплаты зарплаты
-  function paySalary(employeeId, employeeName, salaryAmount, scheduleId) {
-    // Преобразуем сумму зарплаты в формат с точкой для десятичных
-    const normalizedAmount = salaryAmount.replace(',', '.');
-
-    const formData = new FormData();
-    formData.append('action', 'pay_salary');
-    formData.append('employee_id', employeeId);
-    formData.append('amount', normalizedAmount);
-
-    fetch(`/schedule/${scheduleId}/`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-CSRFToken': CSRF_TOKEN,
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showToast('Зарплата успешно выплачена', 'success');
-
-          // Обновляем отображение зарплаты и скрываем кнопку
-          updateSalaryDisplay(employeeId, salaryAmount);
-
-          // Обновляем таблицу расходов
-          updateExpensesTable(data.expense);
-
-          // Обновляем финансовую сводку
-          updateFinanceSummary();
-
-          // Обновляем итоги расходов
-          updateExpensesTotal();
-        } else {
-          showToast(data.error || 'Ошибка при выплате зарплаты', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при выплате зарплаты', 'error');
-      });
-  }
-
 
   // Функция для обновления отображения зарплаты после выплаты
   function updateSalaryDisplay(employeeId, amount) {
@@ -1768,42 +1875,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Если в ячейке зарплаты уже есть текст "выплачено", скрываем кнопку
       if (salaryCell && salaryCell.querySelector('.text-success')) {
+        btn.classList.add('d-none');
         btn.style.display = 'none';
+      } else {
+        // Убеждаемся, что кнопка видима и имеет правильные классы
+        btn.classList.remove('d-none');
+        btn.style.display = 'inline-block';
+        btn.classList.add('btn', 'p-0', 'border-0', 'bg-transparent', 'icon-btn', 'pay-salary-btn');
       }
     });
-  }
-
-  // Функция для обновления таблицы расходов после выплаты зарплаты
-  function updateExpensesTable(expenseData) {
-    const tableBody = document.getElementById('expenses-table-body');
-    const emptyRow = tableBody.querySelector('tr td[colspan]');
-
-    if (emptyRow) {
-      emptyRow.closest('tr').remove();
-    }
-
-    const newRow = document.createElement('tr');
-    newRow.dataset.expenseId = expenseData.id;
-    newRow.className = 'clickable-expense-row';
-    newRow.innerHTML = `
-      <td></td>
-      <td>
-        <button class="btn p-0 border-0 bg-transparent icon-btn delete-expense-btn"
-                data-expense-id="${expenseData.id}">
-          <i class="bi bi-trash text-danger fs-5"></i>
-        </button>
-      </td>
-      <td>${expenseData.category_display || expenseData.category || ''}</td> <!-- Поддержка обоих форматов -->
-      <td>${expenseData.comment || ''}</td>
-      <td>${expenseData.amount}</td>
-    `;
-    tableBody.appendChild(newRow);
-
-    // Обновляем нумерацию
-    updateExpenseRowNumbers();
-
-    // Обновляем общую сумму расходов
-    updateExpensesTotal();
   }
   
   const employeeCardHeader = document.querySelector('.card .card-header.bg-primary.text-white');
@@ -1843,6 +1923,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  
 
   updateExpensesTotal();
   // Обновляем финансовую сводку

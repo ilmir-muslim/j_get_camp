@@ -1,4 +1,3 @@
-# schedule/views.py
 from decimal import Decimal, InvalidOperation
 import io
 import json
@@ -25,6 +24,7 @@ from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
 
 from .models import COLOR_CHOICES, Schedule
+
 
 @role_required(["manager", "admin"])
 def schedule_create(request):
@@ -59,8 +59,8 @@ def schedule_delete(request, pk):
         schedule_obj.delete()
 
         # Поддержка AJAX-запросов
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True})
         else:
             return redirect("schedule_calendar")
 
@@ -143,14 +143,15 @@ def schedule_quick_edit(request, pk=None):
         form = ScheduleForm(request.POST, instance=schedule)
         if form.is_valid():
             schedule = form.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({"success": True})
         else:
             # Возвращаем форму с ошибками
-            form_html = render_to_string("schedule/schedule_quick_form.html", {
-                "form": form,
-                "schedule": schedule
-            }, request=request)
-            return JsonResponse({'success': False, 'html': form_html})
+            form_html = render_to_string(
+                "schedule/schedule_quick_form.html",
+                {"form": form, "schedule": schedule},
+                request=request,
+            )
+            return JsonResponse({"success": False, "html": form_html})
 
     # GET-запрос: отображаем форму
     if schedule:
@@ -164,7 +165,11 @@ def schedule_quick_edit(request, pk=None):
             initial["end_date"] = request.GET["week_end"]
         form = ScheduleForm(initial=initial)
 
-    return render(request, "schedule/schedule_quick_form.html", {"form": form, "schedule": schedule})
+    return render(
+        request,
+        "schedule/schedule_quick_form.html",
+        {"form": form, "schedule": schedule},
+    )
 
 
 @role_required(["manager", "admin", "camp_head", "lab_head"])
@@ -281,10 +286,46 @@ def schedule_detail(request, pk):
     available_employees = Employee.objects.exclude(schedule=schedule)
     available_students = Student.objects.exclude(schedule=schedule)
 
+    # Объединяем расходы и зарплаты для отображения
     expenses = Expense.objects.filter(schedule=schedule)
-    total_expenses_sum = expenses.aggregate(total=Sum("amount"))["total"] or 0
+    salaries = Salary.objects.filter(schedule=schedule, is_paid=True)
 
-    # Получаем категорию для выплаты зарплаты
+    # Создаем объединенный список финансовых записей
+    financial_records = []
+
+    # Добавляем расходы
+    for expense in expenses:
+        financial_records.append(
+            {
+                "type": "expense",
+                "id": expense.id,
+                "category_display": expense.category.name,
+                "comment": expense.comment,
+                "amount": expense.amount,
+            }
+        )
+
+    # Добавляем зарплаты
+    for salary in salaries:
+        financial_records.append(
+            {
+                "type": "salary",
+                "id": salary.id,
+                "category_display": "Выплата зарплаты",
+                "comment": f"Зарплата сотрудника {salary.employee.full_name}",
+                "amount": salary.total_payment,
+            }
+        )
+
+    # Сортируем по ID в обратном порядке, чтобы новые были сверху
+    financial_records.sort(key=lambda x: x["id"], reverse=True)
+
+    # Общая сумма расходов и зарплат
+    total_expenses_sum = (expenses.aggregate(total=Sum("amount"))["total"] or 0) + (
+        salaries.aggregate(total=Sum("total_payment"))["total"] or 0
+    )
+
+    # Получаем категорию для выплаты зарплаты (теперь не используется при выплате, но может пригодиться)
     salary_category, created = ExpenseCategory.objects.get_or_create(
         name="выплата зарплаты",
         defaults={"description": "Выплата заработной платы сотрудникам"},
@@ -539,23 +580,6 @@ def schedule_detail(request, pk):
                             )
                         return redirect("schedule_detail", pk=pk)
 
-                    # ПРОВЕРКА: нет ли уже расхода на выплату зарплаты этому сотруднику за эту смену
-                    existing_expense = Expense.objects.filter(
-                        schedule=schedule,
-                        category=salary_category,
-                        comment=f"Выплата зарплаты сотруднику {employee.full_name}",
-                    ).first()
-
-                    if existing_expense:
-                        if is_ajax:
-                            return JsonResponse(
-                                {
-                                    "success": False,
-                                    "error": f"Расход на выплату зарплаты сотруднику {employee.full_name} уже существует",
-                                }
-                            )
-                        return redirect("schedule_detail", pk=pk)
-
                     # Нормализуем десятичный разделитель
                     if amount:
                         amount = amount.replace(",", ".")
@@ -580,13 +604,7 @@ def schedule_detail(request, pk):
                         is_paid=True,
                     )
 
-                    # Создаем запись расхода для выплаты зарплаты
-                    expense = Expense.objects.create(
-                        schedule=schedule,
-                        category=salary_category,
-                        comment=f"Выплата зарплаты сотруднику {employee.full_name}",
-                        amount=amount_decimal,
-                    )
+                    # УБИРАЕМ создание записи расхода для выплаты зарплаты
 
                     # Обновляем информацию о выплаченной зарплате
                     employee_paid_salaries[employee.id] = {
@@ -596,22 +614,10 @@ def schedule_detail(request, pk):
                     }
                     employee_salaries[employee.id] = amount_decimal
 
-                    # Обновляем переменную expenses для контекста
-                    expenses = Expense.objects.filter(schedule=schedule)
-                    total_expenses_sum = (
-                        expenses.aggregate(total=Sum("amount"))["total"] or 0
-                    )
-
                     if is_ajax:
                         return JsonResponse(
                             {
                                 "success": True,
-                                "expense": {
-                                    "id": expense.id,
-                                    "category_display": expense.category.name,
-                                    "comment": expense.comment,
-                                    "amount": float(expense.amount),
-                                },
                                 "salary": {
                                     "id": salary.id,
                                     "is_paid": salary.is_paid,
@@ -640,7 +646,7 @@ def schedule_detail(request, pk):
         "available_employees": available_employees,
         "available_students": available_students,
         "student_attendance_counts": student_attendance_counts,
-        "expenses": expenses,
+        "financial_records": financial_records,  
         "employee_attendance": employee_attendance,
         "employee_attendance_counts": employee_attendance_counts,
         "employee_salaries": employee_salaries,
@@ -666,7 +672,7 @@ def remove_employee_from_schedule(request, schedule_id, employee_id):
         employee.schedule = None
         employee.save()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({"success": True})
 
 
 @require_POST
@@ -827,39 +833,41 @@ def toggle_attendance(request, schedule_id):
 
             student = get_object_or_404(Student, id=student_id)
             att, created = Attendance.objects.get_or_create(
-                student=student, 
-                date=date_obj, 
-                defaults={"present": False, "excused": False}
+                student=student,
+                date=date_obj,
+                defaults={"present": False, "excused": False},
             )
 
             # Циклическое переключение: отсутствует -> присутствует -> по уважительной -> отсутствует
             if not att.present and not att.excused:
                 att.present = True
-                status = 'present'
+                status = "present"
             elif att.present:
                 att.present = False
                 att.excused = True
-                status = 'excused'
+                status = "excused"
             else:  # excused: True
                 att.excused = False
-                status = 'absent'
+                status = "absent"
             att.save()
 
             # Пересчитываем общее количество посещений
             total_attendance = Attendance.objects.filter(
                 student=student,
                 date__range=(schedule.start_date, schedule.end_date),
-                present=True
+                present=True,
             ).count()
 
-            return JsonResponse({
-                "status": "success",
-                "present": att.present,
-                "excused": att.excused,
-                "total_attendance": total_attendance,
-                "student_id": student_id,
-                "date": date_str,
-            })
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "present": att.present,
+                    "excused": att.excused,
+                    "total_attendance": total_attendance,
+                    "student_id": student_id,
+                    "date": date_str,
+                }
+            )
 
         # Обработка сотрудников
         elif "employee_id" in data:
@@ -871,40 +879,45 @@ def toggle_attendance(request, schedule_id):
             att, created = EmployeeAttendance.objects.get_or_create(
                 employee=employee,
                 date=date_obj,
-                defaults={"present": False, "excused": False}
+                defaults={"present": False, "excused": False},
             )
 
             # Циклическое переключение статусов
             if not att.present and not att.excused:
                 att.present = True
-                status = 'present'
+                status = "present"
             elif att.present:
                 att.present = False
                 att.excused = True
-                status = 'excused'
+                status = "excused"
             else:  # excused: True
                 att.excused = False
-                status = 'absent'
+                status = "absent"
             att.save()
 
             # Пересчет общего количества посещений
             total_attendance = EmployeeAttendance.objects.filter(
                 employee=employee,
                 date__range=(schedule.start_date, schedule.end_date),
-                present=True
+                present=True,
             ).count()
 
-            return JsonResponse({
-                "status": "success",
-                "present": att.present,
-                "excused": att.excused,
-                "total_attendance": total_attendance,
-                "employee_id": employee_id,
-                "date": date_str,
-            })
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "present": att.present,
+                    "excused": att.excused,
+                    "total_attendance": total_attendance,
+                    "employee_id": employee_id,
+                    "date": date_str,
+                }
+            )
 
         else:
-            return JsonResponse({"status": "error", "message": "Не указан student_id или employee_id"}, status=400)
+            return JsonResponse(
+                {"status": "error", "message": "Не указан student_id или employee_id"},
+                status=400,
+            )
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
