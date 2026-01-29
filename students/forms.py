@@ -2,7 +2,7 @@ from django import forms
 
 from schedule.models import Schedule
 
-from .models import Balance, Payment, Student
+from .models import Balance, Payment, Squad, Student
 
 
 class StudentForm(forms.ModelForm):
@@ -21,6 +21,10 @@ class StudentForm(forms.ModelForm):
                 self.fields["schedule"].queryset = Schedule.objects.filter(
                     branch=user_branch
                 )
+                # Фильтруем отряды по филиалу пользователя
+                self.fields["squad"].queryset = Squad.objects.filter(
+                    schedule__branch=user_branch
+                )
 
         # Фильтрация смен по городу для администратора
         elif self.request and self.request.user.role == "admin":
@@ -29,10 +33,15 @@ class StudentForm(forms.ModelForm):
                 self.fields["schedule"].queryset = Schedule.objects.filter(
                     branch__city=user_city
                 )
+                # Фильтруем отряды по городу пользователя
+                self.fields["squad"].queryset = Squad.objects.filter(
+                    schedule__branch__city=user_city
+                )
 
     class Meta:
         model = Student
         fields = [
+            "squad",  # Добавить это поле ПЕРВЫМ
             "full_name",
             "phone",
             "parent_name",
@@ -44,6 +53,7 @@ class StudentForm(forms.ModelForm):
         ]
         widgets = {
             "schedule": forms.Select(attrs={"class": "form-select"}),
+            "squad": forms.Select(attrs={"class": "form-select"}),
         }
 
 

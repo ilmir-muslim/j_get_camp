@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (!row) return;
 
-    const countCell = row.querySelector('td:nth-child(8)'); // Обновлен индекс
+    const countCell = row.querySelector('td:nth-child(9)'); // Обновлен индекс для явки (теперь 9)
     if (countCell) {
       countCell.textContent = count;
       row.dataset.visits = count;
@@ -805,6 +805,8 @@ document.addEventListener('DOMContentLoaded', function () {
         case 'name-desc': sortConfig = { column: 'name', direction: -1 }; break;
         case 'visits-asc': sortConfig = { column: 'visits', direction: 1 }; break;
         case 'visits-desc': sortConfig = { column: 'visits', direction: -1 }; break;
+        case 'squad-asc': sortConfig = { column: 'squad', direction: 1 }; break;
+        case 'squad-desc': sortConfig = { column: 'squad', direction: -1 }; break;
       }
 
       sortAttendanceTable(sortConfig);
@@ -861,6 +863,11 @@ document.addEventListener('DOMContentLoaded', function () {
           valueA = parseInt(a.dataset.visits || '0');
           valueB = parseInt(b.dataset.visits || '0');
           return (valueA - valueB) * sortConfig.direction;
+
+        case 'squad':
+          valueA = a.dataset.squad || '';
+          valueB = b.dataset.squad || '';
+          return valueA.localeCompare(valueB) * sortConfig.direction;
       }
 
       return 0;
@@ -1069,8 +1076,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
     if (row) {
       row.cells[2].textContent = student.individual_price || student.default_price;
-      row.cells[4].textContent = student.attendance_type_display;
-      row.cells[5].textContent = student.full_name;
+      row.cells[5].textContent = student.get_attendance_type_display();
+      row.cells[6].textContent = student.squad?.name || "—";
+      row.cells[7].textContent = student.full_name;
+
+      // Обновляем data-атрибуты
+      row.dataset.squad = student.squad?.name || "";
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-student-attendance');
@@ -1433,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Обновляем общую сумму расходов
     updateExpensesTotal();
   }
-  
+
   // Функция для обновления таблицы финансовых операций после выплаты зарплаты
   function updateExpensesTableAfterSalary(recordData) {
     const tableBody = document.getElementById('expenses-table-body');
@@ -1684,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const income = parseFloat(
       incomeElement.textContent.replace(/[^\d,.]/g, '').replace(',', '.')
     ) || 0;
-    
+
     // Рассчитываем сальдо
     const balance = income - expense;
 
@@ -1882,7 +1893,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   const employeeCardHeader = document.querySelector('.card .card-header.bg-primary.text-white');
   if (employeeCardHeader && employeeCardHeader.textContent.includes('Сотрудники группы')) {
     const employeeCard = employeeCardHeader.closest('.card');
@@ -1921,7 +1932,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  
+
 
   updateExpensesTotal();
   // Обновляем финансовую сводку

@@ -4,8 +4,16 @@ from datetime import date
 from datetime import date as date_type
 
 
+class SquadSchema(Schema):
+    id: int
+    name: str
+    leader_id: Optional[int]
+    schedule_id: int
+
+
 class StudentSchema(Schema):
     id: int
+    squad_id: Optional[int]
     full_name: str
     phone: Optional[str]
     parent_name: Optional[str]
@@ -18,17 +26,19 @@ class StudentSchema(Schema):
 
 
 class StudentCreateSchema(Schema):
+    squad_id: Optional[int] = None
     full_name: str
     phone: Optional[str] = ""
     parent_name: Optional[str] = ""
     schedule_id: Optional[int] = None
     attendance_type: str
-    default_price: Optional[float] = None 
+    default_price: Optional[float] = None
     individual_price: Optional[float] = None
     price_comment: Optional[str] = ""
 
 
 class StudentUpdateSchema(Schema):
+    squad_id: Optional[int] = None
     full_name: Optional[str] = None
     phone: Optional[str] = None
     parent_name: Optional[str] = None
@@ -38,19 +48,23 @@ class StudentUpdateSchema(Schema):
     individual_price: Optional[float] = None
     price_comment: Optional[str] = None
 
+
 class AttendanceSchema(Schema):
     id: int
     student_id: int
     date: date
     present: bool
 
+
 class AttendanceCreateSchema(Schema):
     date: date
     present: bool = True
 
+
 class AttendanceUpdateSchema(Schema):
     date: Optional[date_type] = None
     present: Optional[bool] = None
+
 
 class PaymentSchema(Schema):
     id: int
@@ -60,11 +74,13 @@ class PaymentSchema(Schema):
     date: date
     comment: str
 
+
 class PaymentCreateSchema(Schema):
     schedule_id: int
     amount: float
     date: date
     comment: str = ""
+
 
 class PaymentUpdateSchema(Schema):
     schedule_id: Optional[int] = None

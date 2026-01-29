@@ -206,6 +206,40 @@
   max-height: 50px !important;
 }
 
+/* УЗКИЙ СТОЛБЕЦ ДЛЯ ОТРЯДА */
+.attendance-table th:nth-child(7),
+.attendance-table td:nth-child(7) {
+  width: 40px;
+  min-width: 40px;
+  max-width: 50px;
+  text-align: center;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 8px 4px !important;
+}
+
+/* Стили для столбца с ФИО (теперь 8-й) */
+.attendance-table th:nth-child(8),
+.attendance-table td:nth-child(8) {
+  width: 200px;
+  min-width: 150px;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Стили для столбца с явкой (теперь 9-й) */
+.attendance-table th:nth-child(9),
+.attendance-table td:nth-child(9) {
+  width: 50px;
+  min-width: 50px;
+  max-width: 60px;
+  text-align: center;
+  font-weight: 600;
+}
+
 .total-summary-row {
   background-color: #e9ecef;
   font-weight: bold;
@@ -283,4 +317,46 @@
 .salary-amount .text-success {
   font-weight: 600;
   font-style: italic;
+}
+
+/* Улучшаем отображение римских цифр в отрядах */
+.squad-cell {
+  font-family: 'Times New Roman', serif;
+  font-weight: bold;
+  color: #2c3e50;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.5px;
+}
+
+/* Подсветка ячеек с отрядами при наведении */
+.attendance-table tr:hover td:nth-child(7) {
+  background-color: #f0f7ff;
+  transition: background-color 0.2s ease;
+}
+
+/* Адаптивность для маленьких экранов */
+@media (max-width: 1200px) {
+
+  .attendance-table th:nth-child(8),
+  .attendance-table td:nth-child(8) {
+    width: 150px;
+    min-width: 120px;
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 992px) {
+
+  .attendance-table th:nth-child(8),
+  .attendance-table td:nth-child(8) {
+    width: 120px;
+    min-width: 100px;
+    max-width: 150px;
+  }
+
+  /* Скрываем менее важные столбцы на мобильных */
+  .attendance-table th:nth-child(5),
+  .attendance-table td:nth-child(5) {
+    display: none;
+  }
 }

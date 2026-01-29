@@ -62,16 +62,24 @@
   max-width: 220px;
 }
 
-/* ФИО */
+/*Отряд*/
 .attendance-table th:nth-child(7),
 .attendance-table td:nth-child(7) {
+  width: 100px;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+/* ФИО */
+.attendance-table th:nth-child(8),
+.attendance-table td:nth-child(8) {
   width: 240px;
   min-width: 230px;
   max-width: 350px;
 }
 /*явка*/
-.attendance-table th:nth-child(8),
-.attendance-table td:nth-child(8) {
+.attendance-table th:nth-child(9),
+.attendance-table td:nth-child(9) {
   width: 70px;
   min-width: 50px;
   max-width: 80px;

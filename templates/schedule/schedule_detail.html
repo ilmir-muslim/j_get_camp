@@ -240,6 +240,8 @@
                             <option value="name-desc">Имя (Я-А)</option>
                             <option value="visits-asc">Посещения (↑)</option>
                             <option value="visits-desc">Посещения (↓)</option>
+                            <option value="squad-asc">Отряд (А-Я)</option>
+                            <option value="squad-desc">Отряд (Я-А)</option>
                         </select>
                     </div>
                 </div>
@@ -255,6 +257,7 @@
                             <th>Платежи</th>
                             <th>Баланс</th>
                             <th>Тип</th>
+                            <th>Отряд</th>
                             <th>ФИО</th>
                             <th>Явка</th>
                             {% for date in dates %}
@@ -268,7 +271,7 @@
                     <tbody id="attendance-body">
                         {% for student in students %}
                             <tr data-student-id="{{ student.id }}" data-visits="{{ student_attendance_counts|get_item:student.id }}"
-                            data-attendance-type="{{ student.attendance_type }}">
+                            data-attendance-type="{{ student.attendance_type }}" data-squad="{{ student.squad.name|default:'' }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <!-- Кнопка платежа -->
@@ -303,6 +306,7 @@
                                     {{ student.current_balance|floatformat:2 }}
                                 </td>
                                 <td>{{ student.get_attendance_type_display }}</td>
+                                <td>{{ student.squad.name|default:"—" }}</td>
                                 <td class="student-column">{{ student.full_name }}</td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}
@@ -335,7 +339,7 @@
                             <td colspan="3" class="text-end"><strong>Итого:</strong></td>
                             <td class="text-center" id="total-payments-cell"><strong>{{ total_payments|default:0|floatformat:2 }}</strong></td>
                             <td></td>
-                            <td colspan="3"></td> 
+                            <td colspan="4"></td> 
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
                                     <div class="attendance-cell-wrapper">

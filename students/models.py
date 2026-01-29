@@ -5,6 +5,31 @@ from jget_crm import settings
 from schedule.models import Schedule
 
 
+class Squad(models.Model):
+    """Модель отряда"""
+
+    name = models.CharField(max_length=100, verbose_name="Название отряда")
+    leader = models.ForeignKey(
+        "employees.Employee",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Вожатый/Преподаватель",
+        related_name="squads_led",
+    )
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, verbose_name="Смена", related_name="squads"
+    )
+
+    class Meta:
+        verbose_name = "Отряд"
+        verbose_name_plural = "Отряды"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.schedule.name})"
+
+
 class Student(models.Model):
     ATTENDANCE_TYPE_CHOICES = [
         ("camp", "Лагерь"),
@@ -20,6 +45,15 @@ class Student(models.Model):
     schedule = models.ForeignKey(
         Schedule, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Смена"
     )
+    squad = models.ForeignKey(
+        Squad,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Отряд",
+        related_name="students",
+    )
+
     attendance_type = models.CharField(
         max_length=20, choices=ATTENDANCE_TYPE_CHOICES, verbose_name="Тип посещения"
     )
@@ -69,37 +103,36 @@ class Student(models.Model):
             or 0
         )
         return deposits - payments + corrections
-    
+
     def charge_for_schedule(self, schedule, user):
         """Списание стоимости смены с баланса ученика"""
         amount = self.individual_price or self.default_price
-        
+
         # Создаем операцию списания
         Balance.objects.create(
             student=self,
             amount=amount,
             operation_type="payment",
             comment=f"Списание за смену {schedule.name}",
-            created_by=user
+            created_by=user,
         )
-        
+
         return amount
-    
+
     def refund_schedule_charge(self, schedule, user):
         """Возврат списания при удалении из смены"""
         amount = self.individual_price or self.default_price
-        
+
         # Создаем операцию возврата
         Balance.objects.create(
             student=self,
             amount=amount,
             operation_type="deposit",
             comment=f"Возврат списания за смену {schedule.name}",
-            created_by=user
+            created_by=user,
         )
-        
-        return amount
 
+        return amount
 
     class Meta:
         verbose_name = "Ученик"

@@ -55,17 +55,33 @@
     max-width: 150px;
 }
 
-/* Тип посещения */
+/* Отряд */
 #students-table th:nth-child(8),
 #students-table td:nth-child(8) {
+    width: 50px;
+    min-width: 50px;
+    max-width: 100px;
+}
+
+/* Филиал */
+#students-table th:nth-child(9),
+#students-table td:nth-child(9) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 150px;
+}
+
+/* Тип посещения */
+#students-table th:nth-child(10),
+#students-table td:nth-child(10) {
     width: 130px;
     min-width: 110px;
     max-width: 160px;
 }
 
 /* Цена */
-#students-table th:nth-child(9),
-#students-table td:nth-child(9) {
+#students-table th:nth-child(11),
+#students-table td:nth-child(11) {
     width: 100px;
     min-width: 120px;
     max-width: 140px;
@@ -73,8 +89,8 @@
 }
 
 /* Комментарий к цене */
-#students-table th:nth-child(10),
-#students-table td:nth-child(10) {
+#students-table th:nth-child(12),
+#students-table td:nth-child(12) {
     width: 150px;
     min-width: 120px;
     max-width: 200px;
