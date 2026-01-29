@@ -10,8 +10,9 @@ pydantic==2.11.7
 pydantic_core==2.33.2
 pillow==11.3.0
 fonttools==4.59.0
-cffi==1.17.1
+cffi>=2.0.0
 Brotli==1.1.0
 click==8.2.1
 Pygments==2.19.2
 requests==2.32.5
+cryptography==46.0.3

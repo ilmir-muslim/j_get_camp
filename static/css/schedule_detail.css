@@ -66,84 +66,85 @@
 
 /* Стили для формы добавления ученика */
 .student-addition-form {
-    margin-top: 20px;
-    margin-bottom: 25px;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+  margin-top: 20px;
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
 .flex-wrap-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .select-wrapper {
-    flex-grow: 1;
-    min-width: 200px;
+  flex-grow: 1;
+  min-width: 200px;
 }
 
 .btn-action {
-    border-radius: 8px;
-    padding: 8px 16px;
-    min-width: 100px;
-    font-weight: 500;
-    transition: all 0.3s;
+  border-radius: 8px;
+  padding: 8px 16px;
+  min-width: 100px;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
 .btn-action:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Стили для фильтров */
 .filter-section {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
 .filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
 }
 
 .filter-group {
-    flex: 1;
-    min-width: 180px;
+  flex: 1;
+  min-width: 180px;
 }
 
 .filter-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #495057;
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #495057;
 }
 
 @media (max-width: 768px) {
-    .flex-wrap-container {
-        flex-direction: column;
-    }
-    
-    .select-wrapper, .btn-action {
-        width: 100%;
-    }
-    
-    .filter-group {
-        min-width: 100%;
-    }
-    
-    .filter-row {
-        gap: 15px;
-    }
+  .flex-wrap-container {
+    flex-direction: column;
+  }
+
+  .select-wrapper,
+  .btn-action {
+    width: 100%;
+  }
+
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .filter-row {
+    gap: 15px;
+  }
 }
 
 
@@ -153,93 +154,88 @@
 
 /* Добавьте в schedule_detail.css */
 .date-cell {
-    padding: 0 !important;
-    position: relative;
+  padding: 0 !important;
+  position: relative;
 }
 
 .attendance-cell {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .attendance-cell-wrapper {
-    position: relative;
-    height: 100%;
-    width: 100%;
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
 /* Фиксированный размер для обертки итогов */
 .attendance-table tfoot .attendance-cell-wrapper {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2px;
 }
 
 /* Уменьшаем размер текста в ячейках итогов */
 .attendance-table tfoot .present-count,
 .attendance-table tfoot .present-percent {
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.2;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* Фиксируем размеры ячеек */
 .attendance-table td.date-cell,
 .attendance-table th.date-cell {
-    width: 50px !important;
-    min-width: 50px !important;
-    max-width: 50px !important;
-    height: 50px !important;
-    min-height: 50px !important;
-    max-height: 50px !important;
+  width: 50px !important;
+  min-width: 50px !important;
+  max-width: 50px !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
 }
 
 .total-summary-row {
-    background-color: #e9ecef;
-    font-weight: bold;
+  background-color: #e9ecef;
+  font-weight: bold;
 }
 
 .total-summary-row td {
-    border-top: 2px solid #dee2e6 !important;
+  border-top: 2px solid #dee2e6 !important;
 }
 
-/* Добавьте эти стили в ваш файл attendance_table.css */
-.payment-success {
+/* Новые стили для баланса */
+.balance-positive {
   background-color: #d4edda !important;
   color: #155724 !important;
   font-weight: bold;
 }
 
-.payment-danger {
+.balance-negative {
   background-color: #f8d7da !important;
   color: #721c24 !important;
   font-weight: bold;
 }
 
-.balance-positive {
-  color: #198754 !important;
-  font-weight: 600;
-}
-
-.balance-negative {
-  color: #dc3545 !important;
-  font-weight: 600;
-}
-
 .balance-zero {
+  background-color: #f8f9fa !important;
   color: #6c757d !important;
+  font-weight: bold;
 }
+
+/* Удаляем старые стили для платежей, так как они не нужны */
+/* .payment-success и .payment-danger были удалены */
 
 .card-header.bg-primary.text-white {
   cursor: pointer;

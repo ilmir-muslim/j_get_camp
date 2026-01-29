@@ -12,3 +12,4 @@ compose.yml
 media/
 fixtures/
 init.sql
+db.sqlite3

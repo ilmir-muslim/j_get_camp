@@ -954,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Функция обновления данных о платежах студента
+  // Функция для обновления данных о платежах студента
   function updateStudentPaymentData(studentId, scheduleId, paymentAmount, totalPaid) {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (row) {
@@ -962,31 +962,28 @@ document.addEventListener('DOMContentLoaded', function () {
       const paymentCell = row.cells[3];
       paymentCell.textContent = totalPaid > 0 ? totalPaid.toFixed(2) : '—';
 
-      // Обновляем цвет ячейки платежей
+      // Удаляем старые классы подсветки из ячейки платежей
+      paymentCell.classList.remove('payment-success', 'payment-danger');
+
+      // Обновляем цвет ячейки платежей (старая логика - удаляем)
       const costCell = row.cells[2];
       const cost = parseFloat(costCell.textContent) || 0;
-
-      if (totalPaid >= cost) {
-        paymentCell.classList.add('payment-success');
-        paymentCell.classList.remove('payment-danger');
-      } else {
-        paymentCell.classList.add('payment-danger');
-        paymentCell.classList.remove('payment-success');
-      }
 
       // ОБНОВЛЯЕМ БАЛАНС (5-я ячейка) - теперь баланс = платежи - стоимость
       const balanceCell = row.cells[4];
       const newBalance = totalPaid - cost;
       balanceCell.textContent = newBalance.toFixed(2);
 
-      // Обновляем классы для цвета баланса
-      balanceCell.className = '';
+      // Убираем все старые классы из ячейки баланса
+      balanceCell.classList.remove('text-success', 'text-danger', 'text-muted', 'balance-positive', 'balance-negative', 'balance-zero');
+
+      // ДОБАВЛЯЕМ ПРАВИЛЬНЫЕ КЛАССЫ ПОДСВЕТКИ В ЯЧЕЙКУ БАЛАНСА
       if (newBalance > 0) {
-        balanceCell.classList.add('text-success', 'balance-positive');
+        balanceCell.classList.add('balance-positive');
       } else if (newBalance < 0) {
-        balanceCell.classList.add('text-danger', 'balance-negative');
+        balanceCell.classList.add('balance-negative');
       } else {
-        balanceCell.classList.add('text-muted', 'balance-zero');
+        balanceCell.classList.add('balance-zero');
       }
 
       // Обновляем итоговую сумму платежей
@@ -1730,38 +1727,37 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  // Обновленная функция colorizePaymentCells()
   function colorizePaymentCells() {
     const rows = document.querySelectorAll('#attendance-body tr[data-student-id]');
 
     rows.forEach(row => {
       const costCell = row.cells[2]; // Ячейка стоимости
       const paymentCell = row.cells[3]; // Ячейка платежей
+      const balanceCell = row.cells[4]; // Ячейка баланса
 
       // Получаем числовые значения
       const cost = parseFloat(costCell.textContent) || 0;
       const paymentText = paymentCell.textContent.trim();
       const payment = paymentText === '—' ? 0 : parseFloat(paymentText) || 0;
-
-      // Применяем классы в зависимости от условия
-      if (payment >= cost) {
-        paymentCell.classList.add('payment-success');
-        paymentCell.classList.remove('payment-danger');
-      } else {
-        paymentCell.classList.add('payment-danger');
-        paymentCell.classList.remove('payment-success');
-      }
-
-      // ОБНОВЛЯЕМ БАЛАНС АВТОМАТИЧЕСКИ
-      const balanceCell = row.cells[4];
       const balance = payment - cost;
+
+      // УДАЛЯЕМ старые классы подсветки из ячеек платежей (если они есть)
+      paymentCell.classList.remove('payment-success', 'payment-danger');
+
+      // Обновляем текст баланса
       balanceCell.textContent = balance.toFixed(2);
-      balanceCell.className = '';
+
+      // Убираем все старые классы из ячейки баланса
+      balanceCell.classList.remove('text-success', 'text-danger', 'text-muted', 'balance-positive', 'balance-negative', 'balance-zero');
+
+      // ДОБАВЛЯЕМ ПРАВИЛЬНЫЕ КЛАССЫ ПОДСВЕТКИ В ЯЧЕЙКУ БАЛАНСА
       if (balance > 0) {
-        balanceCell.classList.add('text-success', 'balance-positive');
+        balanceCell.classList.add('balance-positive');
       } else if (balance < 0) {
-        balanceCell.classList.add('text-danger', 'balance-negative');
+        balanceCell.classList.add('balance-negative');
       } else {
-        balanceCell.classList.add('text-muted', 'balance-zero');
+        balanceCell.classList.add('balance-zero');
       }
     });
   }

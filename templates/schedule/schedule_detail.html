@@ -299,9 +299,9 @@
                                         {% endif %}
                                     {% endwith %}
                                 </td>
-                                <td class="{% if student.current_balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                <td class="balance-cell">
                                     {{ student.current_balance|floatformat:2 }}
-                                </td> 
+                                </td>
                                 <td>{{ student.get_attendance_type_display }}</td>
                                 <td class="student-column">{{ student.full_name }}</td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
