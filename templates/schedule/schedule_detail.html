@@ -109,7 +109,9 @@
                                 </td>
 
                                 <td class="student-column">{{ employee.full_name }}</td>
-                                <td>{{ employee.position.name }}</td>
+                                <td>
+                                    {% if employee.is_leader %}Вожатый{% else %}{{ employee.position.name }}{% endif %}
+                                </td>
                                 <td class="salary-amount">
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
                                         {% if paid_info.is_paid %}

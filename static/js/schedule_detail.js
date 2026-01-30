@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
                     </td>
                     <td>${data.employee.full_name}</td>
-                    <td>${data.employee.position_display || data.employee.position_name}</td>
+                    <td>${data.employee.is_leader ? 'Вожатый' : (data.employee.position_display || data.employee.position_name)}</td>
                     <td class="salary-amount">${data.employee.calculated_salary || 0}</td>
                     <td>${data.employee.rate_per_day}</td>
                     <td class="text-center">${data.employee.total_attendance}</td>
@@ -1060,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.getElementById(`employee-${employee.id}`);
     if (row) {
       row.cells[2].textContent = employee.full_name;
-      row.cells[3].textContent = employee.position_display || employee.position_name;
+      row.cells[3].textContent = employee.is_leader ? 'Вожатый' : (employee.position_display || employee.position_name);
       row.cells[5].textContent = `${employee.rate_per_day}`; // Обновлен индекс
 
       // Обновляем данные в кнопке удаления
@@ -1265,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const select = document.querySelector('#employee-form select[name="employee"]');
           const option = document.createElement('option');
           option.value = data.employee.id;
-          option.textContent = `${data.employee.full_name} (${data.employee.position_display || data.employee.position_name})`;
+          option.textContent = `${data.employee.full_name} (${data.employee.is_leader ? 'Вожатый' : (data.employee.position_display || data.employee.position_name)})`;
           select.appendChild(option);
 
           // Автоматически выбираем нового сотрудника

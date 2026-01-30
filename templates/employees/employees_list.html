@@ -64,7 +64,9 @@
                 </button>
               </td>
               <td>{{ employee.full_name }}</td>
-              <td>{{ employee.position.name }}</td>
+              <td>
+                  {% if employee.is_leader %}Вожатый{% else %}{{ employee.position.name }}{% endif %}
+              </td>
               <td>{{ employee.branch.name|default:"—" }}</td>
               <td>{{ employee.schedule.name|default:"—" }}</td>
               <td>{{ employee.rate_per_day }}</td>

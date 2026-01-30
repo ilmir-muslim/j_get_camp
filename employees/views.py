@@ -299,6 +299,7 @@ def employee_quick_edit(request, pk):
                             employee.schedule.name if employee.schedule else None
                         ),
                         "rate_per_day": employee.rate_per_day,
+                        "is_leader": employee.is_leader,
                     },
                 }
             )
@@ -341,6 +342,7 @@ def employee_create_ajax(request):
                             employee.schedule.name if employee.schedule else None
                         ),
                         "rate_per_day": str(employee.rate_per_day),
+                        "is_leader": employee.is_leader,
                     },
                 }
             )

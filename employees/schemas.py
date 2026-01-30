@@ -19,6 +19,7 @@ class EmployeeSchema(Schema):
     branch_id: Optional[int] = None
     schedule_id: Optional[int] = None
     rate_per_day: float
+    is_leader: bool
 
 
 class EmployeeCreateSchema(Schema):
@@ -27,6 +28,7 @@ class EmployeeCreateSchema(Schema):
     branch_id: Optional[int] = None
     schedule_id: Optional[int] = None
     rate_per_day: float
+    is_leader: bool = False
 
 
 class EmployeeAttendanceSchema(Schema):

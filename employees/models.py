@@ -9,9 +9,7 @@ class Position(models.Model):
 
     name = models.CharField(max_length=100, verbose_name="Название должности")
     responsibilities = models.TextField(
-        verbose_name="Должностные обязанности",
-        blank=True,
-        null=True
+        verbose_name="Должностные обязанности", blank=True, null=True
     )
 
     class Meta:
@@ -49,6 +47,23 @@ class Employee(models.Model):
         null=True,
         blank=True,
     )
+    squad = models.ForeignKey(
+        "students.Squad",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Отряд",
+        related_name="employees",
+    )
+    is_leader = models.BooleanField(
+        default=False, verbose_name="Является лидером отряда"
+    )
+
+    def save(self, *args, **kwargs):
+        # Автоматически устанавливаем флаг is_leader в True, если сотруднику назначен отряд
+        if self.squad:
+            self.is_leader = True
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Сотрудник"
