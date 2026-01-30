@@ -972,11 +972,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Удаляем старые классы подсветки из ячейки платежей
       paymentCell.classList.remove('payment-success', 'payment-danger');
 
-      // Обновляем цвет ячейки платежей (старая логика - удаляем)
-      const costCell = row.cells[2];
-      const cost = parseFloat(costCell.textContent) || 0;
-
-      // ОБНОВЛЯЕМ БАЛАНС (5-я ячейка) - теперь баланс = платежи - стоимость
+      // Обновляем баланс (5-я ячейка) - баланс = платежи - стоимость
       const balanceCell = row.cells[4];
       const newBalance = totalPaid - cost;
       balanceCell.textContent = newBalance.toFixed(2);
@@ -984,7 +980,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Убираем все старые классы из ячейки баланса
       balanceCell.classList.remove('text-success', 'text-danger', 'text-muted', 'balance-positive', 'balance-negative', 'balance-zero');
 
-      // ДОБАВЛЯЕМ ПРАВИЛЬНЫЕ КЛАССЫ ПОДСВЕТКИ В ЯЧЕЙКУ БАЛАНСА
+      // Добавляем правильные классы подсветки в ячейку баланса
       if (newBalance > 0) {
         balanceCell.classList.add('balance-positive');
       } else if (newBalance < 0) {
@@ -1055,39 +1051,67 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Обновление данных сотрудника на странице
-  function updateEmployeeRow(employee) {
-    const row = document.getElementById(`employee-${employee.id}`);
-    if (row) {
-      row.cells[2].textContent = employee.full_name;
-      row.cells[3].textContent = employee.is_leader ? 'Вожатый' : (employee.position_display || employee.position_name);
-      row.cells[5].textContent = `${employee.rate_per_day}`; // Обновлен индекс
-
-      // Обновляем данные в кнопке удаления
-      const removeBtn = row.querySelector('.remove-employee');
-      if (removeBtn) {
-        removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display || employee.position_name})`;
-      }
-    }
-  }
-
-  // Обновление данных ученика на странице
+  // Функция для обновления данных ученика на странице
   function updateStudentRow(student) {
+    console.log('Updating student row:', student);  // Для отладки
+
     const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
     if (row) {
-      row.cells[2].textContent = student.individual_price || student.default_price;
-      row.cells[5].textContent = student.get_attendance_type_display();
-      row.cells[6].textContent = student.squad?.name || "—";
+      // Обновляем стоимость
+      const price = student.individual_price || student.default_price;
+      row.cells[2].textContent = price;
+
+      // Обновляем тип посещения
+      row.cells[5].textContent = student.attendance_type_display || '';
+
+      // Обновляем отряд (6-я ячейка, считая с 0)
+      const squadCell = row.cells[6];
+      const squadName = student.squad_name || "—";
+      squadCell.textContent = squadName;
+
+      // Обновляем ФИО
       row.cells[7].textContent = student.full_name;
 
-      // Обновляем data-атрибуты
-      row.dataset.squad = student.squad?.name || "";
+      // Обновляем data-атрибуты для фильтрации
+      row.dataset.squad = squadName !== "—" ? squadName : "";
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-student-attendance');
       if (removeBtn) {
         removeBtn.dataset.studentName = student.full_name;
       }
+
+      console.log(`Updated squad for student ${student.id}: "${squadName}"`);  // Для отладки
+
+      // Обновляем цвет ячеек баланса
+      colorizePaymentCells();
+
+      // Обновляем нумерацию строк
+      updateStudentRowNumbers();
+
+      // Обновляем фильтрацию, если она активна
+      filterAttendanceTable();
+    } else {
+      console.error(`Row not found for student id: ${student.id}`);
+    }
+  }
+
+  // Функция для обновления данных сотрудника на странице
+  function updateEmployeeRow(employee) {
+    const row = document.getElementById(`employee-${employee.id}`);
+    if (row) {
+      row.cells[2].textContent = employee.full_name;
+      row.cells[3].textContent = employee.is_leader ? 'Вожатый' : (employee.position_display || employee.position_name);
+      row.cells[5].textContent = `${employee.rate_per_day}`;
+
+      // Обновляем данные в кнопке удаления
+      const removeBtn = row.querySelector('.remove-employee');
+      if (removeBtn) {
+        removeBtn.dataset.employeeDisplay = `${employee.full_name} (${employee.position_display || employee.position_name})`;
+      }
+
+      // Обновляем нумерацию строк сотрудников
+      updateEmployeeRowNumbers();
     }
   }
 
@@ -1101,6 +1125,8 @@ document.addEventListener('DOMContentLoaded', function () {
     originalButton.disabled = true;
     originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
 
+    console.log(`Submitting ${entityName} form...`);  // Для отладки
+
     fetch(form.action, {
       method: form.method,
       body: formData,
@@ -1111,55 +1137,14 @@ document.addEventListener('DOMContentLoaded', function () {
     })
       .then(response => response.json())
       .then(data => {
+        console.log(`Server response for ${entityName}:`, data);  // Для отладки
+
         if (data.success) {
-          // Получаем экземпляр модального окна и закрываем его
+          // Закрываем модальное окно
           const modalElement = document.getElementById('universalFormModal');
-
-          // Используем более надежный способ закрытия модального окна
-          if (modalElement) {
-            // Получаем экземпляр модального окна, если он существует
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-
-            if (modalInstance) {
-              modalInstance.hide();
-            } else {
-              // Если экземпляр не найден, создаем новый и сразу закрываем
-              const newModalInstance = new bootstrap.Modal(modalElement);
-              newModalInstance.hide();
-            }
-
-            // Удаляем backdrop (затемнение) вручную, если он остался
-            setTimeout(() => {
-              const backdrops = document.querySelectorAll('.modal-backdrop');
-              backdrops.forEach(backdrop => {
-                backdrop.remove();
-              });
-
-              // Восстанавливаем прокрутку страницы более надежно
-              document.body.classList.remove('modal-open');
-              document.body.style.overflow = '';
-              document.body.style.paddingRight = '';
-
-              // Принудительно восстанавливаем возможность прокрутки
-              document.documentElement.style.overflow = '';
-              document.documentElement.style.paddingRight = '';
-
-              // Добавляем небольшой таймаут для полного восстановления
-              setTimeout(() => {
-                // Принудительно активируем прокрутку
-                window.dispatchEvent(new Event('scroll'));
-
-                // Принудительно восстанавливаем фокус и взаимодействие
-                document.body.focus();
-                document.body.click();
-
-                // Восстанавливаем стандартное поведение прокрутки
-                document.body.style.overflow = 'auto';
-                document.body.style.overflowX = 'hidden';
-                document.documentElement.style.overflow = 'auto';
-                document.documentElement.style.overflowX = 'hidden';
-              }, 50);
-            }, 100);
+          const modalInstance = bootstrap.Modal.getInstance(modalElement);
+          if (modalInstance) {
+            modalInstance.hide();
           }
 
           showToast(`${entityName} успешно сохранен`, 'success');
@@ -1173,9 +1158,12 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           let errorMsg = 'Ошибка сохранения: ';
           if (data.errors) {
+            // Обработка ошибок формы
             for (let field in data.errors) {
               errorMsg += data.errors[field].join(', ');
             }
+          } else if (data.error) {
+            errorMsg += data.error;
           } else {
             errorMsg += 'Неизвестная ошибка';
           }
@@ -1626,7 +1614,7 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(error => {
         console.error('Error:', error);
-        showToast('Произошла ошибка при выплате зарплаты', 'error');
+        showToast('Произошва ошибка при выплате зарплаты', 'error');
       });
   }
 

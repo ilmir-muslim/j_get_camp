@@ -251,6 +251,7 @@ def student_create_ajax(request):
                         if student.individual_price
                         else None
                     ),
+                    "squad_name": student.squad.name if student.squad else None,
                     "price_comment": student.price_comment,
                 },
             }
@@ -296,6 +297,8 @@ def student_quick_edit(request, pk):
                             if student.individual_price
                             else None
                         ),
+                        "squad_name": student.squad.name if student.squad else None,
+                        "squad_id": student.squad.id if student.squad else None,
                         "price_comment": student.price_comment,
                     },
                 }
