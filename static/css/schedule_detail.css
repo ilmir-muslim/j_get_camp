@@ -268,8 +268,6 @@
   font-weight: bold;
 }
 
-/* Удаляем старые стили для платежей, так как они не нужны */
-/* .payment-success и .payment-danger были удалены */
 
 .card-header.bg-primary.text-white {
   cursor: pointer;
@@ -319,22 +317,103 @@
   font-style: italic;
 }
 
-/* Улучшаем отображение римских цифр в отрядах */
-.squad-cell {
+/* Стили для отрядов с вожатыми */
+.squad-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  position: relative;
+}
+
+.squad-number-wrapper {
+  position: relative;
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}
+
+.squad-number {
   font-family: 'Times New Roman', serif;
   font-weight: bold;
+  font-size: 1.1rem;
   color: #2c3e50;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
   letter-spacing: 0.5px;
+  text-align: center;
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.leader-info {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: -23px;
+  /* Изменено: сноска выше цифры */
+  background-color: #2c3e50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  min-width: 100px;
+  max-width: 150px;
+  text-align: left;
+}
+
+.leader-info::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 12px;
+  /* Изменено: стрелка чуть ниже верхнего края */
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #2c3e50 transparent transparent;
+}
+
+.leader-name {
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.squad-cell[title],
+.squad-cell:hover::after,
+.squad-tooltip,
+.leader-indicator {
+  display: none !important;
 }
 
 /* Подсветка ячеек с отрядами при наведении */
-.attendance-table tr:hover td:nth-child(7) {
-  background-color: #f0f7ff;
-  transition: background-color 0.2s ease;
+.attendance-table tr:hover .squad-number {
+  color: #1a252f;
 }
 
 /* Адаптивность для маленьких экранов */
+@media (max-width: 768px) {
+  .leader-info {
+    font-size: 10px;
+    padding: 3px 6px;
+    min-width: 80px;
+    max-width: 120px;
+    top: -6px;
+  }
+
+  .leader-info::before {
+    border-width: 4px;
+    top: 10px;
+  }
+}
+
 @media (max-width: 1200px) {
 
   .attendance-table th:nth-child(8),

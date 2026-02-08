@@ -164,3 +164,24 @@ def list_squads(request):
             squads = squads.filter(schedule__branch__city=user_city)
 
     return squads
+
+
+@router.get("/squads/{squad_id}/", response=SquadSchema)
+def get_squad(request, squad_id: int):
+    """Получить информацию об отряде с вожатым"""
+    squad = get_object_or_404(Squad, id=squad_id)
+
+    # Проверка доступа для администраторов и начальников
+    user = request.user
+    if user.role == "admin" and user.city:
+        if squad.schedule.branch.city != user.city:
+            from django.http import JsonResponse
+
+            return JsonResponse({"error": "Доступ запрещен"}, status=403)
+    elif user.role in ["camp_head", "lab_head"]:
+        if squad.schedule.branch != user.branch:
+            from django.http import JsonResponse
+
+            return JsonResponse({"error": "Доступ запрещен"}, status=403)
+
+    return squad

@@ -43,4 +43,5 @@ urlpatterns = [
         views.add_payment_form,
         name="student_add_payment_form",
     ),
+    path("squads/<int:pk>/", views.get_squad, name="get_squad"),
 ]

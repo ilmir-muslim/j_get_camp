@@ -9,6 +9,18 @@ class SquadSchema(Schema):
     name: str
     leader_id: Optional[int]
     schedule_id: int
+    # Добавьте это поле для информации о вожатом
+    leader: Optional[dict] = None
+
+    @staticmethod
+    def resolve_leader(obj, info):
+        if obj.leader:
+            return {
+                "id": obj.leader.id,
+                "full_name": obj.leader.full_name,
+                "position": obj.leader.position.name if obj.leader.position else None,
+            }
+        return None
 
 
 class StudentSchema(Schema):
@@ -23,6 +35,19 @@ class StudentSchema(Schema):
     default_price: float
     individual_price: Optional[float]
     price_comment: Optional[str]
+    # Добавьте эти поля для удобства
+    squad_name: Optional[str] = None
+    squad_leader_name: Optional[str] = None
+
+    @staticmethod
+    def resolve_squad_name(obj, info):
+        return obj.squad.name if obj.squad else None
+
+    @staticmethod
+    def resolve_squad_leader_name(obj, info):
+        if obj.squad and obj.squad.leader:
+            return obj.squad.leader.full_name
+        return None
 
 
 class StudentCreateSchema(Schema):

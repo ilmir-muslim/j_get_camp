@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
               // Запрашиваем обновленные данные с сервера
               fetchUpdatedScheduleData(scheduleId);
 
-              showToast('Ученик удален из смены. Списание отменено.', 'success');
+              showToast('Ученик удален из смену. Списание отменено.', 'success');
             } else {
               showToast(data.error || 'Ошибка при удалении ученика', 'error');
             }
@@ -974,6 +974,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Обновляем баланс (5-я ячейка) - баланс = платежи - стоимость
       const balanceCell = row.cells[4];
+      const cost = parseFloat(row.cells[2].textContent) || 0;
       const newBalance = totalPaid - cost;
       balanceCell.textContent = newBalance.toFixed(2);
 
@@ -1051,9 +1052,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Функция для обновления данных ученика на странице
+  // Функция для обновления данных ученика на странице (ОБНОВЛЕНА)
   function updateStudentRow(student) {
-    console.log('Updating student row:', student);  // Для отладки
+    console.log('Updating student row with full data:', student);
 
     const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
     if (row) {
@@ -1062,18 +1063,79 @@ document.addEventListener('DOMContentLoaded', function () {
       row.cells[2].textContent = price;
 
       // Обновляем тип посещения
-      row.cells[5].textContent = student.attendance_type_display || '';
+      row.cells[5].textContent = student.attendance_type_display || student.get_attendance_type_display || '';
+
+      // Получаем информацию о вожатом из разных форматов данных
+      let squadName = "—";
+      let squadLeaderName = null;
+      let squadId = null;
+
+      // Вариант 1: новый формат с squad_name и squad_leader_name
+      if (student.squad_name) {
+        squadName = student.squad_name;
+        squadLeaderName = student.squad_leader_name;
+        squadId = student.squad_id;
+      }
+      // Вариант 2: старый формат с вложенным объектом squad
+      else if (student.squad && student.squad.name) {
+        squadName = student.squad.name;
+        squadId = student.squad.id;
+        if (student.squad.leader && student.squad.leader.full_name) {
+          squadLeaderName = student.squad.leader.full_name;
+        }
+      }
+      // Вариант 3: данные из формы quick edit
+      else if (student.squad) {
+        // Если squad - это ID (например, из формы)
+        squadId = student.squad;
+        squadName = student.squad.toString();
+      }
 
       // Обновляем отряд (6-я ячейка, считая с 0)
       const squadCell = row.cells[6];
-      const squadName = student.squad_name || "—";
-      squadCell.textContent = squadName;
+      squadCell.setAttribute('data-squad-id', squadId || '');
+
+      if (squadName !== "—" && squadName) {
+        // Конвертируем в римские цифры если это число
+        let displaySquadName = squadName;
+        if (/^\d+$/.test(squadName)) {
+          displaySquadName = convertToRoman(parseInt(squadName));
+        }
+
+        const showLeaders = localStorage.getItem('showLeaders') !== 'false';
+        let squadHtml = `
+          <div class="squad-display">
+            <div class="squad-number-wrapper">
+              <span class="squad-number">${displaySquadName}</span>`;
+
+        // Если есть информация о вожатом, добавляем её
+        if (squadLeaderName) {
+          squadHtml += `
+                <div class="leader-info" style="display: ${showLeaders ? 'block' : 'none'}">
+                  <div class="leader-name">${squadLeaderName}</div>
+                </div>`;
+        }
+
+        squadHtml += `
+            </div>
+          </div>`;
+        squadCell.innerHTML = squadHtml;
+
+        // Если у нас пока нет информации о вожатом, но есть ID отряда,
+        // делаем запрос для получения полной информации
+        if (!squadLeaderName && squadId) {
+          fetchSquadLeaderInfo(squadId);
+        }
+      } else {
+        squadCell.innerHTML = "—";
+      }
 
       // Обновляем ФИО
       row.cells[7].textContent = student.full_name;
 
       // Обновляем data-атрибуты для фильтрации
-      row.dataset.squad = squadName !== "—" ? squadName : "";
+      const actualSquadName = squadName !== "—" && squadName ? squadName : "";
+      row.dataset.squad = actualSquadName;
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-student-attendance');
@@ -1081,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function () {
         removeBtn.dataset.studentName = student.full_name;
       }
 
-      console.log(`Updated squad for student ${student.id}: "${squadName}"`);  // Для отладки
+      console.log(`Updated squad for student ${student.id}: "${squadName}" with leader: "${squadLeaderName}"`);
 
       // Обновляем цвет ячеек баланса
       colorizePaymentCells();
@@ -1094,6 +1156,102 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       console.error(`Row not found for student id: ${student.id}`);
     }
+  }
+
+  // Новая функция для получения информации о вожатом отряда
+  function fetchSquadLeaderInfo(squadId) {
+    if (!squadId) return;
+
+    fetch(`/api/students/squads/${squadId}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(squadData => {
+        if (squadData.leader) {
+          // Обновляем все строки с этим отрядом
+          updateAllSquadRows(squadId, squadData);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching squad leader info:', error);
+      });
+  }
+
+  // Функция для обновления всех строк с данным отрядом
+  function updateAllSquadRows(squadId, squadData) {
+    const rows = document.querySelectorAll(`tr[data-student-id]`);
+    rows.forEach(row => {
+      const squadCell = row.cells[6];
+      const squadIdAttr = squadCell.getAttribute('data-squad-id');
+
+      if (squadIdAttr && squadIdAttr == squadId) {
+        updateSquadCellWithLeader(squadCell, squadData);
+      }
+    });
+  }
+
+  // Функция для обновления ячейки отряда с информацией о вожатом
+  function updateSquadCellWithLeader(squadCell, squadData) {
+    const squadName = squadData.name;
+    const squadLeader = squadData.leader;
+    const squadLeaderName = squadLeader ? squadLeader.full_name : null;
+    const showLeaders = localStorage.getItem('showLeaders') !== 'false';
+
+    let displaySquadName = squadName;
+    if (/^\d+$/.test(squadName)) {
+      displaySquadName = convertToRoman(parseInt(squadName));
+    }
+
+    let squadHtml = `
+      <div class="squad-display">
+        <div class="squad-number-wrapper">
+          <span class="squad-number">${displaySquadName}</span>`;
+
+    if (squadLeaderName) {
+      squadHtml += `
+            <div class="leader-info" style="display: ${showLeaders ? 'block' : 'none'}">
+              <div class="leader-name">${squadLeaderName}</div>
+            </div>`;
+    }
+
+    squadHtml += `
+        </div>
+      </div>`;
+
+    squadCell.innerHTML = squadHtml;
+  }
+
+  // Функция для преобразования числа в римские цифры
+  function convertToRoman(num) {
+    if (typeof num !== 'number' || num <= 0) return num;
+
+    const romanNumerals = [
+      [1000, 'M'],
+      [900, 'CM'],
+      [500, 'D'],
+      [400, 'CD'],
+      [100, 'C'],
+      [90, 'XC'],
+      [50, 'L'],
+      [40, 'XL'],
+      [10, 'X'],
+      [9, 'IX'],
+      [5, 'V'],
+      [4, 'IV'],
+      [1, 'I']
+    ];
+
+    let result = '';
+    for (const [value, numeral] of romanNumerals) {
+      while (num >= value) {
+        result += numeral;
+        num -= value;
+      }
+    }
+    return result;
   }
 
   // Функция для обновления данных сотрудника на странице
@@ -1125,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', function () {
     originalButton.disabled = true;
     originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Сохранение...';
 
-    console.log(`Submitting ${entityName} form...`);  // Для отладки
+    console.log(`Submitting ${entityName} form...`, Object.fromEntries(formData.entries()));  // Для отладки
 
     fetch(form.action, {
       method: form.method,
@@ -1135,7 +1293,12 @@ document.addEventListener('DOMContentLoaded', function () {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         console.log(`Server response for ${entityName}:`, data);  // Для отладки
 
@@ -1365,7 +1528,7 @@ document.addEventListener('DOMContentLoaded', function () {
           })
           .catch(error => {
             console.error('Error:', error);
-            showToast('Произошла ошибка при удалении записи', 'error');
+            showToast('Произошва ошибка при удалении записи', 'error');
           });
       }
     }
@@ -1882,6 +2045,46 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Функция для обновления отображения вожатых
+  function updateLeadersDisplay() {
+    const showLeaders = localStorage.getItem('showLeaders') !== 'false';
+    const leadersCheckbox = document.getElementById('show-leaders-checkbox');
+
+    if (leadersCheckbox) {
+      leadersCheckbox.checked = showLeaders;
+    }
+
+    // Показываем или скрываем блоки с информацией о вожатых
+    document.querySelectorAll('.leader-info').forEach(leaderInfo => {
+      leaderInfo.style.display = showLeaders ? 'block' : 'none';
+    });
+  }
+
+  // Инициализация отображения вожатых
+  function initLeadersDisplay() {
+    const showLeadersCheckbox = document.getElementById('show-leaders-checkbox');
+    if (showLeadersCheckbox) {
+      // Восстанавливаем состояние из localStorage
+      const savedState = localStorage.getItem('showLeaders');
+      if (savedState !== null) {
+        showLeadersCheckbox.checked = savedState === 'true';
+      } else {
+        // По умолчанию показываем вожатых
+        showLeadersCheckbox.checked = true;
+        localStorage.setItem('showLeaders', 'true');
+      }
+
+      // Применяем начальное состояние
+      updateLeadersDisplay();
+
+      // Обработчик изменения состояния
+      showLeadersCheckbox.addEventListener('change', function () {
+        localStorage.setItem('showLeaders', this.checked);
+        updateLeadersDisplay();
+      });
+    }
+  }
+
   const employeeCardHeader = document.querySelector('.card .card-header.bg-primary.text-white');
   if (employeeCardHeader && employeeCardHeader.textContent.includes('Сотрудники группы')) {
     const employeeCard = employeeCardHeader.closest('.card');
@@ -1920,8 +2123,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-
-
   updateExpensesTotal();
   // Обновляем финансовую сводку
   updateFinanceSummary();
@@ -1932,20 +2133,21 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('paymentUpdated', updateFinanceSummary);
 
   // Инициализация при загрузке страницы
-  document.addEventListener('DOMContentLoaded', function () {
-    initializePaymentButtons();
-    // Обновляем финансовую сводку
-    updateFinanceSummary();
+  initializePaymentButtons();
+  // Обновляем финансовую сводку
+  updateFinanceSummary();
 
-    // Обновляем цвет ячеек платежей
-    colorizePaymentCells();
+  // Обновляем цвет ячеек платежей
+  colorizePaymentCells();
 
-    // Обновляем итоговую сумму платежей
-    updateTotalPayments();
+  // Обновляем итоговую сумму платежей
+  updateTotalPayments();
 
-    // Обновляем текст кнопок платежей
-    updatePaymentButtonsText();
+  // Обновляем текст кнопок платежей
+  updatePaymentButtonsText();
 
-    console.log('Schedule detail initialization complete');
-  });
+  // Инициализация отображения вожатых
+  initLeadersDisplay();
+
+  console.log('Schedule detail initialization complete');
 });

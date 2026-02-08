@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load custom_tags %}
 {% load static %}
+{% load schedule_extras %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/schedule_detail.css' %}">
@@ -60,7 +61,7 @@
                 </form>
             </div>
             
-                <div class="table-responsive" id="employees-table-container">
+            <div class="table-responsive" id="employees-table-container">
                 <table class="attendance-table attendance-table-employees">       
                     <thead>
                         <tr>
@@ -246,6 +247,14 @@
                             <option value="squad-desc">Отряд (Я-А)</option>
                         </select>
                     </div>
+                    
+                    <!-- ДОБАВЛЯЕМ ЭТОТ ЧЕКБОКС -->
+                    <div class="filter-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="show-leaders-checkbox" checked>
+                            Показывать вожатых
+                        </label>
+                    </div>
                 </div>
             </div>
             
@@ -308,7 +317,22 @@
                                     {{ student.current_balance|floatformat:2 }}
                                 </td>
                                 <td>{{ student.get_attendance_type_display }}</td>
-                                <td>{{ student.squad.name|default:"—" }}</td>
+                                <td class="squad-cell" data-squad-id="{{ student.squad.id|default:'' }}">
+                                    {% if student.squad %}
+                                        <div class="squad-display">
+                                            <div class="squad-number-wrapper">
+                                                <span class="squad-number">{{ student.squad.name|romanize }}</span>
+                                                {% if student.squad.leader %}
+                                                    <div class="leader-info" style="display: none;">
+                                                        <div class="leader-name">{{ student.squad.leader.full_name }}</div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
                                 <td class="student-column">{{ student.full_name }}</td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}

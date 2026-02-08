@@ -18,7 +18,7 @@ from core.utils import role_required
 import schedule
 from schedule.models import Schedule
 from students.forms import BalanceForm, PaymentForm, StudentForm
-from .models import Balance, Payment, Student
+from .models import Balance, Payment, Student, Squad
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +252,12 @@ def student_create_ajax(request):
                         else None
                     ),
                     "squad_name": student.squad.name if student.squad else None,
+                    "squad_id": student.squad.id if student.squad else None,
+                    "squad_leader_name": (
+                        student.squad.leader.full_name
+                        if student.squad and student.squad.leader
+                        else None
+                    ),
                     "price_comment": student.price_comment,
                 },
             }
@@ -299,6 +305,11 @@ def student_quick_edit(request, pk):
                         ),
                         "squad_name": student.squad.name if student.squad else None,
                         "squad_id": student.squad.id if student.squad else None,
+                        "squad_leader_name": (
+                            student.squad.leader.full_name
+                            if student.squad and student.squad.leader
+                            else None
+                        ),
                         "price_comment": student.price_comment,
                     },
                 }
@@ -517,3 +528,26 @@ def add_payment_form(request, student_id):
             "total_paid": total_paid,
         },
     )
+
+
+@require_GET
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def get_squad(request, pk):
+    """Получить информацию об отряде с вожатым"""
+    squad = get_object_or_404(Squad, pk=pk)
+
+    squad_data = {
+        "id": squad.id,
+        "name": squad.name,
+        "schedule_id": squad.schedule.id,
+        "leader": None,
+    }
+
+    if squad.leader:
+        squad_data["leader"] = {
+            "id": squad.leader.id,
+            "full_name": squad.leader.full_name,
+            "position": squad.leader.position.name if squad.leader.position else "",
+        }
+
+    return JsonResponse(squad_data)
