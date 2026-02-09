@@ -281,7 +281,13 @@ def employee_quick_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
 
     if request.method == "POST":
-        form = EmployeeForm(request.POST, instance=employee, user=request.user)
+        # Получаем schedule_id из GET-параметров или из данных сотрудника
+        schedule_id = request.GET.get("schedule_id") or (
+            employee.schedule.id if employee.schedule else None
+        )
+        form = EmployeeForm(
+            request.POST, instance=employee, user=request.user, schedule_id=schedule_id
+        )
         if form.is_valid():
             employee = form.save()
             return JsonResponse(
@@ -290,8 +296,8 @@ def employee_quick_edit(request, pk):
                     "employee": {
                         "id": employee.id,
                         "full_name": employee.full_name,
-                        "position_name": employee.position.name,  # Добавьте это
-                        "position_display": employee.position.name,  # Для обратной совместимости
+                        "position_name": employee.position.name,
+                        "position_display": employee.position.name,
                         "branch_name": (
                             employee.branch.name if employee.branch else None
                         ),
@@ -300,12 +306,18 @@ def employee_quick_edit(request, pk):
                         ),
                         "rate_per_day": employee.rate_per_day,
                         "is_leader": employee.is_leader,
+                        "squad_id": employee.squad.id if employee.squad else None,
+                        "squad_name": employee.squad.name if employee.squad else None,
                     },
                 }
             )
         return JsonResponse({"success": False, "errors": form.errors})
 
-    form = EmployeeForm(instance=employee, user=request.user)
+    # GET-запрос: отображаем форму
+    schedule_id = request.GET.get("schedule_id") or (
+        employee.schedule.id if employee.schedule else None
+    )
+    form = EmployeeForm(instance=employee, user=request.user, schedule_id=schedule_id)
     return render(
         request,
         "employees/employee_quick_form.html",

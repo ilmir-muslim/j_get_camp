@@ -902,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const employeeId = row.id.split('-')[1];
-    loadFormIntoModal(`/employees/${employeeId}/quick_edit/`);
+    loadFormIntoModal(`/employees/${employeeId}/quick_edit/?schedule_id=${SCHEDULE_ID}`);
   });
 
   // Обработчик отправки формы платежа
@@ -1258,8 +1258,25 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateEmployeeRow(employee) {
     const row = document.getElementById(`employee-${employee.id}`);
     if (row) {
+      // Обновляем ФИО (3-я ячейка, индекс 2)
       row.cells[2].textContent = employee.full_name;
-      row.cells[3].textContent = employee.is_leader ? 'Вожатый' : (employee.position_display || employee.position_name);
+
+      // Обновляем колонку "Должность" (4-я ячейка, индекс 3)
+      let positionCell = row.cells[3];
+      if (employee.is_leader && employee.squad_name) {
+        // Преобразуем номер отряда в римские цифры
+        let squadName = employee.squad_name;
+        if (/^\d+$/.test(squadName)) {
+          squadName = convertToRoman(parseInt(squadName));
+        }
+        positionCell.textContent = `Вожатый отряда ${squadName}`;
+      } else if (employee.is_leader) {
+        positionCell.textContent = "Вожатый";
+      } else {
+        positionCell.textContent = employee.position_display || employee.position_name;
+      }
+
+      // Обновляем ставку за день (6-я ячейка, индекс 5)
       row.cells[5].textContent = `${employee.rate_per_day}`;
 
       // Обновляем данные в кнопке удаления
@@ -1804,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (shouldIgnore) return;
 
       const studentId = this.dataset.studentId;
-      loadFormIntoModal(`/students/${studentId}/quick_edit/`);
+      loadFormIntoModal(`/students/${studentId}/quick_edit/?schedule_id=${SCHEDULE_ID}`);
     });
   });
 
@@ -2148,6 +2165,157 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Инициализация отображения вожатых
   initLeadersDisplay();
+
+  // Функция для загрузки формы создания отряда
+  function loadSquadForm() {
+    fetch(`/students/squads/create/${SCHEDULE_ID}/`)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('squad-modal-content').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('squadModal'));
+        modal.show();
+
+        // Добавляем обработчик для формы создания отряда
+        const form = document.querySelector('#squad-create-form');
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            handleSquadFormSubmit(form);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading squad form:', error);
+        showToast('Ошибка при загрузке формы отряда', 'error');
+      });
+  }
+
+  // Обработчик отправки формы отряда
+  function handleSquadFormSubmit(form) {
+    const formData = new FormData(form);
+    const originalButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = originalButton.innerHTML;
+
+    // Показываем индикатор загрузки
+    originalButton.disabled = true;
+    originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Создание...';
+
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Закрываем модальное окно
+          const modal = bootstrap.Modal.getInstance(document.getElementById('squadModal'));
+          modal.hide();
+
+          showToast('Отряд успешно создан', 'success');
+
+          // Обновляем выпадающие списки отрядов во всех формах на странице
+          updateSquadSelects(data.squad);
+
+          // Если есть информация о вожатом, обновляем отображение сотрудника
+          if (data.squad.leader_id) {
+            updateEmployeeSquadDisplay(data.squad.leader_id, data.squad);
+          }
+        } else {
+          let errorMsg = 'Ошибка создания отряда: ';
+          if (data.errors) {
+            for (let field in data.errors) {
+              errorMsg += data.errors[field].join(', ');
+            }
+          }
+          showToast(errorMsg, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при создании отряда', 'error');
+      })
+      .finally(() => {
+        // Восстанавливаем кнопку
+        originalButton.disabled = false;
+        originalButton.innerHTML = originalButtonText;
+      });
+  }
+
+  // Функция для обновления выпадающих списков отрядов
+  function updateSquadSelects(squadData) {
+    // Обновляем select отрядов в форме учеников
+    const studentSquadSelects = document.querySelectorAll('select[name="squad"]');
+    studentSquadSelects.forEach(select => {
+      // Проверяем, что этот select не скрыт
+      if (select.offsetParent !== null) {
+        const option = document.createElement('option');
+        option.value = squadData.id;
+        option.textContent = squadData.roman_name || `Отряд ${squadData.name}`;
+        select.appendChild(option);
+
+        // Сортируем опции
+        const options = Array.from(select.options);
+        options.sort((a, b) => {
+          // Сначала опция "Не выбран"
+          if (a.value === '') return -1;
+          if (b.value === '') return 1;
+          // Сортируем по числовому значению
+          const aNum = parseInt(a.textContent.match(/\d+/)) || 0;
+          const bNum = parseInt(b.textContent.match(/\d+/)) || 0;
+          return aNum - bNum;
+        });
+
+        // Очищаем и перезаполняем select
+        select.innerHTML = '';
+        options.forEach(opt => select.appendChild(opt));
+      }
+    });
+
+    // Обновляем select отрядов в форме сотрудников
+    const employeeSquadSelects = document.querySelectorAll('select[name="squad"]');
+    employeeSquadSelects.forEach(select => {
+      // Проверяем, что этот select не скрыт и относится к форме сотрудника
+      if (select.offsetParent !== null && select.closest('#employee-quick-edit-form')) {
+        const option = document.createElement('option');
+        option.value = squadData.id;
+        option.textContent = squadData.roman_name || `Отряд ${squadData.name}`;
+        select.appendChild(option);
+
+        // Сортируем опции
+        const options = Array.from(select.options);
+        options.sort((a, b) => {
+          if (a.value === '') return -1;
+          if (b.value === '') return 1;
+          const aNum = parseInt(a.textContent.match(/\d+/)) || 0;
+          const bNum = parseInt(b.textContent.match(/\d+/)) || 0;
+          return aNum - bNum;
+        });
+
+        select.innerHTML = '';
+        options.forEach(opt => select.appendChild(opt));
+      }
+    });
+  }
+
+  // Функция для обновления отображения сотрудника как вожатого
+  function updateEmployeeSquadDisplay(employeeId, squadData) {
+    const row = document.getElementById(`employee-${employeeId}`);
+    if (row) {
+      const positionCell = row.querySelector('td:nth-child(4)'); // Колонка "Должность"
+      if (positionCell) {
+        positionCell.textContent = `Вожатый отряда ${squadData.roman_name || squadData.name}`;
+      }
+    }
+  }
+
+  // Добавляем обработчик для кнопки "Добавить отряд"
+  document.getElementById('add-squad-btn')?.addEventListener('click', function () {
+    loadSquadForm();
+  });
 
   console.log('Schedule detail initialization complete');
 });

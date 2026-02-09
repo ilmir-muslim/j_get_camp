@@ -19,7 +19,8 @@ from core.utils import role_required
 from employees.models import Employee, EmployeeAttendance, Position
 from payroll.forms import PaymentForm
 from payroll.models import Expense, ExpenseCategory, Salary
-from students.models import Balance, Payment, Student
+from students.forms import SquadForm
+from students.models import Balance, Payment, Squad, Student
 from schedule.forms import ScheduleForm
 from students.models import Attendance, Student
 
@@ -815,3 +816,67 @@ def export_schedule_attendance_pdf(request, pk):
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
     response["Content-Disposition"] = f"inline; filename=attendance_{schedule.name}.pdf"
     return response
+
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def create_squad(request, pk):
+    """Создание отряда через AJAX"""
+    schedule = get_object_or_404(Schedule, pk=pk)
+
+    if request.method == "POST":
+        form = SquadForm(request.POST, schedule=schedule, request=request)
+        if form.is_valid():
+            squad = form.save(commit=False)
+            squad.schedule = schedule
+            squad.save()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "squad": {
+                        "id": squad.id,
+                        "name": squad.name,
+                        "leader_id": squad.leader.id if squad.leader else None,
+                        "leader_name": squad.leader.full_name if squad.leader else None,
+                    },
+                    "message": f"Отряд {squad.name} успешно создан",
+                }
+            )
+        else:
+            return JsonResponse(
+                {"success": False, "errors": form.errors.as_json()}, status=400
+            )
+
+    # GET запрос - отдать форму
+    form = SquadForm(schedule=schedule, request=request)
+    return render(
+        request, "schedule/squad_form.html", {"form": form, "schedule": schedule}
+    )
+
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def delete_squad(request, pk, squad_id):
+    """Удаление отряда"""
+    schedule = get_object_or_404(Schedule, pk=pk)
+    squad = get_object_or_404(Squad, id=squad_id, schedule=schedule)
+
+    if request.method == "POST":
+        # Проверяем, нет ли учеников или сотрудников в отряде
+        if squad.students.exists():
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Невозможно удалить отряд, в котором есть ученики",
+                },
+                status=400,
+            )
+
+        # Если у отряда есть вожатый, сбрасываем у него флаг is_leader
+        if squad.leader:
+            squad.leader.is_leader = False
+            squad.leader.save(update_fields=["is_leader"])
+
+        squad.delete()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False, "error": "Метод не разрешен"}, status=405)

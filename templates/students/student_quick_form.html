@@ -5,6 +5,13 @@
 <div class="modal-body">
   <form id="student-quick-edit-form" method="post" action="{% url 'student_quick_edit' student.id %}">
     {% csrf_token %}
+    
+    <!-- Скрытое поле для передачи schedule_id -->
+    {% if schedule_id %}
+    <input type="hidden" name="schedule_id" value="{{ schedule_id }}">
+    <input type="hidden" name="schedule" value="{{ schedule_id }}">
+    {% endif %}
+    
     <div class="mb-3">
       <label for="{{ form.full_name.id_for_label }}" class="form-label">ФИО</label>
       {{ form.full_name }}
@@ -17,14 +24,47 @@
       <label for="{{ form.parent_name.id_for_label }}" class="form-label">Родитель</label>
       {{ form.parent_name }}
     </div>
-    <div class="mb-3">
-      <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена</label>
-      {{ form.schedule }}
+    
+    <!-- Поле смены -->
+    {% if schedule_id %}
+        <!-- Если schedule_id передан, то показываем смену как статический текст -->
+        <div class="mb-3">
+          <label class="form-label">Смена</label>
+          <div class="form-control form-control-plaintext">
+            {{ student.schedule.name|default:"Текущая смена" }}
+          </div>
+        </div>
+    {% else %}
+        <!-- Иначе показываем выпадающий список -->
+        <div class="mb-3">
+          <label for="{{ form.schedule.id_for_label }}" class="form-label">Смена</label>
+          {{ form.schedule }}
+        </div>
+    {% endif %}
+    
+    <!-- Поле отряда -->
+    <div class="mb-3" id="squad-field-container">
+      <label for="{{ form.squad.id_for_label }}" class="form-label">Отряд</label>
+      <div class="alert alert-info p-2 mb-2">
+        <small>
+          <i class="bi bi-info-circle"></i> 
+          {% if schedule_id or student.schedule %}
+            Отображаются только отряды текущей смены.
+          {% else %}
+            Отображаются только отряды выбранной смены.
+          {% endif %}
+        </small>
+      </div>
+      {{ form.squad }}
+      {% if form.squad.errors %}
+        <div class="invalid-feedback d-block">
+          {% for error in form.squad.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
-    <div class="mb-3">
-    <label for="{{ form.squad.id_for_label }}" class="form-label">Отряд</label>
-        {{ form.squad }}
-    </div>
+    
     <div class="mb-3">
       <label for="{{ form.attendance_type.id_for_label }}" class="form-label">Тип посещения</label>
       {{ form.attendance_type }}
@@ -51,3 +91,83 @@
     </div>
   </form>
 </div>
+
+{% if schedule_id or student.schedule %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Функция для загрузки отрядов по выбранной смене
+    function loadSquads(scheduleId) {
+        const squadField = document.getElementById('{{ form.squad.id_for_label }}');
+        const squadFieldContainer = document.getElementById('squad-field-container');
+        
+        if (!scheduleId || !squadField) {
+            if (squadFieldContainer) {
+                squadFieldContainer.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Показываем поле отряда
+        if (squadFieldContainer) {
+            squadFieldContainer.style.display = 'block';
+        }
+        
+        // Загружаем отряды для выбранной смены
+        fetch(`/api/students/squads/?schedule_id=${scheduleId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Сохраняем текущее значение
+                const currentValue = squadField.value;
+                
+                // Очищаем и заполняем опции
+                squadField.innerHTML = '<option value="">Не выбран</option>';
+                data.forEach(squad => {
+                    const option = document.createElement('option');
+                    option.value = squad.id;
+                    option.textContent = squad.name;
+                    if (squad.id == currentValue) {
+                        option.selected = true;
+                    }
+                    squadField.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке отрядов:', error);
+            });
+    }
+    
+    // Находим поле выбора смены
+    const scheduleField = document.getElementById('{{ form.schedule.id_for_label }}');
+    const squadField = document.getElementById('{{ form.squad.id_for_label }}');
+    
+    // Если поле смены существует, добавляем обработчик
+    if (scheduleField) {
+        // Загружаем отряды при изменении смены
+        scheduleField.addEventListener('change', function() {
+            loadSquads(this.value);
+        });
+        
+        // Инициализируем загрузку отрядов при открытии формы, если смена уже выбрана
+        if (scheduleField.value) {
+            loadSquads(scheduleField.value);
+        } else if (squadField && squadField.value) {
+            // Если нет смены, но есть отряд - скрываем поле
+            const squadFieldContainer = document.getElementById('squad-field-container');
+            if (squadFieldContainer) {
+                squadFieldContainer.style.display = 'none';
+            }
+        }
+    }
+    
+    // Если schedule_id передан, сразу загружаем отряды
+    {% if schedule_id %}
+    loadSquads('{{ schedule_id }}');
+    {% endif %}
+});
+</script>
+{% endif %}

@@ -1,0 +1,47 @@
+<div class="modal-header">
+  <h5 class="modal-title">Создать отряд</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <form id="squad-create-form" method="post" action="{% url 'squad_create' schedule.id %}">
+    {% csrf_token %}
+    
+    <div class="mb-3">
+      <label for="{{ form.name.id_for_label }}" class="form-label">Номер отряда</label>
+      {{ form.name }}
+      <div class="form-text">Введите целое число от 1 до 20</div>
+      {% if form.name.errors %}
+        <div class="invalid-feedback d-block">
+          {% for error in form.name.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+    
+    <div class="mb-3">
+      <label for="{{ form.leader.id_for_label }}" class="form-label">Вожатый (опционально)</label>
+      {{ form.leader }}
+      <div class="form-text">Можно выбрать вожатого из списка сотрудников этой смены</div>
+      {% if form.leader.errors %}
+        <div class="invalid-feedback d-block">
+          {% for error in form.leader.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+    
+    <div class="alert alert-info">
+      <small>
+        <i class="bi bi-info-circle"></i> 
+        Отряд будет автоматически привязан к текущей смене: <strong>{{ schedule.name }}</strong>
+      </small>
+    </div>
+    
+    <div class="d-flex justify-content-between">
+      <button type="submit" class="btn btn-primary">Создать отряд</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    </div>
+  </form>
+</div>

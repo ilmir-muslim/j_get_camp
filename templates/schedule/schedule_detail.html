@@ -23,7 +23,12 @@
     
     <h1>{{ schedule.name }}</h1>
     <p class="lead">{{ schedule.start_date }} - {{ schedule.end_date }} | {{ schedule.branch.name }}</p>
-    <p><strong>Тематика:</strong> {{ schedule.theme }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <p class="mb-0"><strong>Тематика:</strong> {{ schedule.theme }}</p>
+        <button type="button" class="btn btn-primary" id="add-squad-btn">
+            <i class="bi bi-plus-circle"></i> Добавить отряд
+        </button>
+    </div>
     
     <!-- Универсальное модальное окно для форм -->
     <div class="modal fade" id="universalFormModal" tabindex="-1" aria-labelledby="universalFormModalLabel" aria-hidden="true">
@@ -37,7 +42,9 @@
     <!-- Сотрудники группы - на всю ширину -->
     <div class="card mb-5">
         <div class="card-header bg-primary text-white">
-            <h3>Сотрудники группы</h3>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3>Сотрудники группы</h3>
+            </div>
         </div>
         <div class="card-body">
             <!-- Форма сотрудника -->
@@ -111,7 +118,13 @@
 
                                 <td class="student-column">{{ employee.full_name }}</td>
                                 <td>
-                                    {% if employee.is_leader %}Вожатый{% else %}{{ employee.position.name }}{% endif %}
+                                    {% if employee.is_leader and employee.squad %}
+                                        Вожатый отряда {{ employee.squad.name|romanize }}
+                                    {% elif employee.is_leader %}
+                                        Вожатый
+                                    {% else %}
+                                        {{ employee.position.name }}
+                                    {% endif %}
                                 </td>
                                 <td class="salary-amount">
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
@@ -575,6 +588,15 @@
     <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content" id="expense-modal-content">
+                <!-- Контент будет загружен через AJAX -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для создания отряда -->
+    <div class="modal fade" id="squadModal" tabindex="-1" aria-labelledby="squadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="squad-modal-content">
                 <!-- Контент будет загружен через AJAX -->
             </div>
         </div>

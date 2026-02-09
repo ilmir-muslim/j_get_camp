@@ -15,9 +15,8 @@ from django.db.models import Q
 from weasyprint import HTML
 
 from core.utils import role_required
-import schedule
 from schedule.models import Schedule
-from students.forms import BalanceForm, PaymentForm, StudentForm
+from students.forms import BalanceForm, PaymentForm, SquadForm, StudentForm
 from .models import Balance, Payment, Student, Squad
 
 logger = logging.getLogger(__name__)
@@ -277,7 +276,13 @@ def student_quick_edit(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        form = StudentForm(request.POST, instance=student, request=request)
+        # Получаем schedule_id из GET-параметров или из данных студента
+        schedule_id = request.GET.get("schedule_id") or (
+            student.schedule.id if student.schedule else None
+        )
+        form = StudentForm(
+            request.POST, instance=student, request=request, schedule_id=schedule_id
+        )
         if form.is_valid():
             student = form.save()
             return JsonResponse(
@@ -317,13 +322,17 @@ def student_quick_edit(request, pk):
         return JsonResponse({"success": False, "errors": form.errors})
 
     # GET-запрос — отрисовать форму
-    form = StudentForm(instance=student, request=request)
+    schedule_id = request.GET.get("schedule_id") or (
+        student.schedule.id if student.schedule else None
+    )
+    form = StudentForm(instance=student, request=request, schedule_id=schedule_id)
     return render(
         request,
         "students/student_quick_form.html",
         {
             "form": form,
             "student": student,
+            "schedule_id": schedule_id,  # Передаем в контекст
         },
     )
 
@@ -551,3 +560,36 @@ def get_squad(request, pk):
         }
 
     return JsonResponse(squad_data)
+
+
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def squad_create(request, schedule_id):
+    """Создание отряда для конкретной смены"""
+    schedule = get_object_or_404(Schedule, pk=schedule_id)
+
+    if request.method == "POST":
+        form = SquadForm(request.POST, schedule=schedule)
+        if form.is_valid():
+            squad = form.save(commit=False)
+            squad.schedule = schedule
+            squad.save()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "squad": {
+                        "id": squad.id,
+                        "name": squad.name,
+                        "roman_name": squad.roman_name,
+                        "leader_id": squad.leader.id if squad.leader else None,
+                        "leader_name": squad.leader.full_name if squad.leader else None,
+                    },
+                }
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
+
+    # GET запрос - показать форму
+    form = SquadForm(schedule=schedule)
+    return render(
+        request, "students/squad_form.html", {"form": form, "schedule": schedule}
+    )

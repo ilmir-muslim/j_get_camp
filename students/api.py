@@ -185,3 +185,27 @@ def get_squad(request, squad_id: int):
             return JsonResponse({"error": "Доступ запрещен"}, status=403)
 
     return squad
+
+
+@router.get("/squads/", response=list[SquadSchema])
+def list_squads(request, schedule_id: int = None):
+    """Получить список отрядов с возможностью фильтрации по смене"""
+    squads = Squad.objects.all()
+
+    # Фильтрация по смене если указан schedule_id
+    if schedule_id:
+        squads = squads.filter(schedule_id=schedule_id)
+
+    # Фильтрация для начальников лагеря/лаборатории
+    if request.user.role in ["camp_head", "lab_head"]:
+        user_branch = request.user.branch
+        if user_branch:
+            squads = squads.filter(schedule__branch=user_branch)
+
+    # Фильтрация по городу для администратора
+    elif request.user.role == "admin":
+        user_city = request.user.city
+        if user_city:
+            squads = squads.filter(schedule__branch__city=user_city)
+
+    return squads

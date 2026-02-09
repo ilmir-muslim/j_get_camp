@@ -3,12 +3,13 @@ from django.db.models import Sum
 from django.db import models
 from jget_crm import settings
 from schedule.models import Schedule
+from schedule.templatetags.schedule_extras import romanize
 
 
 class Squad(models.Model):
     """Модель отряда"""
 
-    name = models.CharField(max_length=100, verbose_name="Название отряда")
+    name = models.IntegerField(verbose_name="Номер отряда")  # Изменено на IntegerField
     leader = models.ForeignKey(
         "employees.Employee",
         on_delete=models.SET_NULL,
@@ -21,13 +22,34 @@ class Squad(models.Model):
         Schedule, on_delete=models.CASCADE, verbose_name="Смена", related_name="squads"
     )
 
+    def save(self, *args, **kwargs):
+        # Если у отряда есть вожатый, устанавливаем ему is_leader = True
+        if self.leader and hasattr(self.leader, "is_leader"):
+            self.leader.is_leader = True
+            self.leader.save(update_fields=["is_leader"])
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Отряд"
         verbose_name_plural = "Отряды"
         ordering = ["name"]
+        unique_together = [
+            "name",
+            "schedule",
+        ]  # Номер отряда должен быть уникальным в пределах смены
 
     def __str__(self):
-        return f"{self.name} ({self.schedule.name})"
+        return str(self.name)  # Просто возвращаем число как строку
+
+    @property
+    def roman_name(self):
+        """Возвращает номер отряда в римских цифрах"""
+
+        return (
+            romanize(self.name)
+            if hasattr(self, "name") and self.name
+            else str(self.name)
+        )
 
 
 class Student(models.Model):
