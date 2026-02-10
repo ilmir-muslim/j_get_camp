@@ -345,10 +345,11 @@ document.addEventListener('DOMContentLoaded', function () {
     employeesTable.addEventListener('click', handleAttendanceClick);
   }
 
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Генерация ячеек посещаемости для сотрудников
   function generateEmployeeAttendanceCells(employeeId, attendanceData) {
     return DATES_JSON.map(date => {
       const key = `${employeeId}_${date}`;
-      const status = attendanceData[key] || 'absent';
+      const status = (attendanceData && attendanceData[key]) ? attendanceData[key] : 'absent';
 
       let bgClass, icon;
       if (status === 'present') {
@@ -375,14 +376,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('');
   }
 
-  // Добавление сотрудника
+  // Добавление сотрудника - ИСПРАВЛЕННЫЙ ОБРАБОТЧИК
   const employeeForm = document.getElementById('employee-form');
   if (employeeForm) {
     employeeForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      const employeeId = this.querySelector('select[name="employee"]').value;
-      const employeeSelect = this.querySelector('select[name="employee"]');
-      const selectedOption = employeeSelect.querySelector(`option[value="${employeeId}"]`);
+
+      const form = this;
+      const employeeId = form.querySelector('select[name="employee"]').value;
+
+      if (!employeeId) {
+        showToast('Выберите сотрудника', 'error');
+        return;
+      }
 
       // Проверка, что сотрудник не добавлен
       if (document.getElementById(`employee-${employeeId}`)) {
@@ -390,8 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      const formData = new FormData(this);
-      formData.append('action', 'add_employee');
+      const formData = new FormData(form);
 
       fetch(`/schedule/${SCHEDULE_ID}/`, {
         method: 'POST',
@@ -401,17 +406,25 @@ document.addEventListener('DOMContentLoaded', function () {
           'X-Requested-With': 'XMLHttpRequest'
         }
       })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => {
+              console.error('Server response:', text);
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
             const tableBody = document.getElementById('employees-table');
             const emptyRow = tableBody.querySelector('tr td[colspan]');
             if (emptyRow) emptyRow.closest('tr').remove();
 
-            // Генерируем ячейки посещаемости на основе данных с сервера
+            // Генерируем ячейки посещаемости с безопасными данными
             const attendanceCells = generateEmployeeAttendanceCells(
               data.employee.id,
-              data.employee.attendance
+              data.employee.attendance || {}
             );
 
             const rowCount = tableBody.querySelectorAll('tr:not([style*="display: none"])').length;
@@ -433,7 +446,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                 data-employee-id="${data.employee.id}"
                                 data-employee-display="${data.employee.full_name} (${data.employee.position_display || data.employee.position_name})"
- 
                                 data-schedule-id="${SCHEDULE_ID}">
                             <i class="bi bi-trash text-danger fs-5"></i>
                         </button>
@@ -442,35 +454,39 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>${data.employee.is_leader ? 'Вожатый' : (data.employee.position_display || data.employee.position_name)}</td>
                     <td class="salary-amount">${data.employee.calculated_salary || 0}</td>
                     <td>${data.employee.rate_per_day}</td>
-                    <td class="text-center">${data.employee.total_attendance}</td>
+                    <td class="text-center">${data.employee.total_attendance || 0}</td>
                     ${attendanceCells}
                 `;
             tableBody.appendChild(newRow);
             updateEmployeeRowNumbers();
 
+            // Удаляем сотрудника из списка выбора
+            const employeeSelect = form.querySelector('select[name="employee"]');
+            const selectedOption = employeeSelect.querySelector(`option[value="${employeeId}"]`);
             if (selectedOption) {
               selectedOption.remove();
             }
 
-            this.reset();
+            form.reset();
             showToast('Сотрудник успешно добавлен', 'success');
-            updateAttendanceTotals(); // Обновляем итоги
+            updateAttendanceTotals();
           } else {
             showToast(data.error || 'Ошибка добавления сотрудника', 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          showToast('Произошла ошибка при добавлении сотрудника', 'error');
+          showToast('Произошла ошибка при добавлении сотрудника: ' + error.message, 'error');
         });
     });
   }
 
-  // Обработчик для формы добавления ученика
-  document.addEventListener('submit', function (e) {
-    if (e.target.id === 'student-form-attendance') {
+  // Обработчик для формы добавления ученика - ИСПРАВЛЕННЫЙ
+  const studentForm = document.getElementById('student-form-attendance');
+  if (studentForm) {
+    studentForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      const form = e.target;
+      const form = this;
       const studentId = document.getElementById('student-id-input').value;
       const studentName = document.getElementById('student-search-input').value;
 
@@ -481,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const formData = new FormData();
       formData.append('action', 'add_student');
-      formData.append('student', studentId);
+      formData.append('student_id', studentId); // ИСПРАВЛЕНО: было 'student'
 
       fetch(`/schedule/${SCHEDULE_ID}/`, {
         method: 'POST',
@@ -491,13 +507,21 @@ document.addEventListener('DOMContentLoaded', function () {
           'X-Requested-With': 'XMLHttpRequest'
         }
       })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => {
+              console.error('Server response:', text);
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
-            // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST ПРИ УСПЕШНОМ ДОБАВЛЕНИИ
+            // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST
             removeStudentFromDatalist(studentId);
 
-            showToast('Ученик успешно добавлен в смену. Списано ' + data.student.price, 'success');
+            showToast('Ученик успешно добавлен в смену', 'success');
             updateAttendanceTotals();
             setTimeout(() => {
               window.location.reload();
@@ -507,11 +531,11 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         })
         .catch(error => {
-          console.error('Error:', error);
-          showToast('Произошла ошибка при добавлении ученика', 'error');
+          console.error('Full error:', error);
+          showToast('Произошла ошибка при добавлении ученика: ' + error.message, 'error');
         });
-    }
-  });
+    });
+  }
 
   // Функция для удаления ученика из datalist
   function removeStudentFromDatalist(studentId) {
@@ -577,28 +601,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 tableBody.appendChild(emptyRow);
               }
 
-              const select = document.querySelector('#employee-form select[name="employee"]');
-
-              // Проверяем, существует ли уже такой option
-              const optionExists = Array.from(select.options).some(opt => opt.value === employeeId);
-
-              if (!optionExists) {
-                const option = document.createElement('option');
-                option.value = employeeId;
-                option.textContent = employeeDisplay;
-                select.appendChild(option);
-
-                // Сортируем опции по тексту
-                const options = Array.from(select.options);
-                options.sort((a, b) => a.text.localeCompare(b.text));
-
-                select.innerHTML = '';
-                options.forEach(opt => select.appendChild(opt));
-              }
+              // Добавляем сотрудника обратно в список выбора
+              addEmployeeToSelect(employeeId, employeeDisplay);
 
               showToast('Сотрудник удален из смены', 'success');
-              addEmployeeToSelect(employeeId, employeeDisplay);
-              updateAttendanceTotals(); // Обновляем итоги
+              updateAttendanceTotals();
             }
           })
           .catch(error => {
@@ -645,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function () {
               // Запрашиваем обновленные данные с сервера
               fetchUpdatedScheduleData(scheduleId);
 
-              showToast('Ученик удален из смену. Списание отменено.', 'success');
+              showToast('Ученик удален из смены', 'success');
             } else {
               showToast(data.error || 'Ошибка при удалении ученика', 'error');
             }
@@ -774,7 +781,6 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(error => {
         console.error('Error:', error);
         showToast('Произошла ошибка при создании ученика', 'error');
-        // Восстанавливаем кнопку
         btn.innerHTML = originalText;
         btn.disabled = false;
       });
@@ -1545,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', function () {
           })
           .catch(error => {
             console.error('Error:', error);
-            showToast('Произошва ошибка при удалении записи', 'error');
+            showToast('Произошла ошибка при удалении записи', 'error');
           });
       }
     }
@@ -1794,7 +1800,7 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(error => {
         console.error('Error:', error);
-        showToast('Произошва ошибка при выплате зарплаты', 'error');
+        showToast('Произошла ошибка при выплате зарплаты', 'error');
       });
   }
 

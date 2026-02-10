@@ -184,6 +184,111 @@ def schedule_detail(request, pk):
         "HTTP_REFERER", ""
     )
 
+    # Проверка доступа для администраторов и начальников
+    if user.role == "admin" and user.city and schedule.branch.city != user.city:
+        raise PermissionDenied
+    if user.role in ["camp_head", "lab_head"] and schedule.branch != user.branch:
+        raise PermissionDenied
+
+    # Обработка POST-запросов для добавления сотрудника или студента
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "add_employee":
+            employee_id = request.POST.get("employee")
+            if not employee_id:
+                return JsonResponse({"error": "Не указан сотрудник"}, status=400)
+
+            try:
+                employee = Employee.objects.get(id=employee_id)
+            except Employee.DoesNotExist:
+                return JsonResponse({"error": "Сотрудник не найден"}, status=404)
+
+            # Проверяем, что сотрудник не находится уже в этой смене
+            if employee.schedule == schedule:
+                return JsonResponse({"error": "Сотрудник уже в этой смене"}, status=400)
+
+            # Устанавливаем смену
+            employee.schedule = schedule
+            employee.save()
+
+            # Рассчитываем общее количество посещений для нового сотрудника
+            total_attendance = EmployeeAttendance.objects.filter(
+                employee=employee,
+                date__range=(schedule.start_date, schedule.end_date),
+                present=True,
+            ).count()
+
+            # Рассчитываем зарплату
+            calculated_salary = employee.rate_per_day * total_attendance
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "employee": {
+                        "id": employee.id,
+                        "full_name": employee.full_name,
+                        "position_name": (
+                            employee.position.name if employee.position else ""
+                        ),
+                        "position_display": (
+                            employee.position.name if employee.position else ""
+                        ),
+                        "is_leader": employee.is_leader,
+                        "rate_per_day": str(employee.rate_per_day),
+                        "calculated_salary": str(calculated_salary),
+                        "total_attendance": total_attendance,
+                        "attendance": {},  # Пустой словарь для посещаемости
+                    },
+                }
+            )
+
+        elif action == "add_student":
+            student_id = request.POST.get(
+                "student_id"
+            )  # ИСПРАВЛЕНО: было request.POST.get("student")
+            if not student_id:
+                return JsonResponse({"error": "Не указан ученик"}, status=400)
+
+            try:
+                student = Student.objects.get(id=student_id)
+            except Student.DoesNotExist:
+                return JsonResponse({"error": "Ученик не найден"}, status=404)
+
+            if student.schedule == schedule:
+                return JsonResponse({"error": "Ученик уже в этой смене"}, status=400)
+
+            # Автоматически списываем стоимость смены
+            try:
+                student.charge_for_schedule(schedule, request.user)
+            except Exception as e:
+                return JsonResponse({"error": f"Ошибка списания: {str(e)}"}, status=400)
+
+            student.schedule = schedule
+            student.save()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "student": {
+                        "id": student.id,
+                        "full_name": student.full_name,
+                        "attendance_type": student.get_attendance_type_display(),
+                        "default_price": str(student.default_price),
+                        "individual_price": (
+                            str(student.individual_price)
+                            if student.individual_price
+                            else None
+                        ),
+                        "current_balance": str(student.current_balance),
+                    },
+                }
+            )
+        else:
+            # Если действие не распознано, возвращаем ошибку
+            return JsonResponse({"error": "Неизвестное действие"}, status=400)
+
+    # Оригинальный код для GET-запроса
     dates = []
     current_date = schedule.start_date
     while current_date <= schedule.end_date:
@@ -372,7 +477,7 @@ def schedule_detail(request, pk):
         "available_branches": available_branches,
         "available_schedules": available_schedules,
         "salary_category_id": salary_category.id,
-        "squads_with_leaders": squads_with_leaders,  # Добавляем информацию о вожатых
+        "squads_with_leaders": squads_with_leaders,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
