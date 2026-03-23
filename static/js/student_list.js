@@ -10,7 +10,8 @@ function updateRowNumbers() {
 function initSpecialNotesTooltips() {
     document.querySelectorAll('.special-notes-cell').forEach(el => {
         if (!bootstrap.Tooltip.getInstance(el)) {
-            new bootstrap.Tooltip(el, { placement: 'top', trigger: 'hover' });
+            const titleText = el.getAttribute('data-bs-title') || '';
+            new bootstrap.Tooltip(el, { placement: 'top', trigger: 'hover', title: titleText });
         }
     });
 }
@@ -62,7 +63,11 @@ function loadStudentEditForm(studentId) {
                                     // Пересоздаём тултип
                                     const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
                                     if (oldTooltip) oldTooltip.dispose();
-                                    new bootstrap.Tooltip(specialNotesCell);
+                                    new bootstrap.Tooltip(specialNotesCell, {
+                                        placement: 'top',
+                                        trigger: 'hover',
+                                        title: specialNotes
+                                    });
                                 }
 
                                 modal.hide();
@@ -181,7 +186,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Инициализируем тултип для новой ячейки
                     const specialNotesCell = newRow.querySelector('.special-notes-cell');
                     if (specialNotesCell) {
-                        new bootstrap.Tooltip(specialNotesCell);
+                        const titleText = specialNotesCell.getAttribute('data-bs-title') || '';
+                        new bootstrap.Tooltip(specialNotesCell, {
+                            placement: 'top',
+                            trigger: 'hover',
+                            title: titleText
+                        });
                     }
 
                     // Добавляем обработчики для новых кнопок
