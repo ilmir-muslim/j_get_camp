@@ -77,9 +77,17 @@
   min-width: 230px;
   max-width: 350px;
 }
-/*явка*/
+
 .attendance-table th:nth-child(9),
 .attendance-table td:nth-child(9) {
+  width: 240px;
+  min-width: 230px;
+  max-width: 350px;
+}
+
+/*явка*/
+.attendance-table th:nth-child(10),
+.attendance-table td:nth-child(10) {
   width: 60px;
   min-width: 50px;
   max-width: 80px;

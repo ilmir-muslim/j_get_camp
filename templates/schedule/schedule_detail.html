@@ -283,6 +283,7 @@
                             <th>Тип</th>
                             <th>Отряд</th>
                             <th>ФИО</th>
+                            <th>Особые отметки</th>
                             <th>Явка</th>
                             {% for date in dates %}
                                 <th class="text-center date-cell" data-date="{{ date|date:'Y-m-d' }}">
@@ -347,6 +348,9 @@
                                     {% endif %}
                                 </td>
                                 <td class="student-column">{{ student.full_name }}</td>
+                                <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ student.special_notes|default:'' }}">
+                                    {{ student.special_notes|truncatechars:30 }}
+                                </td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}
                                     {% with key=student.id|stringformat:"s"|add:"_"|add:date.isoformat %}

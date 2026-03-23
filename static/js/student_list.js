@@ -6,6 +6,15 @@ function updateRowNumbers() {
     });
 }
 
+// Инициализация тултипов для ячеек special_notes
+function initSpecialNotesTooltips() {
+    document.querySelectorAll('.special-notes-cell').forEach(el => {
+        if (!bootstrap.Tooltip.getInstance(el)) {
+            new bootstrap.Tooltip(el, { placement: 'top', trigger: 'hover' });
+        }
+    });
+}
+
 // Функция для загрузки формы редактирования в модальное окно
 function loadStudentEditForm(studentId) {
     fetch(`/students/${studentId}/quick_edit/`)
@@ -41,10 +50,19 @@ function loadStudentEditForm(studentId) {
                                     row.cells[5].textContent = data.student.parent_name;
                                     row.cells[6].textContent = data.student.schedule_name || '—';
                                     // Обновляем филиал
-                                    row.cells[7].textContent = data.student.branch_name || '—';
-                                    row.cells[8].textContent = data.student.attendance_type_display;
-                                    row.cells[9].textContent = data.student.individual_price || data.student.default_price;
-                                    row.cells[10].textContent = data.student.price_comment || '';
+                                    row.cells[8].textContent = data.student.branch_name || '—';
+                                    row.cells[9].textContent = data.student.attendance_type_display;
+                                    row.cells[10].textContent = data.student.individual_price || data.student.default_price;
+                                    row.cells[11].textContent = data.student.price_comment || '';
+                                    // Особые отметки – ячейка с индексом 12
+                                    const specialNotesCell = row.cells[12];
+                                    const specialNotes = data.student.special_notes || '';
+                                    specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substring(0, 30) + '…' : specialNotes;
+                                    specialNotesCell.setAttribute('data-bs-title', specialNotes);
+                                    // Пересоздаём тултип
+                                    const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
+                                    if (oldTooltip) oldTooltip.dispose();
+                                    new bootstrap.Tooltip(specialNotesCell);
                                 }
 
                                 modal.hide();
@@ -100,6 +118,9 @@ function deleteStudent(studentId) {
 
 // Обработчики событий
 document.addEventListener('DOMContentLoaded', function () {
+    // Инициализация тултипов для существующих ячеек
+    initSpecialNotesTooltips();
+
     // Обработчик кнопки добавления ученика
     document.getElementById('add-student-btn').addEventListener('click', function () {
         const modal = new bootstrap.Modal(document.getElementById('createStudentModal'));
@@ -128,36 +149,45 @@ document.addEventListener('DOMContentLoaded', function () {
                     const newRow = document.createElement('tr');
                     newRow.id = `student-${data.student.id}`;
                     newRow.innerHTML = `
-                    <td>${tableBody.children.length + 1}</td>
-                    <td>
-                        <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
-                                data-student-id="${data.student.id}">
-                            <i class="bi bi-pencil text-primary"></i>
-                        </button>
-                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
-                                data-student-id="${data.student.id}">
-                            <i class="bi bi-trash text-danger"></i>
-                        </button>
-                    </td>
-                    <td>${data.student.full_name}</td>
-                    <td class="balance-cell" id="balance-${data.student.id}">0</td>
-                    <td>${data.student.phone || ''}</td>
-                    <td>${data.student.parent_name || ''}</td>
-                    <td>${data.student.schedule_name || '—'}</td>
-                    <td>${data.student.branch_name || '—'}</td>
-                    <td>${data.student.attendance_type_display}</td>
-                    <td>${data.student.individual_price || data.student.default_price}</td>
-                    <td>${data.student.price_comment || ''}</td>
-                `;
-
+                        <td>${tableBody.children.length + 1}</td>
+                        <td>
+                            <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
+                                    data-student-id="${data.student.id}">
+                                <i class="bi bi-pencil text-primary"></i>
+                            </button>
+                            <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
+                                    data-student-id="${data.student.id}">
+                                <i class="bi bi-trash text-danger"></i>
+                            </button>
+                        </td>
+                        <td>${data.student.full_name}</td>
+                        <td class="balance-cell" id="balance-${data.student.id}">0</td>
+                        <td>${data.student.phone || ''}</td>
+                        <td>${data.student.parent_name || ''}</td>
+                        <td>${data.student.schedule_name || '—'}</td>
+                        <td>${data.student.squad_name || '—'}</td>
+                        <td>${data.student.branch_name || '—'}</td>
+                        <td>${data.student.attendance_type_display}</td>
+                        <td>${data.student.individual_price || data.student.default_price}</td>
+                        <td>${data.student.price_comment || ''}</td>
+                        <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top"
+                            data-bs-title="${data.student.special_notes || ''}">
+                            ${data.student.special_notes ? (data.student.special_notes.length > 30 ? data.student.special_notes.substring(0, 30) + '…' : data.student.special_notes) : ''}
+                        </td>
+                    `;
                     tableBody.appendChild(newRow);
                     updateRowNumbers();
+
+                    // Инициализируем тултип для новой ячейки
+                    const specialNotesCell = newRow.querySelector('.special-notes-cell');
+                    if (specialNotesCell) {
+                        new bootstrap.Tooltip(specialNotesCell);
+                    }
 
                     // Добавляем обработчики для новых кнопок
                     newRow.querySelector('.edit-student-btn').addEventListener('click', function () {
                         loadStudentEditForm(data.student.id);
                     });
-
                     newRow.querySelector('.delete-student-btn').addEventListener('click', function () {
                         deleteStudent(data.student.id);
                     });

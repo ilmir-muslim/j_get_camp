@@ -398,6 +398,20 @@
   color: #1a252f;
 }
 
+.special-notes-cell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.tooltip-inner {
+  max-width: 300px;
+  word-wrap: break-word;
+  text-align: left;
+}
+
 /* Адаптивность для маленьких экранов */
 @media (max-width: 768px) {
   .leader-info {

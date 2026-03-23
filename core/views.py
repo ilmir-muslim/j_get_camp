@@ -7,6 +7,7 @@ from django.contrib import messages
 from core.utils import role_required
 from employees.models import Employee
 from payroll.models import Expense, Salary
+import schedule
 from schedule.models import Schedule
 from students.models import Student
 from branches.models import Branch
@@ -14,13 +15,67 @@ from .models import Ticket
 from .forms import TicketForm, TicketAdminForm
 
 
+def get_dashboard_stats(user):
+    """Возвращает общую статистику и статистику по филиалам для дашборда."""
+    branches = Branch.objects.all()
+    if user.role == "admin" and user.city:
+        branches = branches.filter(city=user.city)
+
+    schedules = Schedule.objects.filter(branch__in=branches)
+    students = Student.objects.filter(schedule__in=schedules).distinct()
+    employees = Employee.objects.filter(schedule__in=schedules).distinct()
+
+    stats = {
+        "schedule_count": schedules.count(),
+        "employee_count": employees.count(),
+        "student_count": students.count(),
+        "total_expenses": Expense.objects.filter(schedule__in=schedules).aggregate(
+            Sum("amount")
+        )["amount__sum"]
+        or 0,
+        "total_salaries": Salary.objects.filter(employee__in=employees).aggregate(
+            Sum("total_payment")
+        )["total_payment__sum"]
+        or 0,
+    }
+
+    branches_stats = []
+    for branch in branches:
+        branch_schedules = Schedule.objects.filter(branch=branch)
+        branch_students = Student.objects.filter(schedule__in=branch_schedules).distinct()
+        branch_employees = Employee.objects.filter(schedule__in=branch_schedules).distinct()
+        branch_expenses = Expense.objects.filter(schedule__in=branch_schedules).aggregate(Sum("amount"))["amount__sum"] or 0
+        branch_salaries = Salary.objects.filter(employee__in=branch_employees).aggregate(Sum("total_payment"))["total_payment__sum"] or 0
+
+        branches_stats.append({
+            "name": branch.name,
+            "schedule_count": branch_schedules.count(),
+            "employee_count": branch_employees.count(),
+            "student_count": branch_students.count(),
+            "total_expenses": branch_expenses,
+            "total_salaries": branch_salaries,
+        })
+    return stats, branches_stats
+
+
 @login_required
 def dashboard(request):
-    """
-    Отображает главную страницу с плитками разделов в зависимости от роли пользователя.
-    """
     role = request.user.role
     context = {"role": role}
+
+    # Для manager и admin добавляем статистику
+    if role in ["manager", "admin"]:
+        stats, branches_stats = get_dashboard_stats(request.user)
+        context.update(
+            {
+                "stats": stats,
+                "branches_stats": branches_stats,
+                "user_city": (
+                    request.user.city.name if request.user.city else "Все города"
+                ),
+            }
+        )
+
     return render(request, "core/dashboard.html", context)
 
 

@@ -7,61 +7,10 @@
         <strong>Город:</strong> {{ user_city }}
     </div>
 </div>
-{% comment %} 
-<!-- Общая статистика -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0">Общая статистика</h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col mb-3">
-                <div class="card text-center border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h3 class="text-primary">{{ stats.schedule_count }}</h3>
-                        <p class="text-muted mb-0">Смены</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card text-center border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h3 class="text-primary">{{ stats.employee_count }}</h3>
-                        <p class="text-muted mb-0">Сотрудники</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card text-center border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h3 class="text-primary">{{ stats.student_count }}</h3>
-                        <p class="text-muted mb-0">Ученики</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card text-center border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h3 class="text-primary">{{ stats.total_expenses }} руб.</h3>
-                        <p class="text-muted mb-0">Расходы</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card text-center border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h3 class="text-primary">{{ stats.total_salaries }} руб.</h3>
-                        <p class="text-muted mb-0">Зарплаты</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> {% endcomment %}
 
 <!-- Статистика по филиалам -->
 <div class="card">
-    <div class="card-header bg-success text-white">
+    <div class="card-header bg-primary text-white">
         <h5 class="card-title mb-0">Статистика по филиалам</h5>
     </div>
     <div class="card-body">

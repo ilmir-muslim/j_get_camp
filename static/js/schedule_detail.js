@@ -1058,7 +1058,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Функция для обновления данных ученика на странице (ОБНОВЛЕНА)
   function updateStudentRow(student) {
     console.log('Updating student row with full data:', student);
 
@@ -1138,6 +1137,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Обновляем ФИО
       row.cells[7].textContent = student.full_name;
+
+      const specialNotesCell = row.cells[8];
+      const specialNotes = student.special_notes || '';
+      specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substrings(0,30)+'...' : specialNotes;
+      specialNotesCell.setAttribute('data-bs-title', specialNotes);
+      const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
+      if (oldTooltip) oldTooltip.dispose();
+      new bootstrap.Tooltip(specialNotesCell);
 
       // Обновляем data-атрибуты для фильтрации
       const actualSquadName = squadName !== "—" && squadName ? squadName : "";
@@ -2321,6 +2328,12 @@ document.addEventListener('DOMContentLoaded', function () {
   // Добавляем обработчик для кнопки "Добавить отряд"
   document.getElementById('add-squad-btn')?.addEventListener('click', function () {
     loadSquadForm();
+  });
+
+  document.querySelectorAll('.special-notes-cell').forEach(el => {
+    if (!bootstrap.Tooltip.getInstance(el)) {
+      new bootstrap.Tooltip(el);
+    }
   });
 
   console.log('Schedule detail initialization complete');

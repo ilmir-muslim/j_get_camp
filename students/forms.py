@@ -92,7 +92,7 @@ class StudentForm(forms.ModelForm):
     class Meta:
         model = Student
         fields = [
-            "squad",  # Добавить это поле ПЕРВЫМ
+            "squad",
             "full_name",
             "phone",
             "parent_name",
@@ -101,10 +101,12 @@ class StudentForm(forms.ModelForm):
             "default_price",
             "individual_price",
             "price_comment",
+            "special_notes",
         ]
         widgets = {
             "schedule": forms.Select(attrs={"class": "form-select"}),
             "squad": forms.Select(attrs={"class": "form-select"}),
+            "special_notes": forms.Textarea(attrs={'row': 3, 'class': 'form-control'}),
         }
 
 

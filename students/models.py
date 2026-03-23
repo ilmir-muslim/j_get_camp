@@ -95,6 +95,7 @@ class Student(models.Model):
     price_comment = models.CharField(
         max_length=255, blank=True, default="", verbose_name="Комментарий к цене"
     )
+    special_notes = models.TextField(blank=True, verbose_name='Особые отметки')
 
     def save(self, *args, **kwargs):
         if not self.default_price:

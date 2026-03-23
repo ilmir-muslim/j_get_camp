@@ -258,6 +258,7 @@ def student_create_ajax(request):
                         else None
                     ),
                     "price_comment": student.price_comment,
+                    'special_notes': student.special_notes,
                 },
             }
 
@@ -316,6 +317,7 @@ def student_quick_edit(request, pk):
                             else None
                         ),
                         "price_comment": student.price_comment,
+                        'special_notes': student.special_notes,
                     },
                 }
             )

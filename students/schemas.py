@@ -35,7 +35,7 @@ class StudentSchema(Schema):
     default_price: float
     individual_price: Optional[float]
     price_comment: Optional[str]
-    # Добавьте эти поля для удобства
+    special_notes: Optional[str] = None
     squad_name: Optional[str] = None
     squad_leader_name: Optional[str] = None
 
@@ -60,6 +60,7 @@ class StudentCreateSchema(Schema):
     default_price: Optional[float] = None
     individual_price: Optional[float] = None
     price_comment: Optional[str] = ""
+    special_notes: Optional[str] = None
 
 
 class StudentUpdateSchema(Schema):
@@ -72,7 +73,7 @@ class StudentUpdateSchema(Schema):
     default_price: Optional[float] = None
     individual_price: Optional[float] = None
     price_comment: Optional[str] = None
-
+    special_notes: Optional[str] = None
 
 class AttendanceSchema(Schema):
     id: int
