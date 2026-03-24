@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 from django.db.models import Q
+from requests import delete
 from weasyprint import HTML
 
 from core.utils import role_required
@@ -446,7 +447,7 @@ def add_payment(request, student_id):
             student=student,
             amount=payment.amount,
             operation_type="payment",
-            comment=f"Платеж за смену {schedule.name}",
+            comment=f"Платеж за смену {schedule.name} (ID {schedule.id})",
             created_by=request.user,
         )
 
@@ -465,6 +466,36 @@ def add_payment(request, student_id):
         )
     else:
         return JsonResponse({"success": False, "errors": form.errors}, status=400)
+
+
+@require_POST
+@role_required(["manager", "admin", "camp_head", "lab_head"])
+def delete_payment(request, student_id, payment_id):
+    """Удаление платежа и связанной записи баланса"""
+    student = get_object_or_404(Student, id=student_id)
+    payment = get_object_or_404(Payment, id=payment_id, student=student)
+
+    balance = Balance.objects.filter(
+        student=student,
+        operation_type='payment',
+        amount=payment.amount,
+        comment__contains=f'(ID {payment.schedule.id})'
+    ).first()
+    if balance:
+        balance=delete()
+
+    payment.delete()
+
+    total_paid = student.get_total_paid_for_schedule(payment.schedule)
+    current_balance = student.current_balance
+
+    return JsonResponse({
+        'success': True,
+        'total_paid': float(total_paid),
+        'current_balance': float(current_balance),
+        'schedule_id': payment.schedule.id,
+        'student_id': student.id
+    })
 
 
 @require_GET

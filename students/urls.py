@@ -43,7 +43,11 @@ urlpatterns = [
         views.add_payment_form,
         name="student_add_payment_form",
     ),
+    path(
+        "<int:student_id>/payments/<int:payment_id>/delete/",
+        views.delete_payment,
+        name="student_delete_payment",
+    ),
     path("squads/<int:pk>/", views.get_squad, name="get_squad"),
-    # Добавлен новый маршрут для создания отряда
     path("squads/create/<int:schedule_id>/", views.squad_create, name="squad_create"),
 ]

@@ -5,6 +5,7 @@
                 <th>Дата</th>
                 <th>Сумма</th>
                 <th>Комментарий</th>
+                <th><i class="bi bi-gear-fill text-secondary fs-5"></i></th>
             </tr>
         </thead>
         <tbody>
@@ -13,10 +14,18 @@
                 <td>{{ payment.date|date:"d.m.Y" }}</td>
                 <td>{{ payment.amount }} руб.</td>
                 <td>{{ payment.comment|default:"-" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger delete-payment-btn"
+                            data-payment-id="{{ payment.id }}"
+                            data-student-id="{{ student.id }}"
+                            data-schedule-id="{{ payment.schedule.id }}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="3" class="text-center">Нет платежей</td>
+                <td colspan="4" class="text-center">Нет платежей</td>
             </tr>
             {% endfor %}
         </tbody>

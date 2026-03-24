@@ -1,12 +1,11 @@
-from datetime import date
 from ninja import Router
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404
 
-from students.models import Payment
 from .models import Schedule, COLOR_CHOICES
 from branches.models import Branch
 from .schemas import ScheduleSchema, ScheduleCreateSchema
-from django.shortcuts import get_object_or_404
-from django.db.models import Sum
+from students.models import Payment
 
 router = Router(tags=["Schedules"])
 filters_router = Router(tags=["Schedule filters"])
@@ -16,11 +15,9 @@ filters_router = Router(tags=["Schedule filters"])
 def list_schedules(request):
     user = request.user
 
-    # ФИЛЬТРАЦИЯ ДЛЯ АДМИНИСТРАТОРОВ - только смены их города
     if hasattr(user, "role") and user.role == "admin" and user.city:
         return Schedule.objects.filter(branch__city=user.city)
 
-    # ФИЛЬТРАЦИЯ ДЛЯ НАЧАЛЬНИКОВ
     if hasattr(user, "role") and user.role in ["camp_head", "lab_head"]:
         return Schedule.objects.filter(branch=user.branch)
 
@@ -132,9 +129,7 @@ def delete_schedule(request, schedule_id: int):
 
 @router.get("/{schedule_id}/balance/")
 def get_schedule_balance(request, schedule_id: int):
-    from django.db.models import Sum
-    from students.models import Payment
-    from payroll.models import Expense
+
 
     schedule = get_object_or_404(Schedule, id=schedule_id)
 

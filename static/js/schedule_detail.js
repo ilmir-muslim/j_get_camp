@@ -144,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data.success) {
           const historyContainer = document.getElementById('payment-history-content');
           historyContainer.innerHTML = data.html;
+          initDeletePaymentButtons();
         } else {
           console.error('Error loading payment history:', data.error);
           const historyContainer = document.getElementById('payment-history-content');
@@ -155,6 +156,67 @@ document.addEventListener('DOMContentLoaded', function () {
         const historyContainer = document.getElementById('payment-history-content');
         historyContainer.innerHTML = '<div class="text-center text-muted">Ошибка загрузки истории</div>';
       });
+  }
+
+  function initDeletePaymentButtons() {
+    const deleteBtns = document.querySelectorAll('#payment-history-content .delete-payment-btn');
+    deleteBtns.forEach(btn => {
+      btn.removeEventListener('click', handleDeletePayment);
+      btn.addEventListener('click', handleDeletePayment);
+    });
+  }
+
+  function handleDeletePayment(e) {
+    e.preventDefault();
+    const btn = e.currentTarget;
+    const paymentId = btn.dataset.paymentId;
+    const studentId = btn.dataset.studentId; 
+    const scheduleId = btn.dataset.scheduleId;
+
+    if (confirm('Удалить этот платеж?')) {
+      fetch(`/students/${studentId}/payments/${paymentId}/delete/`, {  
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': CSRF_TOKEN,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          loadPaymentHistory();
+
+          const totalPaidSpan = document.getElementById('total-paid');
+          if (totalPaidSpan) {
+            totalPaidSpan.textContent = data.total_paid > 0 ? data.total_paid.toFixed(2) : '-';
+          }
+          const currentBalanceSpan = document.getElementById('current-balance');
+          if (currentBalanceSpan) {
+            currentBalanceSpan.textContent = data.current_balance.toFixed(2);
+          }
+
+          const studentRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
+          if (studentRow) {
+            const paymetnCell = studentRow.cells[3];
+            if (data.total_paid > 0) {
+              paymetnCell.textContent = data.total_paid.toFixed(2);
+            } else {
+              paymetnCell.textContent = '-';
+            }
+          }
+          colorizePaymentCells();
+          updateTotalPayments();
+          updateFinanceSummary();
+          updatePaymentButtonsText();
+        } else {
+          showToast('Ошибка при удалении платежа', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при удалении платежа', 'error');
+      });
+    }
   }
 
   // Функция для обновления нумерации строк в таблице сотрудников
@@ -1141,10 +1203,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const specialNotesCell = row.cells[8];
       const specialNotes = student.special_notes || '';
       specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substrings(0,30)+'...' : specialNotes;
-      specialNotesCell.setAttribute('data-bs-title', specialNotes);
-      const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
-      if (oldTooltip) oldTooltip.dispose();
-      new bootstrap.Tooltip(specialNotesCell);
+      if (specialNotesCell) {
+        specialNotesCell.setAttribute('data-bs-title', specialNotes);
+        const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
+        if (oldTooltip) oldTooltip.dispose();
+        new bootstrap.Tooltip(specialNotesCell);
+      } else {
+        specialNotesCell.removeAttribute('data-bs-title');
+      }
 
       // Обновляем data-атрибуты для фильтрации
       const actualSquadName = squadName !== "—" && squadName ? squadName : "";
