@@ -1,40 +1,72 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid black; padding: 4px; text-align: left; }
+      @page {
+        size: landscape;
+        margin: 0.3cm;
+      }
+      body {
+        font-family: DejaVu Sans, sans-serif;
+        font-size: 12px;
+      }
+      table {
+        width: 100%;
+        table-layout: fixed; /* фиксированная ширина, подчиняется заданным процентам */
+        border-collapse: collapse;
+        page-break-inside: auto;
+      }
+      th,
+      td {
+        border: 1px solid black;
+        padding: 4px;
+        text-align: left;
+        word-wrap: break-word; /* перенос длинных слов */
+        white-space: normal; /* разрешить перенос */
+        word-break: break-word; /* для надёжности */
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Список учеников</h1>
     <table>
-        <thead>
-            <tr>
-                <th>ФИО</th>
-                <th>Телефон</th>
-                <th>Родитель</th>
-                <th>Смена</th>
-                <th>Тип посещения</th>
-                <th>Индивидуальная цена</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.full_name }}</td>
-                <td>{{ student.phone }}</td>
-                <td>{{ student.parent_name }}</td>
-                <td>{{ student.schedule }}</td>
-                <td>{{ student.get_attendance_type_display }}</td>
-                <td>{{ student.individual_price|default:student.default_price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+      <thead>
+        <tr>
+          <th>ФИО</th>
+          <th>Баланс</th>
+          <th>Телефон</th>
+          <th>Родитель</th>
+          <th>Смена</th>
+          <th>Отряд</th>
+          <th>Филиал</th>
+          <th>Тип посещения</th>
+          <th>Цена</th>
+          <th>Комментарий к цене</th>
+          <th>Особые отметки</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td>{{ student.full_name }}</td>
+          <td>{{ student.current_balance|floatformat:2 }}</td>
+          <td>{{ student.phone }}</td>
+          <td>{{ student.parent_name }}</td>
+          <td>{{ student.schedule.name|default:"—" }}</td>
+          <td>{{ student.squad.name|default:"—" }}</td>
+          <td>{{ student.schedule.branch.name|default:"—" }}</td>
+          <td>{{ student.get_attendance_type_display }}</td>
+          <td>{{ student.individual_price|default:student.default_price }}</td>
+          <td>{{ student.price_comment|default:"—" }}</td>
+          <td>{{ student.special_notes|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
-</body>
+  </body>
 </html>
-
-

@@ -543,7 +543,16 @@ def export_schedule_students_excel(request, pk):
     ws.title = f"Ученики {schedule.name}"
 
     ws.append(
-        ["ФИО", "Телефон", "Родитель", "Тип посещения", "Цена", "Комментарий к цене"]
+        [
+            "ФИО",
+            "Телефон",
+            "Родитель",
+            "Тип посещения",
+            "Цена",
+            "Комментарий к цене",
+            "Отряд",
+            "Особые отметки",
+        ]
     )
 
     for student in students:
@@ -555,6 +564,8 @@ def export_schedule_students_excel(request, pk):
                 student.get_attendance_type_display(),
                 student.individual_price or student.default_price,
                 student.price_comment,
+                student.squad.name if student.squad else "—",
+                student.special_notes or "—",
             ]
         )
 
@@ -888,8 +899,10 @@ def export_schedule_attendance_pdf(request, pk):
             "attendance_type": student.get_attendance_type_display(),
             "price": student.individual_price or student.default_price,
             "total_paid": total_paid,
-            "current_balance": student.current_balance,  # Добавляем баланс
+            "current_balance": student.current_balance,
             "attendance_count": attendance_count,
+            "squad_name": student.squad.name if student.squad else None,  
+            "special_notes": student.special_notes,  
             "daily_attendance": [],
         }
 
