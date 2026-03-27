@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (!row) return;
 
-    const countCell = row.querySelector('td:nth-child(9)'); // Обновлен индекс для явки (теперь 9)
+    const countCell = row.querySelector('td:nth-child(10)');
     if (countCell) {
       countCell.textContent = count;
       row.dataset.visits = count;
