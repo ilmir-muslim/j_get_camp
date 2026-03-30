@@ -7,7 +7,7 @@ import logging
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
@@ -468,7 +468,7 @@ def add_payment(request, student_id):
         return JsonResponse({"success": False, "errors": form.errors}, status=400)
 
 
-@require_POST
+@require_http_methods(["POST", "DELETE"])
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def delete_payment(request, student_id, payment_id):
     """Удаление платежа и связанной записи баланса"""
@@ -482,7 +482,7 @@ def delete_payment(request, student_id, payment_id):
         comment__contains=f'(ID {payment.schedule.id})'
     ).first()
     if balance:
-        balance=delete()
+        balance.delete()
 
     payment.delete()
 
