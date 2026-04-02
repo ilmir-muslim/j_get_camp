@@ -1,4 +1,3 @@
-# students/views.py
 from decimal import Decimal
 import io
 import json
@@ -12,7 +11,6 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 from django.db.models import Q
-from requests import delete
 from weasyprint import HTML
 
 from core.utils import role_required
@@ -26,37 +24,27 @@ logger = logging.getLogger(__name__)
 def student_list(request):
     students = Student.objects.all()
 
-    # Фильтрация по филиалам для начальников
     if request.user.role in ["camp_head", "lab_head"]:
-        # Получаем филиал пользователя
         user_branch = request.user.branch
         if user_branch:
-            # Фильтруем учеников по сменам, принадлежащим филиалу пользователя
             students = students.filter(
-                Q(schedule__branch=user_branch)
-                | Q(schedule__isnull=True)  # Или ученики без смены
+                Q(schedule__branch=user_branch) | Q(schedule__isnull=True)
             )
 
-    # Фильтрация по городу для администратора
     elif request.user.role == "admin":
-        # Получаем город пользователя
         user_city = request.user.city
         if user_city:
-            # Фильтруем учеников по сменам, принадлежащим филиалам города пользователя
             students = students.filter(
-                Q(schedule__branch__city=user_city)
-                | Q(schedule__isnull=True)  # Или ученики без смены
+                Q(schedule__branch__city=user_city) | Q(schedule__isnull=True)
             )
 
     schedules = Schedule.objects.all()
 
-    # Для начальников показываем только смены их филиала
     if request.user.role in ["camp_head", "lab_head"]:
         user_branch = request.user.branch
         if user_branch:
             schedules = schedules.filter(branch=user_branch)
 
-    # Для администраторов показываем только смены их города
     elif request.user.role == "admin":
         user_city = request.user.city
         if user_city:
@@ -108,12 +96,10 @@ def student_delete(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        # Удаляем все связанные объекты
         student.attendance_set.all().delete()
         student.payments.all().delete()
         student.delete()
 
-        # Возвращаем JSON-ответ для AJAX
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": True})
         return redirect("student_list")
@@ -179,7 +165,6 @@ def student_create_ajax(request):
     try:
         data = json.loads(request.body)
 
-        # Фильтрация смен по филиалу для начальников и по городу для администратора
         if request.user.role in ["camp_head", "lab_head"]:
             user_branch = request.user.branch
             if user_branch:
@@ -194,7 +179,6 @@ def student_create_ajax(request):
                             {"success": False, "error": "Недоступная смена"}, status=400
                         )
 
-        # Фильтрация по городу для администратора
         elif request.user.role == "admin":
             user_city = request.user.city
             if user_city:
@@ -209,11 +193,9 @@ def student_create_ajax(request):
                             {"success": False, "error": "Недоступная смена"}, status=400
                         )
 
-        # Преобразуем значение типа посещения если нужно
         if data.get("attendance_type") == "full_day":
             data["attendance_type"] = "full_day"
 
-        # Обработка цены
         if "default_price" in data:
             try:
                 data["default_price"] = float(data["default_price"])
@@ -223,12 +205,10 @@ def student_create_ajax(request):
                     status=400,
                 )
 
-        # Передаем request в форму для правильной фильтрации
         form = StudentForm(data, request=request)
         if form.is_valid():
             student = form.save()
 
-            # Возвращаем те же данные, что и при редактировании
             response_data = {
                 "success": True,
                 "student": {
@@ -259,7 +239,7 @@ def student_create_ajax(request):
                         else None
                     ),
                     "price_comment": student.price_comment,
-                    'special_notes': student.special_notes,
+                    "special_notes": student.special_notes,
                 },
             }
 
@@ -278,7 +258,6 @@ def student_quick_edit(request, pk):
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == "POST":
-        # Получаем schedule_id из GET-параметров или из данных студента
         schedule_id = request.GET.get("schedule_id") or (
             student.schedule.id if student.schedule else None
         )
@@ -318,13 +297,12 @@ def student_quick_edit(request, pk):
                             else None
                         ),
                         "price_comment": student.price_comment,
-                        'special_notes': student.special_notes,
+                        "special_notes": student.special_notes,
                     },
                 }
             )
         return JsonResponse({"success": False, "errors": form.errors})
 
-    # GET-запрос — отрисовать форму
     schedule_id = request.GET.get("schedule_id") or (
         student.schedule.id if student.schedule else None
     )
@@ -335,13 +313,13 @@ def student_quick_edit(request, pk):
         {
             "form": form,
             "student": student,
-            "schedule_id": schedule_id,  # Передаем в контекст
+            "schedule_id": schedule_id,
         },
     )
 
 
 @require_POST
-@role_required(["manager", "admin", "camp_head", "lab_head"])
+@role_required(["manager", "admin"])
 def add_balance(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     form = BalanceForm(request.POST)
@@ -376,11 +354,8 @@ def add_balance(request, student_id):
 def get_balance_history(request, student_id):
     """Получить историю операций по балансу студента"""
     student = get_object_or_404(Student, id=student_id)
-    balance_operations = student.balance_operations.all().order_by("-date")[
-        :20
-    ]  # Последние 20 операций
+    balance_operations = student.balance_operations.all().order_by("-date")[:20]
 
-    # Преобразуем данные в JSON-совместимый формат
     operations_data = []
     for operation in balance_operations:
         operations_data.append(
@@ -424,7 +399,7 @@ def check_balance(request, student_id):
 
 
 @require_POST
-@role_required(["manager", "admin", "camp_head", "lab_head"])
+@role_required(["manager", "admin"])
 def add_payment(request, student_id):
     """Обработка добавления платежа"""
     student = get_object_or_404(Student, id=student_id)
@@ -442,7 +417,6 @@ def add_payment(request, student_id):
         payment.schedule = schedule
         payment.save()
 
-        # Создаем операцию списания в Balance
         Balance.objects.create(
             student=student,
             amount=payment.amount,
@@ -451,7 +425,6 @@ def add_payment(request, student_id):
             created_by=request.user,
         )
 
-        # Получаем общую сумму оплаченного за смену (все платежи студента)
         total_paid = student.get_total_paid_for_schedule(schedule)
 
         return JsonResponse(
@@ -469,7 +442,7 @@ def add_payment(request, student_id):
 
 
 @require_http_methods(["POST", "DELETE"])
-@role_required(["manager", "admin", "camp_head", "lab_head"])
+@role_required(["manager", "admin"])
 def delete_payment(request, student_id, payment_id):
     """Удаление платежа и связанной записи баланса"""
     student = get_object_or_404(Student, id=student_id)
@@ -477,9 +450,9 @@ def delete_payment(request, student_id, payment_id):
 
     balance = Balance.objects.filter(
         student=student,
-        operation_type='payment',
+        operation_type="payment",
         amount=payment.amount,
-        comment__contains=f'(ID {payment.schedule.id})'
+        comment__contains=f"(ID {payment.schedule.id})",
     ).first()
     if balance:
         balance.delete()
@@ -489,13 +462,15 @@ def delete_payment(request, student_id, payment_id):
     total_paid = student.get_total_paid_for_schedule(payment.schedule)
     current_balance = student.current_balance
 
-    return JsonResponse({
-        'success': True,
-        'total_paid': float(total_paid),
-        'current_balance': float(current_balance),
-        'schedule_id': payment.schedule.id,
-        'student_id': student.id
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "total_paid": float(total_paid),
+            "current_balance": float(current_balance),
+            "schedule_id": payment.schedule.id,
+            "student_id": student.id,
+        }
+    )
 
 
 @require_GET
@@ -539,7 +514,7 @@ def student_payment_info(request, student_id):
     )
 
 
-@role_required(["manager", "admin", "camp_head", "lab_head"])
+@role_required(["manager", "admin"])
 def add_payment_form(request, student_id):
     """Отображение формы добавления платежа"""
     student = get_object_or_404(Student, id=student_id)
@@ -550,11 +525,9 @@ def add_payment_form(request, student_id):
 
     schedule = get_object_or_404(Schedule, id=schedule_id)
 
-    # Проверяем, есть ли уже платежи
     existing_payments = Payment.objects.filter(student=student, schedule=schedule)
     total_paid = student.get_total_paid_for_schedule(schedule)
 
-    # Определяем текст кнопки
     button_text = "Добавить платеж" if existing_payments.exists() else "Создать платеж"
 
     form = PaymentForm(initial={"date": timezone.now().date()})
@@ -621,7 +594,6 @@ def squad_create(request, schedule_id):
         else:
             return JsonResponse({"success": False, "errors": form.errors})
 
-    # GET запрос - показать форму
     form = SquadForm(schedule=schedule)
     return render(
         request, "students/squad_form.html", {"form": form, "schedule": schedule}

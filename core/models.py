@@ -29,9 +29,7 @@ class CustomUser(AbstractUser):
 
 
 def get_screenshot_upload_path(instance, filename):
-    # Получаем расширение файла
     ext = filename.split(".")[-1]
-    # Генерируем уникальное имя файла с timestamp и uuid
     filename = f"{timezone.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}.{ext}"
     return os.path.join("screenshots", filename)
 

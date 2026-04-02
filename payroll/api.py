@@ -2,6 +2,7 @@ from ninja import Router
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
+from django.core.exceptions import PermissionDenied
 
 from students.models import Payment
 from .models import Expense, Salary
@@ -25,12 +26,16 @@ def list_expenses(request):
 
 @router.post("/expenses/", response=ExpenseSchema)
 def create_expense(request, data: ExpenseCreateSchema):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     expense = Expense.objects.create(**data.dict())
     return expense
 
 
 @router.delete("/expenses/{expense_id}/")
 def delete_expense(request, expense_id: int):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     Expense.objects.filter(id=expense_id).delete()
     return {"success": True}
 
@@ -43,6 +48,8 @@ def list_salaries(request):
 
 @router.post("/salaries/", response=SalarySchema)
 def create_salary(request, data: SalaryCreateSchema):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     employee = get_object_or_404(Employee, id=data.employee_id)
     schedule = get_object_or_404(Schedule, id=data.schedule_id)
 
@@ -53,6 +60,8 @@ def create_salary(request, data: SalaryCreateSchema):
 
 @router.put("/salaries/{salary_id}/", response=SalarySchema)
 def update_salary(request, salary_id: int, data: SalaryCreateSchema):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     salary = get_object_or_404(Salary, id=salary_id)
 
     for attr, value in data.dict().items():
@@ -64,5 +73,7 @@ def update_salary(request, salary_id: int, data: SalaryCreateSchema):
 
 @router.delete("/salaries/{salary_id}/")
 def delete_salary(request, salary_id: int):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     Salary.objects.filter(id=salary_id).delete()
     return {"success": True}

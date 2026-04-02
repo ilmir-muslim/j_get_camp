@@ -15,6 +15,7 @@ from students.schemas import (
 )
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 
 router = Router(tags=["Students"])
 
@@ -120,6 +121,8 @@ def list_payments(request, student_id: int):
 
 @router.post("/{student_id}/payments/", response=PaymentSchema)
 def create_payment(request, student_id: int, data: PaymentCreateSchema):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     student = get_object_or_404(Student, id=student_id)
     schedule = get_object_or_404(Schedule, id=data.schedule_id)
     payment = Payment.objects.create(student=student, schedule=schedule, **data.dict())
@@ -130,6 +133,8 @@ def create_payment(request, student_id: int, data: PaymentCreateSchema):
 def update_payment(
     request, student_id: int, payment_id: int, data: PaymentUpdateSchema
 ):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     student = get_object_or_404(Student, id=student_id)
     payment = get_object_or_404(Payment, id=payment_id, student=student)
     for attr, value in data.dict(exclude_unset=True).items():
@@ -140,6 +145,8 @@ def update_payment(
 
 @router.delete("/{student_id}/payments/{payment_id}/")
 def delete_payment(request, student_id: int, payment_id: int):
+    if request.user.role in ["camp_head", "lab_head"]:
+        raise PermissionDenied
     student = get_object_or_404(Student, id=student_id)
     payment = get_object_or_404(Payment, id=payment_id, student=student)
     payment.delete()
