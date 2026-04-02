@@ -51,6 +51,7 @@
             {% for employee in employees %}
             <tr id="employee-{{ employee.id }}">
               <td>{{ forloop.counter }}</td>
+              {% if role in "manager admin" %}
               <td>
                 <button
                   class="btn btn-sm btn-outline-primary edit-employee-btn"
@@ -65,6 +66,10 @@
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
+              {% else %}
+              -
+              {% endif %}
+
               <td>{{ employee.full_name }}</td>
               <td>
                   {% if employee.is_leader %}Вожатый{% else %}{{ employee.position.name }}{% endif %}

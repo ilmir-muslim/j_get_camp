@@ -56,11 +56,10 @@ class Employee(models.Model):
         related_name="employees",
     )
     is_leader = models.BooleanField(
-        default=False, verbose_name="Является лидером отряда"
+        default=False, verbose_name="Является вожатым"
     )
 
     def save(self, *args, **kwargs):
-        # Автоматически устанавливаем флаг is_leader в True, если сотруднику назначен отряд
         if self.squad:
             self.is_leader = True
         super().save(*args, **kwargs)
