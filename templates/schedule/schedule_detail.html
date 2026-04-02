@@ -94,7 +94,7 @@
                                 <td>
                                     <!-- Кнопка выплаты зарплаты - показываем только если зарплата не выплачена -->
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
-                                        {% if not paid_info.is_paid %}
+                                        {% if not paid_info.is_paid and role in "manager admin" %}
                                             <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
                                                     data-employee-id="{{ employee.id }}"
                                                     data-employee-name="{{ employee.full_name }}"
@@ -300,6 +300,7 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <!-- Кнопка платежа -->
+                                     {% if role in "manager admin" %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn student-payment-btn"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
@@ -307,6 +308,7 @@
                                             data-bs-toggle="tooltip" title="Добавить платеж">
                                         <i class="bi bi-cash text-success fs-5"></i>
                                     </button>
+                                    {% endif %}
                                     
                                     <!-- Кнопка удаления -->
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-student-attendance"
@@ -410,7 +412,9 @@
                 <div class="form-container">
                     <div class="form-grid">
                         <div></div>
+                        {% if role in "manager admin" %}
                         <button type="button" class="btn btn-success" id="add-expense-btn">Добавить расход</button>
+                        {% endif %}
                         <div></div>
                     </div>
                 </div>
@@ -431,12 +435,16 @@
                             <tr data-record-type="{{ record.type }}" data-record-id="{{ record.id }}" class="clickable-expense-row">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
+                                    {% if role in "manager admin" %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
                                             data-record-type="{{ record.type }}"
                                             data-record-id="{{ record.id }}"
                                             data-bs-toggle="tooltip" title="Удалить">
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
+                                    {% else %}
+                                    -
+                                    {% endif %}
                                 </td>
                                 <td>{{ record.category_display }}</td>
                                 <td>{{ record.comment }}</td>
