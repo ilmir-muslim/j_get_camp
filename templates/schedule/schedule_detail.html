@@ -413,9 +413,7 @@
                     <div class="form-container">
                         <div class="form-grid">
                             <div></div>
-                            {% if user.role == 'manager' or user.role == 'admin' %}
                             <button type="button" class="btn btn-success" id="add-expense-btn">Добавить расход</button>
-                            {% endif %}
                             <div></div>
                         </div>
                     </div>
@@ -436,16 +434,12 @@
                                 <tr data-record-type="{{ record.type }}" data-record-id="{{ record.id }}" class="clickable-expense-row">
                                     <td>{{ forloop.counter }}</td>
                                     <td>
-                                        {% if user.role == 'manager' or user.role == 'admin' %}
                                         <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
                                                 data-record-type="{{ record.type }}"
                                                 data-record-id="{{ record.id }}"
                                                 data-bs-toggle="tooltip" title="Удалить">
                                             <i class="bi bi-trash text-danger fs-5"></i>
                                         </button>
-                                        {% else %}
-                                        -
-                                        {% endif %}
                                     </td>
                                     <td>{{ record.category_display }}</td>
                                     <td>{{ record.comment }}</td>
