@@ -94,7 +94,7 @@
                                 <td>
                                     <!-- Кнопка выплаты зарплаты - показываем только если зарплата не выплачена -->
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
-                                        {% if not paid_info.is_paid and role in "manager admin" %}
+                                        {% if not paid_info.is_paid and role == 'manager' or role == 'admin' %}
                                             <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
                                                     data-employee-id="{{ employee.id }}"
                                                     data-employee-name="{{ employee.full_name }}"
@@ -107,6 +107,7 @@
                                     {% endwith %}
                                     
                                     <!-- Кнопка удаления -->
+                                    {% if user.role == 'manager' or user.role == 'admin' %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                             data-employee-id="{{ employee.id }}"
                                             data-employee-display="{{ employee.full_name }} ({{ employee.get_position_display }})"
@@ -114,6 +115,7 @@
                                             data-bs-toggle="tooltip" title="Удалить">
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
+                                    {% endif %}
                                 </td>
 
                                 <td class="student-column">{{ employee.full_name }}</td>
@@ -141,22 +143,22 @@
                                     {% with key=employee.id|stringformat:"s"|add:"_"|add:date.isoformat %}
                                         <td class="date-cell" data-date="{{ date|date:'Y-m-d' }}">
                                             <div class="attendance-cell-wrapper"> 
-                                            <div class="attendance-cell text-center 
-                                                {% if employee_attendance|get_item:key == 'present' %}bg-success
-                                                {% elif employee_attendance|get_item:key == 'excused' %}bg-warning
-                                                {% else %}bg-danger
-                                                {% endif %}" 
-                                                data-employee-id="{{ employee.id }}"
-                                                data-date="{{ date|date:'Y-m-d' }}"
-                                                data-attendance-type="{% if employee_attendance|get_item:key == 'present' %}present{% elif employee_attendance|get_item:key == 'excused' %}excused{% else %}absent{% endif %}">
-                                                {% if employee_attendance|get_item:key == 'present' %}
-                                                    <i class="bi bi-check-lg text-white"></i>
-                                                {% elif employee_attendance|get_item:key == 'excused' %}
-                                                    <i class="bi bi-exclamation-lg text-white"></i>
-                                                {% else %}
-                                                    <i class="bi bi-x-lg text-white"></i>
-                                                {% endif %}
-                                            </div>
+                                                <div class="attendance-cell text-center 
+                                                    {% if employee_attendance|get_item:key == 'present' %}bg-success
+                                                    {% elif employee_attendance|get_item:key == 'excused' %}bg-warning
+                                                    {% else %}bg-danger
+                                                    {% endif %}" 
+                                                    data-employee-id="{{ employee.id }}"
+                                                    data-date="{{ date|date:'Y-m-d' }}"
+                                                    data-attendance-type="{% if employee_attendance|get_item:key == 'present' %}present{% elif employee_attendance|get_item:key == 'excused' %}excused{% else %}absent{% endif %}">
+                                                    {% if employee_attendance|get_item:key == 'present' %}
+                                                        <i class="bi bi-check-lg text-white"></i>
+                                                    {% elif employee_attendance|get_item:key == 'excused' %}
+                                                        <i class="bi bi-exclamation-lg text-white"></i>
+                                                    {% else %}
+                                                        <i class="bi bi-x-lg text-white"></i>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </td>
                                     {% endwith %}
@@ -176,7 +178,7 @@
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
                                     <div class="attendance-cell-wrapper">
-                                    <span class="present-count">0</span>
+                                        <span class="present-count">0</span>
                                     </div>
                                 </td>
                             {% endfor %}
@@ -193,12 +195,14 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h3>Посещаемость</h3>
                 <div>
-                     <a href="{% url 'export_schedule_attendance_excel' pk=schedule.pk %}" class="btn btn-light me-2">
+                    {% if user.role == 'manager' or user.role == 'admin' %}
+                    <a href="{% url 'export_schedule_attendance_excel' pk=schedule.pk %}" class="btn btn-light me-2">
                         <i class="bi bi-file-earmark-excel"></i> Excel
                     </a>
                     <a href="{% url 'export_schedule_attendance_pdf' pk=schedule.pk %}" class="btn btn-light me-2">
                         <i class="bi bi-file-earmark-pdf"></i> PDF
                     </a>
+                    {% endif %}
                     <button id="reset-attendance-filters" class="btn btn-light btn-action">
                         <i class="bi bi-arrow-clockwise"></i> Сбросить фильтры
                     </button>
@@ -207,29 +211,27 @@
         </div>
         <div class="card-body">
             <!-- Форма ученика -->
-        <div class="form-container">
-            <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_student">
-                <div class="form-grid">
-                    <div class="select-wrapper">
-                        <label class="form-label">Добавить ученика</label>
-                        <!-- Заменяем select на input с datalist -->
-                        <input list="students-datalist" id="student-search-input" name="student" 
-                            class="form-control" placeholder="Начните вводить ФИО ученика" autocomplete="off">
-                        <datalist id="students-datalist">
-                            {% for student in available_students %}
-                                <option value="{{ student.full_name }}" data-id="{{ student.id }}">
-                            {% endfor %}
-                        </datalist>
-                        <!-- Скрытое поле для хранения ID выбранного студента -->
-                        <input type="hidden" id="student-id-input" name="student_id">
+            <div class="form-container">
+                <form method="post" id="student-form-attendance" action="{% url 'schedule_detail' pk=schedule.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_student">
+                    <div class="form-grid">
+                        <div class="select-wrapper">
+                            <label class="form-label">Добавить ученика</label>
+                            <input list="students-datalist" id="student-search-input" name="student" 
+                                class="form-control" placeholder="Начните вводить ФИО ученика" autocomplete="off">
+                            <datalist id="students-datalist">
+                                {% for student in available_students %}
+                                    <option value="{{ student.full_name }}" data-id="{{ student.id }}">
+                                {% endfor %}
+                            </datalist>
+                            <input type="hidden" id="student-id-input" name="student_id">
+                        </div>
+                        <button type="submit" class="btn btn-success">Добавить</button>
+                        <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
                     </div>
-                    <button type="submit" class="btn btn-success">Добавить</button>
-                    <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
-                </div>
-            </form>
-        </div>
+                </form>
+            </div>
             <!-- Фильтры -->
             <div class="filter-section">
                 <div class="filter-row">
@@ -261,7 +263,6 @@
                         </select>
                     </div>
                     
-                    <!-- ДОБАВЛЯЕМ ЭТОТ ЧЕКБОКС -->
                     <div class="filter-group">
                         <label style="display: flex; align-items: center; gap: 8px;">
                             <input type="checkbox" id="show-leaders-checkbox" checked>
@@ -296,11 +297,10 @@
                     <tbody id="attendance-body">
                         {% for student in students %}
                             <tr data-student-id="{{ student.id }}" data-visits="{{ student_attendance_counts|get_item:student.id }}"
-                            data-attendance-type="{{ student.attendance_type }}" data-squad="{{ student.squad.name|default:'' }}">
+                                data-attendance-type="{{ student.attendance_type }}" data-squad="{{ student.squad.name|default:'' }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
-                                    <!-- Кнопка платежа -->
-                                     {% if role in "manager admin" %}
+                                    {% if user.role == 'manager' or user.role == 'admin' %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn student-payment-btn"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
@@ -310,7 +310,7 @@
                                     </button>
                                     {% endif %}
                                     
-                                    <!-- Кнопка удаления -->
+                                    {% if user.role == 'manager' or user.role == 'admin' %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-student-attendance"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name }}"
@@ -318,6 +318,7 @@
                                             data-bs-toggle="tooltip" title="Удалить">
                                         <i class="bi bi-trash text-danger fs-5"></i>
                                     </button>
+                                    {% endif %}
                                 </td>
                                 <td>{{ student.individual_price|default:student.default_price }}</td>
                                 <td>
@@ -388,7 +389,7 @@
                             {% for date in dates %}
                                 <td class="date-cell text-center bg-light" data-date="{{ date|date:'Y-m-d' }}">
                                     <div class="attendance-cell-wrapper">
-                                    <span class="present-count"></span>
+                                        <span class="present-count"></span>
                                     </div>
                                 </td>
                             {% endfor %}
@@ -400,100 +401,100 @@
     </div>
     
 
-<!-- Расходы и финансовая сводка -->
-<div class="row">
-    <div class="col-md-8">
-        <div class="card mb-5">
-            <div class="card-header bg-primary text-white">
-                <h3>Финансовые операции</h3>
-            </div>
-            <div class="card-body">
-                <!-- Форма расходов -->
-                <div class="form-container">
-                    <div class="form-grid">
-                        <div></div>
-                        {% if role in "manager admin" %}
-                        <button type="button" class="btn btn-success" id="add-expense-btn">Добавить расход</button>
-                        {% endif %}
-                        <div></div>
+    <!-- Расходы и финансовая сводка -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h3>Финансовые операции</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Форма расходов -->
+                    <div class="form-container">
+                        <div class="form-grid">
+                            <div></div>
+                            {% if user.role == 'manager' or user.role == 'admin' %}
+                            <button type="button" class="btn btn-success" id="add-expense-btn">Добавить расход</button>
+                            {% endif %}
+                            <div></div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered attendance-table expenses-table">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th><i class="bi bi-gear-fill text-secondary fs-5"></i></th>
+                                    <th>Категория</th>
+                                    <th>Комментарий</th>
+                                    <th>Сумма, руб</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table-body">
+                                {% for record in financial_records %}
+                                <tr data-record-type="{{ record.type }}" data-record-id="{{ record.id }}" class="clickable-expense-row">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        {% if user.role == 'manager' or user.role == 'admin' %}
+                                        <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
+                                                data-record-type="{{ record.type }}"
+                                                data-record-id="{{ record.id }}"
+                                                data-bs-toggle="tooltip" title="Удалить">
+                                            <i class="bi bi-trash text-danger fs-5"></i>
+                                        </button>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ record.category_display }}</td>
+                                    <td>{{ record.comment }}</td>
+                                    <td>{{ record.amount }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Нет финансовых операций</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-summary-row">
+                                    <td colspan="4" class="text-end"><strong>Итого:</strong></td>
+                                    <td class="text-center"><strong>{{ total_expenses_sum }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered attendance-table expenses-table">
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Финансовая сводка</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
                         <thead>
                             <tr>
-                                <th>№</th>
-                                <th><i class="bi bi-gear-fill text-secondary fs-5"></i></th>
-                                <th>Категория</th>
-                                <th>Комментарий</th>
-                                <th>Сумма, руб</th>
+                                <th>Расход</th>
+                                <th>Доход</th>
+                                <th>Сальдо</th>
                             </tr>
                         </thead>
-                        <tbody id="expenses-table-body">
-                            {% for record in financial_records %}
-                            <tr data-record-type="{{ record.type }}" data-record-id="{{ record.id }}" class="clickable-expense-row">
-                                <td>{{ forloop.counter }}</td>
-                                <td>
-                                    {% if role in "manager admin" %}
-                                    <button class="btn p-0 border-0 bg-transparent icon-btn delete-record-btn"
-                                            data-record-type="{{ record.type }}"
-                                            data-record-id="{{ record.id }}"
-                                            data-bs-toggle="tooltip" title="Удалить">
-                                        <i class="bi bi-trash text-danger fs-5"></i>
-                                    </button>
-                                    {% else %}
-                                    -
-                                    {% endif %}
-                                </td>
-                                <td>{{ record.category_display }}</td>
-                                <td>{{ record.comment }}</td>
-                                <td>{{ record.amount }}</td>
-                            </tr>
-                            {% empty %}
+                        <tbody>
                             <tr>
-                                <td colspan="5" class="text-center">Нет финансовых операций</td>
+                                <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:"2" }}</td>
+                                <td id="finance-income">{{ total_payments|default:0|floatformat:"2" }}</td>
+                                <td id="finance-balance">0</td>
                             </tr>
-                            {% endfor %}
                         </tbody>
-                        <tfoot>
-                            <tr class="total-summary-row">
-                                <td colspan="4" class="text-end"><strong>Итого:</strong></td>
-                                <td class="text-center"><strong>{{ total_expenses_sum }}</strong></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card mb-5">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Финансовая сводка</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Расход</th>
-                            <th>Доход</th>
-                            <th>Сальдо</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td id="finance-expense">{{ total_expenses_sum|default:0|floatformat:"2" }}</td>
-                            <td id="finance-income">{{ total_payments|default:0|floatformat:"2" }} </td>
-                            <td id="finance-balance">0</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
     
     <!-- Модальное окно для создания ученика -->
     <div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
@@ -503,36 +504,35 @@
                     <h5 class="modal-title" id="createStudentModalLabel">Создать нового ученика</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                    <div class="modal-body">
-                        <form id="create-student-form">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="full_name" class="form-label">ФИО *</label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="phone" class="form-label">Телефон</label>
-                                <input type="tel" class="form-control" id="phone" name="phone">
-                            </div>
-                            <div class="mb-3">
-                                <label for="parent_name" class="form-label">Родитель</label>
-                                <input type="text" class="form-control" id="parent_name" name="parent_name">
-                            </div>
-                            <div class="mb-3">
-                                <label for="default_price" class="form-label">Базовая цена</label>
-                                <input type="number" class="form-control" id="default_price" name="default_price" value="11400">
-                            </div>
-                            <div class="mb-3">
-                                <label for="attendance_type" class="form-label">Тип посещения *</label>
-                                <select class="form-select" id="attendance_type" name="attendance_type" required>
-                                    <option value="camp">Лагерь</option>
-                                    <option value="lab">Лаборатория</option>
-                                    <option value="full_day" selected>Полный день</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-
+                <div class="modal-body">
+                    <form id="create-student-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="parent_name" class="form-label">Родитель</label>
+                            <input type="text" class="form-control" id="parent_name" name="parent_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_price" class="form-label">Базовая цена</label>
+                            <input type="number" class="form-control" id="default_price" name="default_price" value="11400">
+                        </div>
+                        <div class="mb-3">
+                            <label for="attendance_type" class="form-label">Тип посещения *</label>
+                            <select class="form-select" id="attendance_type" name="attendance_type" required>
+                                <option value="camp">Лагерь</option>
+                                <option value="lab">Лаборатория</option>
+                                <option value="full_day" selected>Полный день</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                     <button type="button" class="btn btn-primary" id="save-student-btn">Сохранить</button>
@@ -541,60 +541,60 @@
         </div>
     </div>
 
-<div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="create-employee-form">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="employee_full_name" class="form-label">ФИО *</label>
-                        <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="position" class="form-label">Должность *</label>
-                        <select class="form-select" id="position" name="position" required>
-                            <option value="teacher">Преподаватель</option>
-                            <option value="admin">Администратор</option>
-                            <option value="camp_head">Начальник лагеря</option>
-                            <option value="lab_head">Начальник лаборатории</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="branch" class="form-label">Филиал</label>
-                        <select class="form-select" id="branch" name="branch_id">
-                            <option value="">Выберите филиал</option>
-                            {% for branch in available_branches %}
-                            <option value="{{ branch.id }}">{{ branch.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="schedule" class="form-label">Смена</label>
-                        <select class="form-select" id="schedule" name="schedule_id">
-                            <option value="">Выберите смену</option>
-                            {% for schedule in available_schedules %}
-                            <option value="{{ schedule.id }}">{{ schedule.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="rate_per_day" class="form-label">Ставка за день</label>
-                        <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
+    <div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createEmployeeModalLabel">Создать нового сотрудника</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-employee-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="employee_full_name" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="employee_full_name" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="position" class="form-label">Должность *</label>
+                            <select class="form-select" id="position" name="position" required>
+                                <option value="teacher">Преподаватель</option>
+                                <option value="admin">Администратор</option>
+                                <option value="camp_head">Начальник лагеря</option>
+                                <option value="lab_head">Начальник лаборатории</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="branch" class="form-label">Филиал</label>
+                            <select class="form-select" id="branch" name="branch_id">
+                                <option value="">Выберите филиал</option>
+                                {% for branch in available_branches %}
+                                <option value="{{ branch.id }}">{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="schedule" class="form-label">Смена</label>
+                            <select class="form-select" id="schedule" name="schedule_id">
+                                <option value="">Выберите смену</option>
+                                {% for schedule in available_schedules %}
+                                <option value="{{ schedule.id }}">{{ schedule.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rate_per_day" class="form-label">Ставка за день</label>
+                            <input type="number" class="form-control" id="rate_per_day" name="rate_per_day" value="1000">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="save-employee-btn">Сохранить</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <!-- Модальное окно для формы расхода -->
     <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">

@@ -1,12 +1,7 @@
-{% extends 'base.html' %} 
-{% load static %} 
-
-{% block extra_css %}
+{% extends 'base.html' %} {% load static %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tables.css' %}" />
 <link rel="stylesheet" href="{% static 'css/forms.css' %}" />
-{% endblock %} 
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="container mt-4">
   <a href="{% url 'dashboard' %}" class="btn btn-secondary mb-3">
     &larr; Назад на главную
@@ -18,13 +13,16 @@
         <h3 class="mb-0">Сотрудники</h3>
         <div>
           <!-- Добавляем кнопки экспорта -->
-          <a href="{% url 'employee_export_excel' %}" class="btn btn-light me-2">
+          <a
+            href="{% url 'employee_export_excel' %}"
+            class="btn btn-light me-2"
+          >
             <i class="bi bi-file-earmark-excel"></i> Excel
           </a>
           <a href="{% url 'employee_export_pdf' %}" class="btn btn-light me-2">
             <i class="bi bi-file-earmark-pdf"></i> PDF
           </a>
-          {% if role in "manager admin" %}
+          {% if user.role == 'manager' or user.role == 'admin' %}
           <button type="button" class="btn btn-light" id="add-employee-btn">
             <i class="bi bi-plus-lg"></i> Добавить сотрудника
           </button>
@@ -51,7 +49,7 @@
             {% for employee in employees %}
             <tr id="employee-{{ employee.id }}">
               <td>{{ forloop.counter }}</td>
-              {% if role in "manager admin" %}
+              {% if user.role == 'manager' or user.role == 'admin' %}
               <td>
                 <button
                   class="btn btn-sm btn-outline-primary edit-employee-btn"
@@ -66,13 +64,12 @@
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
-              {% else %}
-              -
-              {% endif %}
+              {% else %} - {% endif %}
 
               <td>{{ employee.full_name }}</td>
               <td>
-                  {% if employee.is_leader %}Вожатый{% else %}{{ employee.position.name }}{% endif %}
+                {% if employee.is_leader %}Вожатый{% else %}{{
+                employee.position.name }}{% endif %}
               </td>
               <td>{{ employee.branch.name|default:"—" }}</td>
               <td>{{ employee.schedule.name|default:"—" }}</td>
@@ -215,13 +212,13 @@
   // Глобальные переменные
   const CSRF_TOKEN = "{{ csrf_token }}";
 
-// Функция для обновления нумерации строк
-function updateRowNumbers() {
-    const rows = document.querySelectorAll('#employees-table tbody tr');
+  // Функция для обновления нумерации строк
+  function updateRowNumbers() {
+    const rows = document.querySelectorAll("#employees-table tbody tr");
     rows.forEach((row, index) => {
-        row.cells[0].textContent = index + 1;
+      row.cells[0].textContent = index + 1;
     });
-}
+  }
 
   // Функция для загрузки формы редактирования в модальное окно
   function loadEmployeeEditForm(employeeId) {
@@ -397,7 +394,6 @@ function updateRowNumbers() {
       });
     });
 
-    
     // Обработчики кнопок удаления
     document.querySelectorAll(".delete-employee-btn").forEach((button) => {
       button.addEventListener("click", function () {
@@ -410,33 +406,33 @@ function updateRowNumbers() {
   // Функция удаления сотрудника
   function deleteEmployee(employeeId) {
     if (confirm("Вы уверены, что хотите удалить этого сотрудника?")) {
-        fetch(`/employees/delete/${employeeId}/`, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": CSRF_TOKEN,
-                "X-Requested-With": "XMLHttpRequest",
-            },
+      fetch(`/employees/delete/${employeeId}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": CSRF_TOKEN,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Удаляем строку из таблицы
+            const row = document.getElementById(`employee-${employeeId}`);
+            if (row) {
+              row.remove();
+              // Обновляем нумерацию после удаления
+              updateRowNumbers();
+              showToast("Сотрудник успешно удален");
+            }
+          } else {
+            showToast("Ошибка при удалении сотрудника", "error");
+          }
         })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.success) {
-                    // Удаляем строку из таблицы
-                    const row = document.getElementById(`employee-${employeeId}`);
-                    if (row) {
-                        row.remove();
-                        // Обновляем нумерацию после удаления
-                        updateRowNumbers();
-                        showToast("Сотрудник успешно удален");
-                    }
-                } else {
-                    showToast("Ошибка при удалении сотрудника", "error");
-                }
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-                showToast("Произошла ошибка при удалении сотрудника", "error");
-            });
+        .catch((error) => {
+          console.error("Error:", error);
+          showToast("Произошла ошибка при удалении сотрудника", "error");
+        });
     }
-}
+  }
 </script>
 {% endblock %}
