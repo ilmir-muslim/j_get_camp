@@ -10,7 +10,6 @@ from schedule.models import Schedule
 from .models import Expense, Salary
 
 
-@role_required(["manager", "admin"])
 def expense_list(request):
     """
     Список расходов с фильтрацией по сменам и выводом итоговой суммы.
@@ -20,7 +19,6 @@ def expense_list(request):
     if user.role == "manager":
         expenses = Expense.objects.all()
     else:
-        # Для администраторов показываем только расходы смен их города
         if user.city:
             expenses = Expense.objects.filter(schedule__branch__city=user.city)
         else:
@@ -179,7 +177,6 @@ def salary_delete(request, pk):
         return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
-@role_required(["manager", "admin"])
 def expense_create(request):
     """
     Создание нового расхода.
@@ -222,7 +219,6 @@ def expense_create(request):
     return render(request, "payroll/expense_form.html", {"form": form, "expense": None})
 
 
-@role_required(["manager", "admin"])
 def expense_edit(request, pk):
     """
     Редактирование существующего расхода.
@@ -267,7 +263,6 @@ def expense_edit(request, pk):
     )
 
 
-@role_required(["manager", "admin"])
 def expense_delete(request, pk):
     """
     Удаление расхода.
