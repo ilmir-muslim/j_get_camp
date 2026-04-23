@@ -392,7 +392,7 @@ def employee_export_excel(request):
         ws.append(
             [
                 employee.full_name,
-                employee.get_position_display(),
+                employee.position.name,
                 employee.branch.name if employee.branch else "",
                 employee.schedule.name if employee.schedule else "",
                 employee.rate_per_day,

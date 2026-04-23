@@ -15,7 +15,7 @@ from django.db.models import Sum
 from django.views.decorators.http import require_POST
 
 from branches.models import Branch
-from core.utils import role_required
+from core.utils import role_required, sanitize_sheet_name
 from employees.models import Employee, EmployeeAttendance, Position
 from payroll.forms import PaymentForm
 from payroll.models import Expense, ExpenseCategory, Salary
@@ -540,8 +540,7 @@ def export_schedule_students_excel(request, pk):
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Ученики {schedule.name}"
-
+    ws.title = f"Ученики {sanitize_sheet_name(schedule.name)}"
     ws.append(
         [
             "ФИО",
@@ -795,12 +794,10 @@ def export_schedule_attendance_excel(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
     students = Student.objects.filter(schedule=schedule).order_by("full_name")
 
-    # Создаем workbook и worksheet
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Посещаемость {schedule.name}"
+    ws.title = f"Посещаемость {sanitize_sheet_name(schedule.name)}"
 
-    # Заголовки - добавляем все колонки из таблицы
     headers = ["№", "ФИО", "Стоимость", "Платежи", "Тип", "Явка"]
     dates = []
     current_date = schedule.start_date

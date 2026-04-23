@@ -68,8 +68,11 @@
 
               <td>{{ employee.full_name }}</td>
               <td>
-                {% if employee.is_leader %}Вожатый{% else %}{{
-                employee.position.name }}{% endif %}
+                {% if employee.is_leader %}
+                  Вожатый
+                {% else %}
+                  {{ employee.position.name }}
+                {% endif %}
               </td>
               <td>{{ employee.branch.name|default:"—" }}</td>
               <td>{{ employee.schedule.name|default:"—" }}</td>

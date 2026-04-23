@@ -18,3 +18,10 @@ def role_required(allowed_roles):
     return decorator
 
 
+import re
+
+
+def sanitize_sheet_name(name: str) -> str:
+    """Заменяет запрещённые символы и урезает до 31 символа."""
+    name = re.sub(r"[:\\/?*\[\]]", "_", name)
+    return name[:31]
