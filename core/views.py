@@ -7,7 +7,6 @@ from django.contrib import messages
 from core.utils import role_required
 from employees.models import Employee
 from payroll.models import Expense, Salary
-import schedule
 from schedule.models import Schedule
 from students.models import Student
 from branches.models import Branch
@@ -22,7 +21,9 @@ def get_dashboard_stats(user):
         branches = branches.filter(city=user.city)
 
     schedules = Schedule.objects.filter(branch__in=branches)
-    students = Student.objects.filter(schedule__in=schedules).distinct()
+
+    # Изменено: используем M2M-поле schedules
+    students = Student.objects.filter(schedules__in=schedules).distinct()
     employees = Employee.objects.filter(schedule__in=schedules).distinct()
 
     stats = {
@@ -42,19 +43,36 @@ def get_dashboard_stats(user):
     branches_stats = []
     for branch in branches:
         branch_schedules = Schedule.objects.filter(branch=branch)
-        branch_students = Student.objects.filter(schedule__in=branch_schedules).distinct()
-        branch_employees = Employee.objects.filter(schedule__in=branch_schedules).distinct()
-        branch_expenses = Expense.objects.filter(schedule__in=branch_schedules).aggregate(Sum("amount"))["amount__sum"] or 0
-        branch_salaries = Salary.objects.filter(employee__in=branch_employees).aggregate(Sum("total_payment"))["total_payment__sum"] or 0
+        # фильтрация студентов по сменам филиала через M2M
+        branch_students = Student.objects.filter(
+            schedules__in=branch_schedules
+        ).distinct()
+        branch_employees = Employee.objects.filter(
+            schedule__in=branch_schedules
+        ).distinct()
+        branch_expenses = (
+            Expense.objects.filter(schedule__in=branch_schedules).aggregate(
+                Sum("amount")
+            )["amount__sum"]
+            or 0
+        )
+        branch_salaries = (
+            Salary.objects.filter(employee__in=branch_employees).aggregate(
+                Sum("total_payment")
+            )["total_payment__sum"]
+            or 0
+        )
 
-        branches_stats.append({
-            "name": branch.name,
-            "schedule_count": branch_schedules.count(),
-            "employee_count": branch_employees.count(),
-            "student_count": branch_students.count(),
-            "total_expenses": branch_expenses,
-            "total_salaries": branch_salaries,
-        })
+        branches_stats.append(
+            {
+                "name": branch.name,
+                "schedule_count": branch_schedules.count(),
+                "employee_count": branch_employees.count(),
+                "student_count": branch_students.count(),
+                "total_expenses": branch_expenses,
+                "total_salaries": branch_salaries,
+            }
+        )
     return stats, branches_stats
 
 
@@ -63,7 +81,6 @@ def dashboard(request):
     role = request.user.role
     context = {"role": role}
 
-    # Для manager и admin добавляем статистику
     if role in ["manager", "admin"]:
         stats, branches_stats = get_dashboard_stats(request.user)
         context.update(
@@ -87,20 +104,15 @@ def analytics_dashboard(request):
     user = request.user
     branches = Branch.objects.all()
 
-    # Для администраторов фильтруем по городу
     if user.role == "admin" and user.city:
         branches = branches.filter(city=user.city)
 
-    # Получаем все смены для выбранных филиалов
     schedules = Schedule.objects.filter(branch__in=branches)
 
-    # Получаем студентов через смены
-    students = Student.objects.filter(schedule__in=schedules).distinct()
-
-    # Получаем сотрудников через смены
+    # Исправлено: M2M
+    students = Student.objects.filter(schedules__in=schedules).distinct()
     employees = Employee.objects.filter(schedule__in=schedules).distinct()
 
-    # Общая статистика
     stats = {
         "schedule_count": schedules.count(),
         "employee_count": employees.count(),
@@ -115,28 +127,21 @@ def analytics_dashboard(request):
         or 0,
     }
 
-    # Статистика по филиалам
     branches_stats = []
     for branch in branches:
         branch_schedules = Schedule.objects.filter(branch=branch)
-
-        # Студенты филиала (через смены)
         branch_students = Student.objects.filter(
-            schedule__in=branch_schedules
+            schedules__in=branch_schedules
         ).distinct()
-
-        # Сотрудники филиала (через смены)
         branch_employees = Employee.objects.filter(
             schedule__in=branch_schedules
         ).distinct()
-
         branch_expenses = (
             Expense.objects.filter(schedule__in=branch_schedules).aggregate(
                 Sum("amount")
             )["amount__sum"]
             or 0
         )
-
         branch_salaries = (
             Salary.objects.filter(employee__in=branch_employees).aggregate(
                 Sum("total_payment")
@@ -169,7 +174,7 @@ def analytics_dashboard(request):
 @login_required
 def create_ticket(request):
     if request.method == "POST":
-        form = TicketForm(request.POST, request.FILES)  # Добавлен request.FILES
+        form = TicketForm(request.POST, request.FILES)
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.user = request.user
@@ -201,7 +206,6 @@ def my_tickets(request):
 def ticket_list(request):
     tickets = Ticket.objects.all().order_by("-created_at")
 
-    # Фильтрация по статусу
     status_filter = request.GET.get("status")
     if status_filter:
         tickets = tickets.filter(status=status_filter)
@@ -210,7 +214,6 @@ def ticket_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    # Статистика для менеджера
     open_tickets_count = Ticket.objects.filter(status="open").count()
     in_progress_count = Ticket.objects.filter(status="in_progress").count()
 
@@ -241,7 +244,6 @@ def update_ticket(request, ticket_id):
     return render(request, "core/update_ticket.html", {"form": form, "ticket": ticket})
 
 
-# Контекстный процессор для отображения количества открытых тикетов
 def get_open_tickets_count(request):
     """Контекстный процессор для отображения количества открытых тикетов"""
     if request.user.is_authenticated and request.user.role == "manager":

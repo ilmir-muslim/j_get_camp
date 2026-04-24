@@ -170,52 +170,52 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     const btn = e.currentTarget;
     const paymentId = btn.dataset.paymentId;
-    const studentId = btn.dataset.studentId; 
+    const studentId = btn.dataset.studentId;
     const scheduleId = btn.dataset.scheduleId;
 
     if (confirm('Удалить этот платеж?')) {
-      fetch(`/students/${studentId}/payments/${paymentId}/delete/`, {  
+      fetch(`/students/${studentId}/payments/${paymentId}/delete/`, {
         method: 'POST',
         headers: {
           'X-CSRFToken': CSRF_TOKEN,
           'X-Requested-With': 'XMLHttpRequest'
         }
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          loadPaymentHistory();
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            loadPaymentHistory();
 
-          const totalPaidSpan = document.getElementById('total-paid');
-          if (totalPaidSpan) {
-            totalPaidSpan.textContent = data.total_paid > 0 ? data.total_paid.toFixed(2) : '-';
-          }
-          const currentBalanceSpan = document.getElementById('current-balance');
-          if (currentBalanceSpan) {
-            currentBalanceSpan.textContent = data.current_balance.toFixed(2);
-          }
-
-          const studentRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
-          if (studentRow) {
-            const paymetnCell = studentRow.cells[3];
-            if (data.total_paid > 0) {
-              paymetnCell.textContent = data.total_paid.toFixed(2);
-            } else {
-              paymetnCell.textContent = '-';
+            const totalPaidSpan = document.getElementById('total-paid');
+            if (totalPaidSpan) {
+              totalPaidSpan.textContent = data.total_paid > 0 ? data.total_paid.toFixed(2) : '-';
             }
+            const currentBalanceSpan = document.getElementById('current-balance');
+            if (currentBalanceSpan) {
+              currentBalanceSpan.textContent = data.current_balance.toFixed(2);
+            }
+
+            const studentRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if (studentRow) {
+              const paymetnCell = studentRow.cells[3];
+              if (data.total_paid > 0) {
+                paymetnCell.textContent = data.total_paid.toFixed(2);
+              } else {
+                paymetnCell.textContent = '-';
+              }
+            }
+            colorizePaymentCells();
+            updateTotalPayments();
+            updateFinanceSummary();
+            updatePaymentButtonsText();
+          } else {
+            showToast('Ошибка при удалении платежа', 'error');
           }
-          colorizePaymentCells();
-          updateTotalPayments();
-          updateFinanceSummary();
-          updatePaymentButtonsText();
-        } else {
-          showToast('Ошибка при удалении платежа', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showToast('Произошла ошибка при удалении платежа', 'error');
-      });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Произошла ошибка при удалении платежа', 'error');
+        });
     }
   }
 
@@ -580,14 +580,16 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(data => {
           if (data.success) {
-            // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST
-            removeStudentFromDatalist(studentId);
+            // НЕ удаляем из datalist, студент может быть в нескольких сменах
+            // removeStudentFromDatalist(studentId); // Закомментировано
+
+            // Добавляем новую строку в таблицу динамически
+            addStudentRowToTable(data.student);
 
             showToast('Ученик успешно добавлен в смену', 'success');
             updateAttendanceTotals();
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
+            updateTotalPayments();
+            updateFinanceSummary();
           } else {
             showToast(data.error || 'Ошибка добавления ученика', 'error');
           }
@@ -599,7 +601,83 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Функция для удаления ученика из datalist
+  // Новая функция добавления строки студента в таблицу посещаемости
+  function addStudentRowToTable(studentData) {
+    const tbody = document.getElementById('attendance-body');
+    // Удаляем строку "Нет учеников", если есть
+    const emptyRow = tbody.querySelector('tr td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    const row = document.createElement('tr');
+    row.setAttribute('data-student-id', studentData.id);
+    row.setAttribute('data-visits', '0');
+    row.setAttribute('data-attendance-type', studentData.attendance_type);
+    row.setAttribute('data-squad', '');
+    row.className = '';
+
+    const price = studentData.individual_price || studentData.default_price;
+    const balance = parseFloat(studentData.current_balance).toFixed(2);
+
+    let rowHtml = `
+      <td></td>
+      <td>
+        <button class="btn p-0 border-0 bg-transparent icon-btn student-payment-btn"
+                data-student-id="${studentData.id}"
+                data-student-name="${studentData.full_name}"
+                data-schedule-id="${SCHEDULE_ID}"
+                data-bs-toggle="tooltip" title="Добавить платеж">
+          <i class="bi bi-cash text-success fs-5"></i>
+        </button>
+        <button class="btn p-0 border-0 bg-transparent icon-btn remove-student-attendance"
+                data-student-id="${studentData.id}"
+                data-student-name="${studentData.full_name}"
+                data-schedule-id="${SCHEDULE_ID}"
+                data-bs-toggle="tooltip" title="Удалить">
+          <i class="bi bi-trash text-danger fs-5"></i>
+        </button>
+      </td>
+      <td>${price}</td>
+      <td>—</td>
+      <td class="balance-cell">${balance}</td>
+      <td>${studentData.attendance_type || ''}</td>
+      <td class="squad-cell" data-squad-id="">—</td>
+      <td class="student-column">${studentData.full_name}</td>
+      <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title=""></td>
+      <td>0</td>
+    `;
+
+    // Ячейки посещаемости
+    DATES_JSON.forEach(date => {
+      rowHtml += `
+        <td class="date-cell" data-date="${date}">
+          <div class="attendance-cell text-center bg-danger" 
+               data-student-id="${studentData.id}"
+               data-date="${date}"
+               data-attendance-type="absent">
+            <i class="bi bi-x-lg text-white"></i>
+          </div>
+        </td>
+      `;
+    });
+
+    row.innerHTML = rowHtml;
+    tbody.appendChild(row);
+
+    // Инициализация тултипов
+    const specialNotesCell = row.querySelector('.special-notes-cell');
+    if (specialNotesCell) {
+      new bootstrap.Tooltip(specialNotesCell);
+    }
+    const tooltipTriggerList = row.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+
+    // Обновить нумерацию
+    updateStudentRowNumbers();
+    // Применить фильтры, если активны
+    filterAttendanceTable();
+  }
+
+  // Функция для удаления ученика из datalist (больше не используется при добавлении)
   function removeStudentFromDatalist(studentId) {
     const datalist = document.getElementById('students-datalist');
     const optionToRemove = datalist.querySelector(`option[data-id="${studentId}"]`);
@@ -708,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function () {
               updateFinanceSummary();
               updateAttendanceTotals();
 
-              // ДОБАВЛЯЕМ УЧЕНИКА ОБРАТНО В DATALIST
+              // ДОБАВЛЯЕМ УЧЕНИКА ОБРАТНО В DATALIST (т.к. он больше не в этой смене)
               addStudentToDatalist(studentId, studentName);
 
               // Запрашиваем обновленные данные с сервера
@@ -1202,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const specialNotesCell = row.cells[8];
       const specialNotes = student.special_notes || '';
-      specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substrings(0,30)+'...' : specialNotes;
+      specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substrings(0, 30) + '...' : specialNotes;
       if (specialNotesCell) {
         specialNotesCell.setAttribute('data-bs-title', specialNotes);
         const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);

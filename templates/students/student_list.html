@@ -32,7 +32,6 @@
     </div>
 
     <div class="card-body">
-          <!-- Добавляем строку поиска -->
       <div class="mb-3">
         <input type="text" id="student-search" class="form-control" placeholder="Поиск ученика по ФИО...">
       </div>
@@ -46,8 +45,8 @@
               <th>Баланс</th>
               <th>Телефон</th>
               <th>Родитель</th>
-              <th>Смена</th>
-              <th>Отряд</th>  
+              <th>Смены</th>
+              <th>Отряд</th>
               <th>Филиал</th>
               <th>Тип<wbr> посещения</th>
               <th>Цена</th>
@@ -60,25 +59,34 @@
             <tr id="student-{{ student.id }}">
               <td>{{ forloop.counter }}</td>
               <td>
-                    <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
-                            data-student-id="{{ student.id }}">
-                    <i class="bi bi-pencil text-primary"></i>
-                    </button>
-                    <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
-                            data-student-id="{{ student.id }}">
-                    <i class="bi bi-trash text-danger"></i>
-                    </button>
-                </td>
-
+                <button class="btn p-0 border-0 bg-transparent icon-btn edit-student-btn"
+                        data-student-id="{{ student.id }}">
+                  <i class="bi bi-pencil text-primary"></i>
+                </button>
+                <button class="btn p-0 border-0 bg-transparent icon-btn delete-student-btn"
+                        data-student-id="{{ student.id }}">
+                  <i class="bi bi-trash text-danger"></i>
+                </button>
+              </td>
               <td>{{ student.full_name }}</td>
               <td class="balance-cell" id="balance-{{ student.id }}">
                 {{ student.current_balance }}
-            </td>
+              </td>
               <td>{{ student.phone }}</td>
               <td>{{ student.parent_name }}</td>
-              <td>{{ student.schedule.name|default:"—" }}</td>
-              <td>{{ student.squad.name|default:"—" }}</td> 
-              <td>{{ student.schedule.branch.name|default:"—" }}</td>
+              <td>
+                {% for s in student.schedules.all %}
+                  {{ s.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                  —
+                {% endfor %}
+              </td>
+              <td>{{ student.squad.name|default:"—" }}</td>
+              <td>
+                {% with student.schedules.first as first_sch %}
+                  {{ first_sch.branch.name|default:"—" }}
+                {% endwith %}
+              </td>
               <td>{{ student.get_attendance_type_display }}</td>
               <td>{{ student.individual_price|default:student.default_price }}</td>
               <td>{{ student.price_comment }}</td>
@@ -94,16 +102,15 @@
   </div>
 </div>
 
-<!-- Модальное окно для работы с учениками -->
+<!-- Модальное окно для редактирования -->
 <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content" id="student-modal-content">
-      <!-- Сюда будет загружаться форма -->
     </div>
   </div>
 </div>
 
-<!-- Модальное окно для создания ученика -->
+<!-- Модальное окно для создания ученика (без выбора смены) -->
 <div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -126,15 +133,7 @@
             <label for="parent_name" class="form-label">Родитель</label>
             <input type="text" class="form-control" id="parent_name" name="parent_name">
           </div>
-          <div class="mb-3">
-            <label for="schedule" class="form-label">Смена</label>
-            <select class="form-select" id="schedule" name="schedule">
-              <option value="">Выберите смену</option>
-              {% for schedule in schedules %}
-              <option value="{{ schedule.id }}">{{ schedule.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
+          <!-- Поле выбора смены убрано, так как привязка к сменам происходит отдельно -->
           <div class="mb-3">
             <label for="attendance_type" class="form-label">Тип посещения *</label>
             <select class="form-select" id="attendance_type" name="attendance_type" required>
@@ -169,7 +168,6 @@
 
 {% block extra_scripts %}
 <script>
-  // Глобальные переменные
   const CSRF_TOKEN = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/student_list.js' %}"></script>

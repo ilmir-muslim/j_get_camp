@@ -24,21 +24,19 @@ router = Router(tags=["Students"])
 def list_students(request):
     students = Student.objects.all()
 
-    # Фильтрация для начальников лагеря/лаборатории
+    # Фильтрация для начальников лагеря/лаборатории и администраторов
     if request.user.role in ["camp_head", "lab_head"]:
         user_branch = request.user.branch
         if user_branch:
             students = students.filter(
-                Q(schedule__branch=user_branch) | Q(schedule__isnull=True)
-            )
-
-    # Фильтрация по городу для администратора
+                Q(schedules__branch=user_branch) | Q(schedules__isnull=True)
+            ).distinct()
     elif request.user.role == "admin":
         user_city = request.user.city
         if user_city:
             students = students.filter(
-                Q(schedule__branch__city=user_city) | Q(schedule__isnull=True)
-            )
+                Q(schedules__branch__city=user_city) | Q(schedules__isnull=True)
+            ).distinct()
 
     return students
 
@@ -51,7 +49,17 @@ def get_student(request, student_id: int):
 
 @router.post("/", response=StudentSchema)
 def create_student(request, data: StudentCreateSchema):
-    student = Student.objects.create(**data.dict())
+    # Создаём студента без привязки к конкретной смене
+    student = Student.objects.create(
+        full_name=data.full_name,
+        phone=data.phone,
+        parent_name=data.parent_name,
+        attendance_type=data.attendance_type,
+        default_price=data.default_price,
+        individual_price=data.individual_price,
+        price_comment=data.price_comment,
+        special_notes=data.special_notes,
+    )
     return student
 
 
@@ -59,7 +67,6 @@ def create_student(request, data: StudentCreateSchema):
 def partial_update_student(request, student_id: int, data: StudentUpdateSchema):
     student = get_object_or_404(Student, id=student_id)
 
-    # Обновляем только переданные поля
     update_data = data.dict(exclude_unset=True)
     for attr, value in update_data.items():
         setattr(student, attr, value)
@@ -68,7 +75,7 @@ def partial_update_student(request, student_id: int, data: StudentUpdateSchema):
     if "attendance_type" in update_data:
         student.default_price = None
 
-    student.save()  # Автоматический расчет цены в методе save()
+    student.save()
     return student
 
 
@@ -79,11 +86,13 @@ def delete_student(request, student_id: int):
     # Удаляем связанные объекты
     student.attendance_set.all().delete()
     student.payments.all().delete()
-
     student.delete()
     return {"success": True}
 
 
+# ================================
+# Посещаемость
+# ================================
 @router.get("/{student_id}/attendance/", response=list[AttendanceSchema])
 def list_attendance(request, student_id: int):
     student = get_object_or_404(Student, id=student_id)
@@ -113,6 +122,9 @@ def delete_attendance(request, attendance_id: int):
     return {"success": True}
 
 
+# ================================
+# Платежи
+# ================================
 @router.get("/{student_id}/payments/", response=list[PaymentSchema])
 def list_payments(request, student_id: int):
     student = get_object_or_404(Student, id=student_id)
@@ -125,7 +137,13 @@ def create_payment(request, student_id: int, data: PaymentCreateSchema):
         raise PermissionDenied
     student = get_object_or_404(Student, id=student_id)
     schedule = get_object_or_404(Schedule, id=data.schedule_id)
-    payment = Payment.objects.create(student=student, schedule=schedule, **data.dict())
+    payment = Payment.objects.create(
+        student=student,
+        schedule=schedule,
+        amount=data.amount,
+        date=data.date,
+        comment=data.comment,
+    )
     return payment
 
 
@@ -153,18 +171,21 @@ def delete_payment(request, student_id: int, payment_id: int):
     return {"success": True}
 
 
-# API для работы с отрядами
+# ================================
+# Отряды
+# ================================
 @router.get("/squads/", response=list[SquadSchema])
-def list_squads(request):
+def list_squads(request, schedule_id: int = None):
     squads = Squad.objects.all()
 
-    # Фильтрация для начальников лагеря/лаборатории
+    if schedule_id:
+        squads = squads.filter(schedule_id=schedule_id)
+
+    # Фильтрация по правам доступа
     if request.user.role in ["camp_head", "lab_head"]:
         user_branch = request.user.branch
         if user_branch:
             squads = squads.filter(schedule__branch=user_branch)
-
-    # Фильтрация по городу для администратора
     elif request.user.role == "admin":
         user_city = request.user.city
         if user_city:
@@ -175,10 +196,9 @@ def list_squads(request):
 
 @router.get("/squads/{squad_id}/", response=SquadSchema)
 def get_squad(request, squad_id: int):
-    """Получить информацию об отряде с вожатым"""
     squad = get_object_or_404(Squad, id=squad_id)
 
-    # Проверка доступа для администраторов и начальников
+    # Проверка доступа
     user = request.user
     if user.role == "admin" and user.city:
         if squad.schedule.branch.city != user.city:
@@ -192,27 +212,3 @@ def get_squad(request, squad_id: int):
             return JsonResponse({"error": "Доступ запрещен"}, status=403)
 
     return squad
-
-
-@router.get("/squads/", response=list[SquadSchema])
-def list_squads(request, schedule_id: int = None):
-    """Получить список отрядов с возможностью фильтрации по смене"""
-    squads = Squad.objects.all()
-
-    # Фильтрация по смене если указан schedule_id
-    if schedule_id:
-        squads = squads.filter(schedule_id=schedule_id)
-
-    # Фильтрация для начальников лагеря/лаборатории
-    if request.user.role in ["camp_head", "lab_head"]:
-        user_branch = request.user.branch
-        if user_branch:
-            squads = squads.filter(schedule__branch=user_branch)
-
-    # Фильтрация по городу для администратора
-    elif request.user.role == "admin":
-        user_city = request.user.city
-        if user_city:
-            squads = squads.filter(schedule__branch__city=user_city)
-
-    return squads

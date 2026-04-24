@@ -1,3 +1,4 @@
+# schedule/views.py
 from decimal import Decimal, InvalidOperation
 import io
 import json
@@ -22,7 +23,7 @@ from payroll.models import Expense, ExpenseCategory, Salary
 from students.forms import SquadForm
 from students.models import Balance, Payment, Squad, Student
 from schedule.forms import ScheduleForm
-from students.models import Attendance, Student
+from students.models import Attendance, Student  # Keep for clarity
 
 from .models import COLOR_CHOICES, Schedule
 
@@ -244,9 +245,7 @@ def schedule_detail(request, pk):
             )
 
         elif action == "add_student":
-            student_id = request.POST.get(
-                "student_id"
-            )  # ИСПРАВЛЕНО: было request.POST.get("student")
+            student_id = request.POST.get("student_id")
             if not student_id:
                 return JsonResponse({"error": "Не указан ученик"}, status=400)
 
@@ -255,7 +254,8 @@ def schedule_detail(request, pk):
             except Student.DoesNotExist:
                 return JsonResponse({"error": "Ученик не найден"}, status=404)
 
-            if student.schedule == schedule:
+            # Проверяем, не состоит ли уже в этой смене
+            if student.schedules.filter(id=schedule.id).exists():
                 return JsonResponse({"error": "Ученик уже в этой смене"}, status=400)
 
             # Автоматически списываем стоимость смены
@@ -264,8 +264,8 @@ def schedule_detail(request, pk):
             except Exception as e:
                 return JsonResponse({"error": f"Ошибка списания: {str(e)}"}, status=400)
 
-            student.schedule = schedule
-            student.save()
+            # Добавляем связь ManyToMany
+            student.schedules.add(schedule)
 
             return JsonResponse(
                 {
@@ -288,7 +288,7 @@ def schedule_detail(request, pk):
             # Если действие не распознано, возвращаем ошибку
             return JsonResponse({"error": "Неизвестное действие"}, status=400)
 
-    # Оригинальный код для GET-запроса
+    # GET-запрос
     dates = []
     current_date = schedule.start_date
     while current_date <= schedule.end_date:
@@ -296,7 +296,8 @@ def schedule_detail(request, pk):
         current_date += timedelta(days=1)
 
     employees = Employee.objects.filter(schedule=schedule)
-    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+    # Заменено: Student.objects.filter(schedule=schedule) -> schedule.students.all()
+    students = schedule.students.all().order_by("full_name")
 
     attendance = {}
     for student in students:
@@ -389,8 +390,10 @@ def schedule_detail(request, pk):
         or 0
     )
 
+    # available_employees без изменений
     available_employees = Employee.objects.exclude(schedule=schedule)
-    available_students = Student.objects.exclude(schedule=schedule)
+    # available_students: исключаем тех, кто уже в этой смене
+    available_students = Student.objects.exclude(schedules=schedule)
 
     # Объединяем расходы и зарплаты для отображения
     expenses = Expense.objects.filter(schedule=schedule)
@@ -501,6 +504,10 @@ def remove_student_from_schedule(request, schedule_id, student_id):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     student = get_object_or_404(Student, pk=student_id)
 
+    # Проверяем, что студент действительно состоит в этой смене
+    if not student.schedules.filter(id=schedule.id).exists():
+        return JsonResponse({"error": "Ученик не состоит в смене"}, status=400)
+
     # Получаем все платежи студента за эту смену
     payments = Payment.objects.filter(student=student, schedule=schedule)
 
@@ -524,9 +531,7 @@ def remove_student_from_schedule(request, schedule_id, student_id):
     payments.delete()
 
     # Отвязываем студента от смены
-    if student.schedule == schedule:
-        student.schedule = None
-        student.save()
+    student.schedules.remove(schedule)
 
     return JsonResponse(
         {"success": True, "student_id": student.id, "student_name": student.full_name}
@@ -536,7 +541,8 @@ def remove_student_from_schedule(request, schedule_id, student_id):
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_students_excel(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
-    students = Student.objects.filter(schedule=schedule)
+    # Заменено: Student.objects.filter(schedule=schedule) -> schedule.students.all()
+    students = schedule.students.all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -585,7 +591,8 @@ def export_schedule_students_excel(request, pk):
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_students_pdf(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
-    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+    # Заменено: Student.objects.filter(schedule=schedule) -> schedule.students.all()
+    students = schedule.students.all().order_by("full_name")
 
     html_string = render_to_string(
         "schedule/schedule_students_pdf.html",
@@ -607,19 +614,21 @@ def schedule_list(request):
     if user.role == "admin" and user.city:
         schedules = (
             Schedule.objects.select_related("branch")
-            .prefetch_related("employee_set", "student_set")
+            .prefetch_related(
+                "employee_set", "students"
+            )  # заменено student_set -> students
             .filter(branch__city=user.city)
         )
     elif user.role in ["camp_head", "lab_head"]:
         schedules = (
             Schedule.objects.select_related("branch")
-            .prefetch_related("employee_set", "student_set")
+            .prefetch_related("employee_set", "students")
             .filter(branch=user.branch)
         )
     else:
         schedules = (
             Schedule.objects.select_related("branch")
-            .prefetch_related("employee_set", "student_set")
+            .prefetch_related("employee_set", "students")
             .all()
         )
 
@@ -633,7 +642,8 @@ def schedule_list(request):
 
         camp_head = schedule.employee_set.filter(position=camp_head_position).first()
         lab_head = schedule.employee_set.filter(position=lab_head_position).first()
-        student_count = schedule.student_set.count()
+        # Заменено: schedule.student_set.count() -> schedule.students.count()
+        student_count = schedule.students.count()
 
         schedule_data.append(
             {
@@ -764,10 +774,11 @@ def get_updated_schedule_data(request, pk):
         schedule = Schedule.objects.get(pk=pk)
 
         # Получаем обновленные данные
+        # Заменена ссылка на student__schedule_students (которой больше нет) на корректную
         total_payments = (
-            Payment.objects.filter(student__schedule_students=schedule).aggregate(
-                total=Sum("amount")
-            )["total"]
+            Payment.objects.filter(schedule=schedule).aggregate(total=Sum("amount"))[
+                "total"
+            ]
             or 0
         )
 
@@ -792,7 +803,8 @@ def get_updated_schedule_data(request, pk):
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_attendance_excel(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
-    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+    # Заменено: Student.objects.filter(schedule=schedule) -> schedule.students.all()
+    students = schedule.students.all().order_by("full_name")
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -867,7 +879,8 @@ def export_schedule_attendance_excel(request, pk):
 @role_required(["manager", "admin", "camp_head", "lab_head"])
 def export_schedule_attendance_pdf(request, pk):
     schedule = get_object_or_404(Schedule, pk=pk)
-    students = Student.objects.filter(schedule=schedule).order_by("full_name")
+    # Заменено: Student.objects.filter(schedule=schedule) -> schedule.students.all()
+    students = schedule.students.all().order_by("full_name")
 
     dates = []
     current_date = schedule.start_date
@@ -898,8 +911,8 @@ def export_schedule_attendance_pdf(request, pk):
             "total_paid": total_paid,
             "current_balance": student.current_balance,
             "attendance_count": attendance_count,
-            "squad_name": student.squad.name if student.squad else None,  
-            "special_notes": student.special_notes,  
+            "squad_name": student.squad.name if student.squad else None,
+            "special_notes": student.special_notes,
             "daily_attendance": [],
         }
 
@@ -986,7 +999,6 @@ def delete_squad(request, pk, squad_id):
                 status=400,
             )
 
-        # Если у отряда есть вожатый, сбрасываем у него флаг is_leader
         if squad.leader:
             squad.leader.is_leader = False
             squad.leader.save(update_fields=["is_leader"])

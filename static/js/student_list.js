@@ -49,18 +49,16 @@ function loadStudentEditForm(studentId) {
                                     row.cells[2].textContent = data.student.full_name;
                                     row.cells[4].textContent = data.student.phone;
                                     row.cells[5].textContent = data.student.parent_name;
-                                    row.cells[6].textContent = data.student.schedule_name || '—';
-                                    // Обновляем филиал
+                                    // Теперь schedules – массив, но мы не получаем их в quick_edit; оставим без изменений
+                                    // (можно оставить текущее значение, так как в форме смена не редактируется)
                                     row.cells[8].textContent = data.student.branch_name || '—';
                                     row.cells[9].textContent = data.student.attendance_type_display;
                                     row.cells[10].textContent = data.student.individual_price || data.student.default_price;
                                     row.cells[11].textContent = data.student.price_comment || '';
-                                    // Особые отметки – ячейка с индексом 12
                                     const specialNotesCell = row.cells[12];
                                     const specialNotes = data.student.special_notes || '';
                                     specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substring(0, 30) + '…' : specialNotes;
                                     specialNotesCell.setAttribute('data-bs-title', specialNotes);
-                                    // Пересоздаём тултип
                                     const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
                                     if (oldTooltip) oldTooltip.dispose();
                                     new bootstrap.Tooltip(specialNotesCell, {
@@ -102,11 +100,9 @@ function deleteStudent(studentId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Удаляем строку из таблицы
                     const row = document.getElementById(`student-${studentId}`);
                     if (row) {
                         row.remove();
-                        // Обновляем нумерацию после удаления
                         updateRowNumbers();
                         showToast('Ученик успешно удален');
                     }
@@ -123,7 +119,7 @@ function deleteStudent(studentId) {
 
 // Обработчики событий
 document.addEventListener('DOMContentLoaded', function () {
-    // Инициализация тултипов для существующих ячеек
+    // Инициализация тултипов
     initSpecialNotesTooltips();
 
     // Обработчик кнопки добавления ученика
@@ -134,9 +130,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Обработчик кнопки сохранения нового ученика
     document.getElementById('save-student-btn').addEventListener('click', function () {
-        const formData = new FormData(document.getElementById('create-student-form'));
+        const form = document.getElementById('create-student-form');
+        const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
 
+        // Отправляем запрос на создание
         fetch('/students/create/ajax/', {
             method: 'POST',
             headers: {
@@ -169,7 +167,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td class="balance-cell" id="balance-${data.student.id}">0</td>
                         <td>${data.student.phone || ''}</td>
                         <td>${data.student.parent_name || ''}</td>
-                        <td>${data.student.schedule_name || '—'}</td>
+                        <!-- Поскольку создаём без смены, отображаем "—" -->
+                        <td>—</td>
                         <td>${data.student.squad_name || '—'}</td>
                         <td>${data.student.branch_name || '—'}</td>
                         <td>${data.student.attendance_type_display}</td>
@@ -203,8 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
 
                     // Очищаем форму
-                    document.getElementById('create-student-form').reset();
-                    // Закрываем модальное окно и показываем уведомление
+                    form.reset();
                     bootstrap.Modal.getInstance(document.getElementById('createStudentModal')).hide();
                     showToast('Ученик успешно создан');
                 } else {
@@ -239,14 +237,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const rows = document.querySelectorAll('#students-table tbody tr');
 
         rows.forEach(row => {
-            const nameCell = row.querySelector('td:nth-child(3)'); // Столбец с ФИО
+            const nameCell = row.querySelector('td:nth-child(3)');
             const studentName = nameCell.textContent.toLowerCase();
-
-            if (studentName.includes(searchText)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            row.style.display = studentName.includes(searchText) ? '' : 'none';
         });
     });
 });

@@ -9,7 +9,7 @@ from schedule.templatetags.schedule_extras import romanize
 class Squad(models.Model):
     """Модель отряда"""
 
-    name = models.IntegerField(verbose_name="Номер отряда")  # Изменено на IntegerField
+    name = models.IntegerField(verbose_name="Номер отряда")
     leader = models.ForeignKey(
         "employees.Employee",
         on_delete=models.SET_NULL,
@@ -23,7 +23,6 @@ class Squad(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        # Если у отряда есть вожатый, устанавливаем ему is_leader = True
         if self.leader and hasattr(self.leader, "is_leader"):
             self.leader.is_leader = True
             self.leader.save(update_fields=["is_leader"])
@@ -33,23 +32,14 @@ class Squad(models.Model):
         verbose_name = "Отряд"
         verbose_name_plural = "Отряды"
         ordering = ["name"]
-        unique_together = [
-            "name",
-            "schedule",
-        ]  # Номер отряда должен быть уникальным в пределах смены
+        unique_together = ["name", "schedule"]
 
     def __str__(self):
-        return str(self.name)  # Просто возвращаем число как строку
+        return str(self.name)
 
     @property
     def roman_name(self):
-        """Возвращает номер отряда в римских цифрах"""
-
-        return (
-            romanize(self.name)
-            if hasattr(self, "name") and self.name
-            else str(self.name)
-        )
+        return romanize(self.name) if self.name else str(self.name)
 
 
 class Student(models.Model):
@@ -64,8 +54,12 @@ class Student(models.Model):
     parent_name = models.CharField(
         max_length=255, blank=True, verbose_name="Имя родителя"
     )
-    schedule = models.ForeignKey(
-        Schedule, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Смена"
+    # Бывшее поле schedule заменено на ManyToManyField с промежуточной моделью
+    schedules = models.ManyToManyField(
+        Schedule,
+        through="StudentSchedule",
+        related_name="students",
+        verbose_name="Смены",
     )
     squad = models.ForeignKey(
         Squad,
@@ -75,7 +69,6 @@ class Student(models.Model):
         verbose_name="Отряд",
         related_name="students",
     )
-
     attendance_type = models.CharField(
         max_length=20, choices=ATTENDANCE_TYPE_CHOICES, verbose_name="Тип посещения"
     )
@@ -95,7 +88,7 @@ class Student(models.Model):
     price_comment = models.CharField(
         max_length=255, blank=True, default="", verbose_name="Комментарий к цене"
     )
-    special_notes = models.TextField(blank=True, verbose_name='Особые отметки')
+    special_notes = models.TextField(blank=True, verbose_name="Особые отметки")
 
     def save(self, *args, **kwargs):
         if not self.default_price:
@@ -130,8 +123,6 @@ class Student(models.Model):
     def charge_for_schedule(self, schedule, user):
         """Списание стоимости смены с баланса ученика"""
         amount = self.individual_price or self.default_price
-
-        # Создаем операцию списания
         Balance.objects.create(
             student=self,
             amount=amount,
@@ -139,14 +130,11 @@ class Student(models.Model):
             comment=f"Списание за смену {schedule.name}",
             created_by=user,
         )
-
         return amount
 
     def refund_schedule_charge(self, schedule, user):
         """Возврат списания при удалении из смены"""
         amount = self.individual_price or self.default_price
-
-        # Создаем операцию возврата
         Balance.objects.create(
             student=self,
             amount=amount,
@@ -154,7 +142,6 @@ class Student(models.Model):
             comment=f"Возврат списания за смену {schedule.name}",
             created_by=user,
         )
-
         return amount
 
     class Meta:
@@ -172,6 +159,19 @@ class Student(models.Model):
 
     def can_make_payment(self, amount):
         return True
+
+
+class StudentSchedule(models.Model):
+    """Промежуточная модель для связи Student-Schedule (M2M)"""
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата добавления")
+
+    class Meta:
+        verbose_name = "Ученик в смене"
+        verbose_name_plural = "Ученики в сменах"
+        unique_together = ["student", "schedule"]
 
 
 class Payment(models.Model):

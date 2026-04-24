@@ -9,7 +9,6 @@ class SquadSchema(Schema):
     name: str
     leader_id: Optional[int]
     schedule_id: int
-    # Добавьте это поле для информации о вожатом
     leader: Optional[dict] = None
 
     @staticmethod
@@ -29,7 +28,8 @@ class StudentSchema(Schema):
     full_name: str
     phone: Optional[str]
     parent_name: Optional[str]
-    schedule_id: Optional[int]
+    # Больше нет одиночного schedule_id
+    schedules_ids: Optional[list[int]] = None  # список ID смен
     attendance_type: str
     attendance_dates: Optional[list] = None
     default_price: float
@@ -38,6 +38,10 @@ class StudentSchema(Schema):
     special_notes: Optional[str] = None
     squad_name: Optional[str] = None
     squad_leader_name: Optional[str] = None
+
+    @staticmethod
+    def resolve_schedules_ids(obj, info):
+        return [s.id for s in obj.schedules.all()]
 
     @staticmethod
     def resolve_squad_name(obj, info):
@@ -55,7 +59,7 @@ class StudentCreateSchema(Schema):
     full_name: str
     phone: Optional[str] = ""
     parent_name: Optional[str] = ""
-    schedule_id: Optional[int] = None
+    # schedule_id больше нет – привязка к смене будет через отдельные M2M-операции
     attendance_type: str
     default_price: Optional[float] = None
     individual_price: Optional[float] = None
@@ -68,12 +72,12 @@ class StudentUpdateSchema(Schema):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     parent_name: Optional[str] = None
-    schedule_id: Optional[int] = None
     attendance_type: Optional[str] = None
     default_price: Optional[float] = None
     individual_price: Optional[float] = None
     price_comment: Optional[str] = None
     special_notes: Optional[str] = None
+
 
 class AttendanceSchema(Schema):
     id: int
