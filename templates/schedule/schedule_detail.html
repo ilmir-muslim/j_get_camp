@@ -513,8 +513,19 @@
                             <label for="parent_name" class="form-label">Родитель</label>
                             <input type="text" class="form-control" id="parent_name" name="parent_name">
                         </div>
-                        <!-- Убраны все поля, касающиеся смены: attendance_type, default_price, individual_price, price_comment -->
-                        <!-- Эти параметры теперь задаются после добавления ученика в смену через отдельную форму StudentScheduleForm -->
+                        <!-- Восстановленные поля -->
+                        <div class="mb-3">
+                            <label for="attendance_type" class="form-label">Тип посещения</label>
+                            <select class="form-select" id="attendance_type" name="attendance_type">
+                                <option value="full_day">Полный день</option>
+                                <option value="camp">Лагерь</option>
+                                <option value="lab">Лаборатория</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_price" class="form-label">Базовая цена</label>
+                            <input type="number" class="form-control" id="default_price" name="default_price" value="11400" step="0.01">
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">

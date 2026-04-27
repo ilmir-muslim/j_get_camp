@@ -2396,7 +2396,8 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.querySelectorAll('.special-notes-cell').forEach(el => {
-    if (!bootstrap.Tooltip.getInstance(el)) {
+    const title = el.getAttribute('data-bs-title');
+    if (title && !bootstrap.Tooltip.getInstance(el)) {
       new bootstrap.Tooltip(el);
     }
   });
