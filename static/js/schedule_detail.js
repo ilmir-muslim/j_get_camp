@@ -580,16 +580,14 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(data => {
           if (data.success) {
-            // НЕ удаляем из datalist, студент может быть в нескольких сменах
-            // removeStudentFromDatalist(studentId); // Закомментировано
-
-            // Добавляем новую строку в таблицу динамически
-            addStudentRowToTable(data.student);
+            // УДАЛЯЕМ УЧЕНИКА ИЗ DATALIST
+            removeStudentFromDatalist(studentId);
 
             showToast('Ученик успешно добавлен в смену', 'success');
             updateAttendanceTotals();
-            updateTotalPayments();
-            updateFinanceSummary();
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           } else {
             showToast(data.error || 'Ошибка добавления ученика', 'error');
           }
@@ -601,83 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Новая функция добавления строки студента в таблицу посещаемости
-  function addStudentRowToTable(studentData) {
-    const tbody = document.getElementById('attendance-body');
-    // Удаляем строку "Нет учеников", если есть
-    const emptyRow = tbody.querySelector('tr td[colspan]');
-    if (emptyRow) emptyRow.closest('tr').remove();
-
-    const row = document.createElement('tr');
-    row.setAttribute('data-student-id', studentData.id);
-    row.setAttribute('data-visits', '0');
-    row.setAttribute('data-attendance-type', studentData.attendance_type);
-    row.setAttribute('data-squad', '');
-    row.className = '';
-
-    const price = studentData.individual_price || studentData.default_price;
-    const balance = parseFloat(studentData.current_balance).toFixed(2);
-
-    let rowHtml = `
-      <td></td>
-      <td>
-        <button class="btn p-0 border-0 bg-transparent icon-btn student-payment-btn"
-                data-student-id="${studentData.id}"
-                data-student-name="${studentData.full_name}"
-                data-schedule-id="${SCHEDULE_ID}"
-                data-bs-toggle="tooltip" title="Добавить платеж">
-          <i class="bi bi-cash text-success fs-5"></i>
-        </button>
-        <button class="btn p-0 border-0 bg-transparent icon-btn remove-student-attendance"
-                data-student-id="${studentData.id}"
-                data-student-name="${studentData.full_name}"
-                data-schedule-id="${SCHEDULE_ID}"
-                data-bs-toggle="tooltip" title="Удалить">
-          <i class="bi bi-trash text-danger fs-5"></i>
-        </button>
-      </td>
-      <td>${price}</td>
-      <td>—</td>
-      <td class="balance-cell">${balance}</td>
-      <td>${studentData.attendance_type || ''}</td>
-      <td class="squad-cell" data-squad-id="">—</td>
-      <td class="student-column">${studentData.full_name}</td>
-      <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title=""></td>
-      <td>0</td>
-    `;
-
-    // Ячейки посещаемости
-    DATES_JSON.forEach(date => {
-      rowHtml += `
-        <td class="date-cell" data-date="${date}">
-          <div class="attendance-cell text-center bg-danger" 
-               data-student-id="${studentData.id}"
-               data-date="${date}"
-               data-attendance-type="absent">
-            <i class="bi bi-x-lg text-white"></i>
-          </div>
-        </td>
-      `;
-    });
-
-    row.innerHTML = rowHtml;
-    tbody.appendChild(row);
-
-    // Инициализация тултипов
-    const specialNotesCell = row.querySelector('.special-notes-cell');
-    if (specialNotesCell) {
-      new bootstrap.Tooltip(specialNotesCell);
-    }
-    const tooltipTriggerList = row.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
-
-    // Обновить нумерацию
-    updateStudentRowNumbers();
-    // Применить фильтры, если активны
-    filterAttendanceTable();
-  }
-
-  // Функция для удаления ученика из datalist (больше не используется при добавлении)
+  // Функция для удаления ученика из datalist
   function removeStudentFromDatalist(studentId) {
     const datalist = document.getElementById('students-datalist');
     const optionToRemove = datalist.querySelector(`option[data-id="${studentId}"]`);
@@ -786,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function () {
               updateFinanceSummary();
               updateAttendanceTotals();
 
-              // ДОБАВЛЯЕМ УЧЕНИКА ОБРАТНО В DATALIST (т.к. он больше не в этой смене)
+              // ДОБАВЛЯЕМ УЧЕНИКА ОБРАТНО В DATALIST
               addStudentToDatalist(studentId, studentName);
 
               // Запрашиваем обновленные данные с сервера
@@ -1203,28 +1125,96 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const row = document.querySelector(`tr[data-student-id="${student.id}"]`);
     if (row) {
-      // Обновляем стоимость (в ответе могут быть individual_price и default_price)
+      // Обновляем стоимость
       const price = student.individual_price || student.default_price;
       row.cells[2].textContent = price;
 
-      // Обновляем тип посещения – теперь это display-значение (например, "Лагерь")
-      if (student.attendance_type) {
-        row.cells[5].textContent = student.attendance_type;
+      // Обновляем тип посещения
+      row.cells[5].textContent = student.attendance_type_display || student.get_attendance_type_display || '';
+
+      // Получаем информацию о вожатом из разных форматов данных
+      let squadName = "—";
+      let squadLeaderName = null;
+      let squadId = null;
+
+      // Вариант 1: новый формат с squad_name и squad_leader_name
+      if (student.squad_name) {
+        squadName = student.squad_name;
+        squadLeaderName = student.squad_leader_name;
+        squadId = student.squad_id;
+      }
+      // Вариант 2: старый формат с вложенным объектом squad
+      else if (student.squad && student.squad.name) {
+        squadName = student.squad.name;
+        squadId = student.squad.id;
+        if (student.squad.leader && student.squad.leader.full_name) {
+          squadLeaderName = student.squad.leader.full_name;
+        }
+      }
+      // Вариант 3: данные из формы quick edit
+      else if (student.squad) {
+        // Если squad - это ID (например, из формы)
+        squadId = student.squad;
+        squadName = student.squad.toString();
       }
 
-      // Обновляем особые отметки (индекс 8)
-      const specialNotesCell = row.cells[8];
-      const specialNotes = student.special_notes || '';
-      specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substring(0, 30) + '…' : specialNotes;
-      specialNotesCell.setAttribute('data-bs-title', specialNotes);
-      // Пересоздаём тултип
-      const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
-      if (oldTooltip) oldTooltip.dispose();
-      new bootstrap.Tooltip(specialNotesCell);
+      // Обновляем отряд (6-я ячейка, считая с 0)
+      const squadCell = row.cells[6];
+      squadCell.setAttribute('data-squad-id', squadId || '');
 
-      // Обновляем ФИО (индекс 7)
+      if (squadName !== "—" && squadName) {
+        // Конвертируем в римские цифры если это число
+        let displaySquadName = squadName;
+        if (/^\d+$/.test(squadName)) {
+          displaySquadName = convertToRoman(parseInt(squadName));
+        }
+
+        const showLeaders = localStorage.getItem('showLeaders') !== 'false';
+        let squadHtml = `
+          <div class="squad-display">
+            <div class="squad-number-wrapper">
+              <span class="squad-number">${displaySquadName}</span>`;
+
+        // Если есть информация о вожатом, добавляем её
+        if (squadLeaderName) {
+          squadHtml += `
+                <div class="leader-info" style="display: ${showLeaders ? 'block' : 'none'}">
+                  <div class="leader-name">${squadLeaderName}</div>
+                </div>`;
+        }
+
+        squadHtml += `
+            </div>
+          </div>`;
+        squadCell.innerHTML = squadHtml;
+
+        // Если у нас пока нет информации о вожатом, но есть ID отряда,
+        // делаем запрос для получения полной информации
+        if (!squadLeaderName && squadId) {
+          fetchSquadLeaderInfo(squadId);
+        }
+      } else {
+        squadCell.innerHTML = "—";
+      }
+
+      // Обновляем ФИО
       row.cells[7].textContent = student.full_name;
 
+      const specialNotesCell = row.cells[8];
+      const specialNotes = student.special_notes || '';
+      specialNotesCell.textContent = specialNotes.length > 30 ? specialNotes.substrings(0, 30) + '...' : specialNotes;
+      if (specialNotesCell) {
+        specialNotesCell.setAttribute('data-bs-title', specialNotes);
+        const oldTooltip = bootstrap.Tooltip.getInstance(specialNotesCell);
+        if (oldTooltip) oldTooltip.dispose();
+        new bootstrap.Tooltip(specialNotesCell);
+      } else {
+        specialNotesCell.removeAttribute('data-bs-title');
+      }
+
+      // Обновляем data-атрибуты для фильтрации
+      const actualSquadName = squadName !== "—" && squadName ? squadName : "";
+      row.dataset.squad = actualSquadName;
 
       // Обновляем данные в кнопке удаления
       const removeBtn = row.querySelector('.remove-student-attendance');
@@ -1232,7 +1222,9 @@ document.addEventListener('DOMContentLoaded', function () {
         removeBtn.dataset.studentName = student.full_name;
       }
 
-      // Обновляем цвет ячеек баланса (если баланс изменился – он не меняется при смене настроек)
+      console.log(`Updated squad for student ${student.id}: "${squadName}" with leader: "${squadLeaderName}"`);
+
+      // Обновляем цвет ячеек баланса
       colorizePaymentCells();
 
       // Обновляем нумерацию строк
