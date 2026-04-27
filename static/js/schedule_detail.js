@@ -1130,8 +1130,7 @@ document.addEventListener('DOMContentLoaded', function () {
       row.cells[2].textContent = price;
 
       // Обновляем тип посещения
-      row.cells[5].textContent = student.attendance_type_display || student.get_attendance_type_display || '';
-
+      row.cells[5].textContent = student.attendance_type || '';
       // Получаем информацию о вожатом из разных форматов данных
       let squadName = "—";
       let squadLeaderName = null;
