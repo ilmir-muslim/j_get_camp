@@ -92,7 +92,6 @@
                             <tr id="employee-{{ employee.id }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
-                                    <!-- Кнопка выплаты зарплаты - показываем только если зарплата не выплачена -->
                                     {% with paid_info=employee_paid_salaries|get_item:employee.id %}
                                         {% if not paid_info.is_paid and role == 'manager' or role == 'admin' %}
                                             <button class="btn p-0 border-0 bg-transparent icon-btn pay-salary-btn"
@@ -106,7 +105,6 @@
                                         {% endif %}
                                     {% endwith %}
                                     
-                                    <!-- Кнопка удаления -->
                                     {% if user.role == 'manager' or user.role == 'admin' %}
                                     <button class="btn p-0 border-0 bg-transparent icon-btn remove-employee"
                                             data-employee-id="{{ employee.id }}"
@@ -296,8 +294,9 @@
                     </thead>
                     <tbody id="attendance-body">
                         {% for student in students %}
+                            {% with ss=student_schedule_map|get_item:student.id %}
                             <tr data-student-id="{{ student.id }}" data-visits="{{ student_attendance_counts|get_item:student.id }}"
-                                data-attendance-type="{{ student.attendance_type }}" data-squad="{{ student.squad.name|default:'' }}">
+                                data-attendance-type="{{ ss.attendance_type }}" data-squad="{{ student.squad.name|default:'' }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     {% if user.role == 'manager' or user.role == 'admin' %}
@@ -320,7 +319,7 @@
                                     </button>
                                     {% endif %}
                                 </td>
-                                <td>{{ student.individual_price|default:student.default_price }}</td>
+                                <td>{{ ss.individual_price|default:ss.default_price }}</td>
                                 <td>
                                     {% with total_paid=student_total_payments|get_item:student.id %}
                                         {% if total_paid %}
@@ -333,7 +332,7 @@
                                 <td class="balance-cell">
                                     {{ student.current_balance|floatformat:2 }}
                                 </td>
-                                <td>{{ student.get_attendance_type_display }}</td>
+                                <td>{{ ss.get_attendance_type_display }}</td>
                                 <td class="squad-cell" data-squad-id="{{ student.squad.id|default:'' }}">
                                     {% if student.squad %}
                                         <div class="squad-display">
@@ -351,8 +350,8 @@
                                     {% endif %}
                                 </td>
                                 <td class="student-column">{{ student.full_name }}</td>
-                                <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ student.special_notes|default:'' }}">
-                                    {{ student.special_notes|truncatechars:30 }}
+                                <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ ss.special_notes|default:'' }}">
+                                    {{ ss.special_notes|truncatechars:30 }}
                                 </td>
                                 <td>{{ student_attendance_counts|get_item:student.id }}</td>
                                 {% for date in dates %}
@@ -378,6 +377,7 @@
                                     {% endwith %}
                                 {% endfor %}
                             </tr>
+                            {% endwith %}
                         {% endfor %}
                     </tbody>
                     <tfoot>
@@ -513,18 +513,8 @@
                             <label for="parent_name" class="form-label">Родитель</label>
                             <input type="text" class="form-control" id="parent_name" name="parent_name">
                         </div>
-                        <div class="mb-3">
-                            <label for="default_price" class="form-label">Базовая цена</label>
-                            <input type="number" class="form-control" id="default_price" name="default_price" value="11400">
-                        </div>
-                        <div class="mb-3">
-                            <label for="attendance_type" class="form-label">Тип посещения *</label>
-                            <select class="form-select" id="attendance_type" name="attendance_type" required>
-                                <option value="camp">Лагерь</option>
-                                <option value="lab">Лаборатория</option>
-                                <option value="full_day" selected>Полный день</option>
-                            </select>
-                        </div>
+                        <!-- Убраны все поля, касающиеся смены: attendance_type, default_price, individual_price, price_comment -->
+                        <!-- Эти параметры теперь задаются после добавления ученика в смену через отдельную форму StudentScheduleForm -->
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -535,6 +525,7 @@
         </div>
     </div>
 
+    <!-- Модальное окно для создания сотрудника (без изменений) -->
     <div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -607,15 +598,16 @@
             </div>
         </div>
     </div>
-</div>
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" id="payment-modal-content">
-            <!-- Content will be loaded here by AJAX -->
+
+    <!-- Модальное окно для платежа -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="payment-modal-content">
+                <!-- Content will be loaded here by AJAX -->
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_scripts %}

@@ -11,106 +11,76 @@
   <form
     id="student-quick-edit-form"
     method="post"
-    action="{% url 'student_quick_edit' student.id %}"
+    action="{% url 'student_quick_edit' student.id %}?schedule_id={{ schedule_id }}"
   >
     {% csrf_token %}
 
-    <!-- Скрытое поле для передачи schedule_id -->
-    {% if schedule_id %}
+    <!-- Скрытое поле для schedule_id (на случай, если из URL потеряется) -->
     <input type="hidden" name="schedule_id" value="{{ schedule_id }}" />
-    <input type="hidden" name="schedule" value="{{ schedule_id }}" />
-    {% endif %}
 
+    <!-- ===== ПОЛЯ СТУДЕНТА ===== -->
     <div class="mb-3">
-      <label for="{{ form.full_name.id_for_label }}" class="form-label"
-        >ФИО</label
-      >
-      {{ form.full_name }}
+      <label for="{{ student_form.full_name.id_for_label }}" class="form-label">ФИО</label>
+      {{ student_form.full_name }}
     </div>
     <div class="mb-3">
-      <label for="{{ form.phone.id_for_label }}" class="form-label"
-        >Телефон</label
-      >
-      {{ form.phone }}
+      <label for="{{ student_form.phone.id_for_label }}" class="form-label">Телефон</label>
+      {{ student_form.phone }}
     </div>
     <div class="mb-3">
-      <label for="{{ form.parent_name.id_for_label }}" class="form-label"
-        >Родитель</label
-      >
-      {{ form.parent_name }}
+      <label for="{{ student_form.parent_name.id_for_label }}" class="form-label">Родитель</label>
+      {{ student_form.parent_name }}
     </div>
 
-    <!-- Поле смены -->
-    {% if schedule_id %}
-    <!-- Если schedule_id передан, то показываем смену как статический текст -->
+    <!-- Смена (только для чтения, т.к. передаётся через schedule_id) -->
     <div class="mb-3">
       <label class="form-label">Смена</label>
       <div class="form-control form-control-plaintext">
-        {{ student.schedule.name|default:"Текущая смена" }}
+        {{ schedule.name }}
       </div>
     </div>
-    {% else %}
-    <!-- Иначе показываем выпадающий список -->
-    <div class="mb-3">
-      <label for="{{ form.schedule.id_for_label }}" class="form-label"
-        >Смена</label
-      >
-      {{ form.schedule }}
-    </div>
-    {% endif %}
 
-    <!-- Поле отряда -->
+    <!-- Поле отряда (из student_form) -->
     <div class="mb-3" id="squad-field-container">
-      <label for="{{ form.squad.id_for_label }}" class="form-label"
-        >Отряд</label
-      >
+      <label for="{{ student_form.squad.id_for_label }}" class="form-label">Отряд</label>
       <div class="alert alert-info p-2 mb-2">
         <small>
           <i class="bi bi-info-circle"></i>
-          {% if schedule_id or student.schedule %} Отображаются только отряды
-          текущей смены. {% else %} Отображаются только отряды выбранной смены.
-          {% endif %}
+          {% if schedule_id or student.schedules.exists %} Отображаются только отряды текущей смены. {% else %} Отображаются только отряды выбранной смены. {% endif %}
         </small>
       </div>
-      {{ form.squad }} {% if form.squad.errors %}
+      {{ student_form.squad }}
+      {% if student_form.squad.errors %}
       <div class="invalid-feedback d-block">
-        {% for error in form.squad.errors %} {{ error }} {% endfor %}
+        {% for error in student_form.squad.errors %} {{ error }} {% endfor %}
       </div>
       {% endif %}
     </div>
 
+    <!-- ===== ПОЛЯ НАСТРОЕК В СМЕНЕ (schedule_form) ===== -->
     <div class="mb-3">
-      <label for="{{ form.attendance_type.id_for_label }}" class="form-label"
-        >Тип посещения</label
-      >
-      {{ form.attendance_type }}
+      <label for="{{ schedule_form.attendance_type.id_for_label }}" class="form-label">Тип посещения</label>
+      {{ schedule_form.attendance_type }}
     </div>
     {% if user.role == 'manager' or user.role == 'admin' %}
     <div class="mb-3">
-      <label for="{{ form.default_price.id_for_label }}" class="form-label"
-        >Базовая цена</label
-      >
-      {{ form.default_price }}
+      <label for="{{ schedule_form.default_price.id_for_label }}" class="form-label">Базовая цена</label>
+      {{ schedule_form.default_price }}
     </div>
     <div class="mb-3">
-      <label for="{{ form.individual_price.id_for_label }}" class="form-label"
-        >Индивидуальная цена</label
-      >
-      {{ form.individual_price }}
+      <label for="{{ schedule_form.individual_price.id_for_label }}" class="form-label">Индивидуальная цена</label>
+      {{ schedule_form.individual_price }}
     </div>
     <div class="mb-3">
-      <label for="{{ form.price_comment.id_for_label }}" class="form-label"
-        >Комментарий к цене</label
-      >
-      {{ form.price_comment }}
+      <label for="{{ schedule_form.price_comment.id_for_label }}" class="form-label">Комментарий к цене</label>
+      {{ schedule_form.price_comment }}
     </div>
     {% endif %}
     <div class="mb-3">
-      <label for="{{ form.special_notes.id_for_label }}" class="form-label"
-        >Особые отметки</label
-      >
-      {{ form.special_notes }}
+      <label for="{{ schedule_form.special_notes.id_for_label }}" class="form-label">Особые отметки</label>
+      {{ schedule_form.special_notes }}
     </div>
+
     <div class="d-flex justify-content-between">
       <button type="submit" class="btn btn-primary">Сохранить</button>
       <button
@@ -125,12 +95,11 @@
   </form>
 </div>
 
-{% if schedule_id or student.schedule %}
+{% if schedule_id or student.schedules.exists %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-      // Функция для загрузки отрядов по выбранной смене
       function loadSquads(scheduleId) {
-          const squadField = document.getElementById('{{ form.squad.id_for_label }}');
+          const squadField = document.getElementById('{{ student_form.squad.id_for_label }}');
           const squadFieldContainer = document.getElementById('squad-field-container');
 
           if (!scheduleId || !squadField) {
@@ -140,24 +109,17 @@
               return;
           }
 
-          // Показываем поле отряда
           if (squadFieldContainer) {
               squadFieldContainer.style.display = 'block';
           }
 
-          // Загружаем отряды для выбранной смены
           fetch(`/api/students/squads/?schedule_id=${scheduleId}`)
               .then(response => {
-                  if (!response.ok) {
-                      throw new Error('Network response was not ok');
-                  }
+                  if (!response.ok) throw new Error('Network response was not ok');
                   return response.json();
               })
               .then(data => {
-                  // Сохраняем текущее значение
                   const currentValue = squadField.value;
-
-                  // Очищаем и заполняем опции
                   squadField.innerHTML = '<option value="">Не выбран</option>';
                   data.forEach(squad => {
                       const option = document.createElement('option');
@@ -169,38 +131,17 @@
                       squadField.appendChild(option);
                   });
               })
-              .catch(error => {
-                  console.error('Ошибка при загрузке отрядов:', error);
-              });
+              .catch(error => console.error('Ошибка при загрузке отрядов:', error));
       }
 
-      // Находим поле выбора смены
-      const scheduleField = document.getElementById('{{ form.schedule.id_for_label }}');
-      const squadField = document.getElementById('{{ form.squad.id_for_label }}');
-
-      // Если поле смены существует, добавляем обработчик
-      if (scheduleField) {
-          // Загружаем отряды при изменении смены
-          scheduleField.addEventListener('change', function() {
-              loadSquads(this.value);
-          });
-
-          // Инициализируем загрузку отрядов при открытии формы, если смена уже выбрана
-          if (scheduleField.value) {
-              loadSquads(scheduleField.value);
-          } else if (squadField && squadField.value) {
-              // Если нет смены, но есть отряд - скрываем поле
-              const squadFieldContainer = document.getElementById('squad-field-container');
-              if (squadFieldContainer) {
-                  squadFieldContainer.style.display = 'none';
-              }
-          }
+      const scheduleId = "{{ schedule_id }}";
+      if (scheduleId) {
+          loadSquads(scheduleId);
+      } else {
+          // Если schedule_id не передан, пробуем взять из скрытого поля или из student.schedules.first
+          const firstSchedule = "{{ student.schedules.first.id|default:'' }}";
+          if (firstSchedule) loadSquads(firstSchedule);
       }
-
-      // Если schedule_id передан, сразу загружаем отряды
-      {% if schedule_id %}
-      loadSquads('{{ schedule_id }}');
-      {% endif %}
   });
 </script>
 {% endif %}

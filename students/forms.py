@@ -1,6 +1,5 @@
 from django import forms
-from schedule.models import Schedule
-from .models import Balance, Payment, Squad, Student
+from .models import Balance, Payment, Squad, Student, StudentSchedule
 
 
 class SquadForm(forms.ModelForm):
@@ -17,14 +16,12 @@ class SquadForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.schedule = kwargs.pop("schedule", None)
         super().__init__(*args, **kwargs)
-
         if self.schedule:
             self.fields["leader"].queryset = self.schedule.employee_set.filter(
                 is_leader=True
             )
             self.fields["leader"].empty_label = "Не назначен"
             self.fields["leader"].required = False
-
         self.fields["name"].label = "Номер отряда"
         self.fields["leader"].label = "Вожатый"
 
@@ -41,33 +38,23 @@ class SquadForm(forms.ModelForm):
 
 
 class StudentForm(forms.ModelForm):
-    """
-    Форма для создания и редактирования ученика (без прямой привязки к смене).
-    Связь со сменами управляется через M2M на уровне представлений.
-    """
+    """Форма для создания/редактирования базовых данных ученика (без привязки к смене)"""
 
     class Meta:
         model = Student
         fields = [
-            "squad",
             "full_name",
             "phone",
             "parent_name",
-            "attendance_type",
-            "default_price",
-            "individual_price",
-            "price_comment",
-            "special_notes",
+            "squad",
         ]
         widgets = {
             "squad": forms.Select(attrs={"class": "form-select"}),
-            "special_notes": forms.Textarea(attrs={"row": 3, "class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
-        # Ограничиваем выбор отрядов по разрешённым филиалам/городу
         if self.request:
             user = self.request.user
             if user.role in ["camp_head", "lab_head"]:
@@ -82,6 +69,31 @@ class StudentForm(forms.ModelForm):
                     self.fields["squad"].queryset = Squad.objects.filter(
                         schedule__branch__city=user_city
                     )
+
+
+class StudentScheduleForm(forms.ModelForm):
+    """Форма для настройки параметров участия студента в конкретной смене"""
+
+    class Meta:
+        model = StudentSchedule
+        fields = [
+            "attendance_type",
+            "default_price",
+            "individual_price",
+            "price_comment",
+            "special_notes",
+        ]
+        widgets = {
+            "attendance_type": forms.Select(attrs={"class": "form-select"}),
+            "default_price": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01"}
+            ),
+            "individual_price": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01"}
+            ),
+            "price_comment": forms.TextInput(attrs={"class": "form-control"}),
+            "special_notes": forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
+        }
 
 
 class PaymentForm(forms.ModelForm):
