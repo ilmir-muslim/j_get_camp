@@ -48,10 +48,6 @@
               <th>Смены</th>
               <th>Отряд</th>
               <th>Филиал</th>
-              <th>Тип<wbr> посещения</th>
-              <th>Цена</th>
-              <th>Комментарий к цене</th>
-              <th>Особые отметки</th>
             </tr>
           </thead>
           <tbody>
@@ -86,12 +82,6 @@
                 {% with student.schedules.first as first_sch %}
                   {{ first_sch.branch.name|default:"—" }}
                 {% endwith %}
-              </td>
-              <td>{{ student.get_attendance_type_display }}</td>
-              <td>{{ student.individual_price|default:student.default_price }}</td>
-              <td>{{ student.price_comment }}</td>
-              <td class="special-notes-cell" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ student.special_notes|default:'' }}">
-                {{ student.special_notes|truncatechars:30 }}
               </td>
             </tr>
             {% endfor %}

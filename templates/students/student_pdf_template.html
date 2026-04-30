@@ -41,13 +41,9 @@
           <th>Баланс</th>
           <th>Телефон</th>
           <th>Родитель</th>
-          <th>Смена</th>
-          <th>Отряд</th>
+          <th>Смены</th>
           <th>Филиал</th>
-          <th>Тип посещения</th>
-          <th>Цена</th>
-          <th>Комментарий к цене</th>
-          <th>Особые отметки</th>
+          <th>Отряд</th>
         </tr>
       </thead>
       <tbody>
@@ -57,13 +53,19 @@
           <td>{{ student.current_balance|floatformat:2 }}</td>
           <td>{{ student.phone }}</td>
           <td>{{ student.parent_name }}</td>
-          <td>{{ student.schedule.name|default:"—" }}</td>
+          <td>
+            {% for s in student.schedules.all %}
+              {{ s.name }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              —
+            {% endfor %}
+          </td>
+          <td>
+            {% with student.schedules.first as first_sch %}
+              {{ first_sch.branch.name|default:"—" }}
+            {% endwith %}
+          </td>
           <td>{{ student.squad.name|default:"—" }}</td>
-          <td>{{ student.schedule.branch.name|default:"—" }}</td>
-          <td>{{ student.get_attendance_type_display }}</td>
-          <td>{{ student.individual_price|default:student.default_price }}</td>
-          <td>{{ student.price_comment|default:"—" }}</td>
-          <td>{{ student.special_notes|default:"—" }}</td>
         </tr>
         {% endfor %}
       </tbody>
