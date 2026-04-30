@@ -763,13 +763,52 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.show();
   });
 
-  // Обработчик для кнопки сохранения нового ученика
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ПРЕДУПРЕЖДЕНИЯ О ДУБЛИКАТАХ
+  function showDuplicateWarning(duplicates, message, onConfirm) {
+    // Удаляем предыдущее модальное окно, если есть
+    const oldModal = document.getElementById('duplicateWarningModal');
+    if (oldModal) oldModal.remove();
+
+    const modalHtml = `
+    <div class="modal fade" id="duplicateWarningModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title">⚠️ Возможные дубликаты</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>${message}</p>
+            <ul class="list-group">
+              ${duplicates.map(d =>
+      `<li class="list-group-item"><strong>${d.full_name}</strong> (тел: ${d.phone || '—'}, родитель: ${d.parent_name || '—'})</li>`
+    ).join('')}
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="btn btn-warning" id="ignore-duplicates-btn">Игнорировать и создать</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalEl = document.getElementById('duplicateWarningModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    document.getElementById('ignore-duplicates-btn').addEventListener('click', () => {
+      modal.hide();
+      onConfirm();
+    });
+    modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+  }
+
+  // ИЗМЕНЁННЫЙ ОБРАБОТЧИК КНОПКИ СОХРАНЕНИЯ НОВОГО УЧЕНИКА
   document.getElementById('save-student-btn')?.addEventListener('click', function () {
     const btn = this;
     const originalText = btn.innerHTML;
-
-    // Показываем индикатор загрузки
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Сохранение...';
     btn.disabled = true;
 
     const full_name = document.getElementById('full_name').value;
@@ -777,6 +816,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const parent_name = document.getElementById('parent_name').value;
     const attendance_type = document.getElementById('attendance_type').value;
     const default_price = document.getElementById('default_price').value;
+    const schedule_id = SCHEDULE_ID;  // глобальная переменная
 
     if (!full_name) {
       showToast('ФИО ученика обязательно', 'error');
@@ -785,60 +825,93 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    fetch('/students/create/ajax/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': CSRF_TOKEN
-      },
-      body: JSON.stringify({
-        full_name: full_name,
-        phone: phone,
-        parent_name: parent_name,
-        attendance_type: attendance_type,
-        default_price: default_price
-      })
-    })
-      .then(response => response.json())
+    const requestData = {
+      full_name: full_name,
+      phone: phone,
+      parent_name: parent_name,
+      attendance_type: attendance_type,
+      default_price: default_price,
+      schedule_id: schedule_id
+    };
+
+    function sendCreateRequest(data) {
+      return fetch('/students/create/ajax/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify(data)
+      }).then(res => res.json());
+    }
+
+    function handleStudentCreated(data) {
+      // Закрываем модалку создания ученика
+      const modal = bootstrap.Modal.getInstance(document.getElementById('createStudentModal'));
+      if (modal) modal.hide();
+
+      // Добавляем в datalist
+      const datalist = document.getElementById('students-datalist');
+      const option = document.createElement('option');
+      option.value = data.student.full_name;
+      option.setAttribute('data-id', data.student.id);
+      datalist.appendChild(option);
+
+      // Подставляем в поле поиска и скрытое поле
+      document.getElementById('student-search-input').value = data.student.full_name;
+      document.getElementById('student-id-input').value = data.student.id;
+
+      // Очищаем форму
+      document.getElementById('full_name').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('parent_name').value = '';
+      document.getElementById('default_price').value = '11400';
+
+      showToast('Ученик успешно создан', 'success');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+
+    sendCreateRequest(requestData)
       .then(data => {
         if (data.success) {
-          // Закрываем модальное окно
-          const modal = bootstrap.Modal.getInstance(document.getElementById('createStudentModal'));
-          modal.hide();
+          handleStudentCreated(data);
+        } else if (data.duplicates) {
+          // Закрываем модальное окно создания перед показом предупреждения
+          const createModal = bootstrap.Modal.getInstance(document.getElementById('createStudentModal'));
+          if (createModal) createModal.hide();
 
-          // Добавляем нового ученика в datalist
-          const datalist = document.getElementById('students-datalist');
-          const option = document.createElement('option');
-          option.value = data.student.full_name;
-          option.setAttribute('data-id', data.student.id);
-          datalist.appendChild(option);
-
-          // Автоматически заполняем поле поиска
-          document.getElementById('student-search-input').value = data.student.full_name;
-          document.getElementById('student-id-input').value = data.student.id;
-
-          // Очищаем форму
-          document.getElementById('full_name').value = '';
-          document.getElementById('phone').value = '';
-          document.getElementById('parent_name').value = '';
-          document.getElementById('default_price').value = '11400';
-
-          showToast('Ученик успешно создан', 'success');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          showDuplicateWarning(data.duplicates, data.message, () => {
+            // Повторный запрос с force_create
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Создание...';
+            btn.disabled = true;
+            const forceData = { ...requestData, force_create: true };
+            sendCreateRequest(forceData)
+              .then(data2 => {
+                if (data2.success) {
+                  handleStudentCreated(data2);
+                } else {
+                  showToast(data2.error || 'Ошибка создания', 'error');
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+                }
+              });
+          });
         } else {
-          // Парсим ошибки
+          // Прочие ошибки
           let errorMsg = 'Ошибка при создании ученика';
           try {
-            const errors = JSON.parse(data.error);
+            const errors = JSON.parse(data.errors);
             errorMsg += ': ' + Object.values(errors).join(', ');
           } catch {
-            errorMsg += ': ' + data.error;
+            errorMsg += ': ' + (data.error || 'неизвестная ошибка');
           }
           showToast(errorMsg, 'error');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
-
-        // Восстанавливаем кнопку
-        btn.innerHTML = originalText;
-        btn.disabled = false;
       })
       .catch(error => {
         console.error('Error:', error);

@@ -160,9 +160,34 @@ def student_create_ajax(request):
     """
     Создание ученика через AJAX (без параметров смены).
     Может сразу привязать к смене, если передан schedule_id.
+    Поддерживает force_create для игнорирования дубликатов.
     """
     try:
         data = json.loads(request.body)
+        force_create = data.get("force_create", False)
+
+        # Проверка дубликатов (только если не принудительное создание)
+        if not force_create:
+            full_name = data.get("full_name", "").strip()
+            if full_name:
+                duplicates = Student.objects.filter(full_name__iexact=full_name)
+                if duplicates.exists():
+                    dup_list = [
+                        {
+                            "id": d.id,
+                            "full_name": d.full_name,
+                            "phone": d.phone,
+                            "parent_name": d.parent_name,
+                        }
+                        for d in duplicates
+                    ]
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "duplicates": dup_list,
+                            "message": "Найдены ученики с таким же ФИО, рекомендуется выбрать ученика из списка существующих. Создать нового всё равно?",
+                        }
+                    )
 
         # Проверка прав на смену, если она указана
         schedule = None
@@ -187,7 +212,6 @@ def student_create_ajax(request):
             "full_name": data.get("full_name"),
             "phone": data.get("phone", ""),
             "parent_name": data.get("parent_name", ""),
-            # squad не обязателен, если пришёл – ок
         }
         if "squad" in data and data["squad"]:
             form_data["squad"] = data["squad"]
@@ -196,9 +220,8 @@ def student_create_ajax(request):
         if form.is_valid():
             student = form.save()
 
-            # Если указана смена, создаём запись StudentSchedule с параметрами по умолчанию
+            # Если указана смена, создаём запись StudentSchedule
             if schedule:
-                # Параметры по умолчанию
                 attendance_type = data.get("attendance_type", "full_day")
                 default_price = data.get("default_price", 11400)
                 individual_price = data.get("individual_price")
@@ -212,10 +235,8 @@ def student_create_ajax(request):
                     individual_price=individual_price,
                     price_comment=price_comment,
                 )
-                # Списание стоимости
                 student.charge_for_schedule(schedule, request.user)
 
-            # Собираем ответ (без полей, зависимых от смены)
             response_data = {
                 "success": True,
                 "student": {
@@ -225,9 +246,9 @@ def student_create_ajax(request):
                     "parent_name": student.parent_name,
                     "squad_name": student.squad.name if student.squad else None,
                     "squad_id": student.squad.id if student.squad else None,
+                    # дополнительные поля, если нужны
                 },
             }
-
             return JsonResponse(response_data)
         else:
             return JsonResponse({"success": False, "errors": form.errors}, status=400)
@@ -539,7 +560,7 @@ def add_payment_form(request, student_id):
             "form": form,
             "student": student,
             "schedule": schedule,
-            "student_schedule": student_schedule, 
+            "student_schedule": student_schedule,
             "button_text": button_text,
             "total_paid": total_paid,
         },
