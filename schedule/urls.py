@@ -62,7 +62,7 @@ urlpatterns = [
         views.export_schedule_attendance_pdf,
         name="export_schedule_attendance_pdf",
     ),
-    #маршруты для отрядов
+    # маршруты для отрядов
     path(
         "<int:pk>/create_squad/",
         views.create_squad,
@@ -72,5 +72,16 @@ urlpatterns = [
         "<int:pk>/delete_squad/<int:squad_id>/",
         views.delete_squad,
         name="delete_squad",
+    ),
+    # Новые маршруты для поиска
+    path(
+        "search_students/",
+        views.schedule_search_students,
+        name="schedule_search_students",
+    ),
+    path(
+        "search_by_student/",
+        views.schedule_search_by_student,
+        name="schedule_search_by_student",
     ),
 ]

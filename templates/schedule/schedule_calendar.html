@@ -19,46 +19,61 @@
       <a href="?month={{ next_month }}" class="nav-btn">Следующий месяц <i class="bi bi-arrow-right-circle"></i></a>
     </div>
 
-    <div class="calendar-container">
-      <table class="table calendar-table">
-    <thead>
-      <tr>
-        <th>Филиал</th>
-        {% for header in week_headers %}
-          <th class="date-header">{{ header }}</th> 
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for branch in branches %}
-        <tr>
-        <td class="branch-name" data-branch-id="{{ branch.id }}">{{ branch.name }}</td>
-        {% for week_start, week_end in weeks %}
-                {% with cell=matrix|get_item:branch.id|get_item:week_start %}
-                  <td class="calendar-cell" data-branch="{{ branch.id }}" data-week-start="{{ week_start|date:'Y-m-d' }}" data-week-end="{{ week_end|date:'Y-m-d' }}">
-                    {% if cell %}
-                      {% for sched in cell %}
-                        <div class="schedule-card" style="border-left-color: {{ sched.color }};" data-id="{{ sched.id }}">
-                          <h6>{{ sched.name }}</h6>
-                          <div class="schedule-dates">
-                            <div class="schedule-theme">{{ sched.theme }}</div>
-                            <button class="btn btn-sm btn-primary mt-2 edit-schedule-btn" 
-                                    data-id="{{ sched.id }}">
-                              Детали
-                            </button>
-                          </div>
-                        </div>
-                      {% endfor %}
-                    {% else %}
-                      <div class="empty-cell">Добавить смену</div>
-                    {% endif %}
-                  </td>
-                {% endwith %}
+    <!-- Строка поиска студента с автоподстановкой -->
+    <div class="student-search my-3 position-relative">
+      <input type="text" id="studentSearchInput" class="form-control" placeholder="Поиск студента по фамилии..." autocomplete="off">
+      <div id="studentSuggestions" class="dropdown-menu w-100" style="display:none;"></div>
+    </div>
+
+    <!-- Блок с календарём (скрывается при поиске) -->
+    <div id="calendarContainer">
+      <div class="calendar-container">
+        <table class="table calendar-table">
+          <thead>
+            <tr>
+              <th>Филиал</th>
+              {% for header in week_headers %}
+                <th class="date-header">{{ header }}</th> 
               {% endfor %}
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for branch in branches %}
+              <tr>
+                <td class="branch-name" data-branch-id="{{ branch.id }}">{{ branch.name }}</td>
+                {% for week_start, week_end in weeks %}
+                  {% with cell=matrix|get_item:branch.id|get_item:week_start %}
+                    <td class="calendar-cell" data-branch="{{ branch.id }}" data-week-start="{{ week_start|date:'Y-m-d' }}" data-week-end="{{ week_end|date:'Y-m-d' }}">
+                      {% if cell %}
+                        {% for sched in cell %}
+                          <div class="schedule-card" style="border-left-color: {{ sched.color }};" data-id="{{ sched.id }}">
+                            <h6>{{ sched.name }}</h6>
+                            <div class="schedule-dates">
+                              <div class="schedule-theme">{{ sched.theme }}</div>
+                              <button class="btn btn-sm btn-primary mt-2 edit-schedule-btn" 
+                                      data-id="{{ sched.id }}">
+                                Детали
+                              </button>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      {% else %}
+                        <div class="empty-cell">Добавить смену</div>
+                      {% endif %}
+                    </td>
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Блок результатов поиска (скрыт по умолчанию) -->
+    <div id="searchResultsContainer" style="display: none;">
+      <h4>Смены с участием ученика</h4>
+      <div id="searchResultsList" class="list-group"></div>
     </div>
   </div>
 
@@ -72,14 +87,18 @@
   </div>
 
   <div class="modal fade" id="branchModal" tabindex="-1" aria-labelledby="branchModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content" id="branch-modal-content">
-      <!-- Контент будет загружен через AJAX -->
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content" id="branch-modal-content">
+        <!-- Контент будет загружен через AJAX -->
+      </div>
     </div>
   </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+    const scheduleSearchByStudentUrl = "{% url 'schedule_search_by_student' %}";
+    const scheduleSearchStudentsUrl = "{% url 'schedule_search_students' %}";
+</script>
 <script src="{% static 'js/schedule_calendar.js' %}"></script>
 {% endblock %}

@@ -1,4 +1,3 @@
-from decimal import Decimal, InvalidOperation
 import io
 import json
 import openpyxl
@@ -13,11 +12,11 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.db.models import Sum
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 from branches.models import Branch
 from core.utils import role_required, sanitize_sheet_name
 from employees.models import Employee, EmployeeAttendance, Position
-from payroll.forms import PaymentForm
 from payroll.models import Expense, ExpenseCategory, Salary
 from students.forms import SquadForm, StudentScheduleForm
 from students.models import (
@@ -29,7 +28,6 @@ from students.models import (
     Attendance,
 )
 from schedule.forms import ScheduleForm
-from schedule.templatetags.schedule_extras import romanize
 
 from .models import COLOR_CHOICES, Schedule
 
@@ -1013,3 +1011,52 @@ def delete_squad(request, pk, squad_id):
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False, "error": "Метод не разрешен"}, status=405)
+
+
+@login_required
+def schedule_search_students(request):
+    """Возвращает список студентов по подстроке в имени."""
+    query = request.GET.get("q", "").strip()
+    if len(query) < 2:
+        return JsonResponse({"students": []})
+    students = Student.objects.filter(full_name__icontains=query)[:10]
+    return JsonResponse(
+        {"students": [{"id": s.id, "full_name": s.full_name} for s in students]}
+    )
+
+
+@login_required
+def schedule_search_by_student(request):
+    """Возвращает смены, в которых участвует выбранный студент."""
+    student_id = request.GET.get("student_id")
+    if not student_id:
+        return JsonResponse({"error": "student_id required"}, status=400)
+    try:
+        student = Student.objects.get(id=student_id)
+    except Student.DoesNotExist:
+        return JsonResponse({"schedules": [], "student_name": ""})
+
+    schedules = Schedule.objects.filter(students=student).distinct()
+
+    user = request.user
+    if hasattr(user, "role") and user.role == "admin" and user.city:
+        schedules = schedules.filter(branch__city=user.city)
+    elif hasattr(user, "role") and user.role in ["camp_head", "lab_head"]:
+        schedules = schedules.filter(branch=user.branch)
+
+    return JsonResponse(
+        {
+            "student_name": student.full_name,
+            "schedules": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "theme": s.theme,
+                    "start_date": s.start_date.strftime("%d.%m.%Y"),
+                    "end_date": s.end_date.strftime("%d.%m.%Y"),
+                    "branch": s.branch.name,
+                }
+                for s in schedules.select_related("branch")
+            ],
+        }
+    )
