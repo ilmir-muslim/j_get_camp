@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<h1>Найдены дубликаты учеников</h1>
+<p>Выберите для каждой группы основную запись (останется), остальные будут объединены с ней и удалены.</p>
+
+<form method="post">
+    {% csrf_token %}
+    {% for group in duplicate_groups %}
+    <fieldset style="margin-bottom: 30px; border: 1px solid #ccc; padding: 15px;">
+        <legend>Группа: {{ group.0.full_name }}</legend>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Выбор</th>
+                    <th>ID</th>
+                    <th>Телефон</th>
+                    <th>Родитель</th>
+                    <th>Смены (ID)</th>
+                    <th>Баланс</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in group %}
+                <tr>
+                    <td>
+                        <input type="radio" name="master_{{ group.0.id }}" value="{{ student.id }}"
+                            {% if forloop.first %}checked{% endif %}>
+                    </td>
+                    <td>{{ student.id }}</td>
+                    <td>{{ student.phone|default:"—" }}</td>
+                    <td>{{ student.parent_name|default:"—" }}</td>
+                    <td>
+                        {% for s in student.schedules.all %}
+                        {{ s.id }}{% if not forloop.last %}, {% endif %}
+                        {% empty %}—
+                        {% endfor %}
+                    </td>
+                    <td>{{ student.current_balance }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </fieldset>
+    {% endfor %}
+    <div class="submit-row">
+        <input type="submit" value="Объединить выбранные записи" class="default">
+    </div>
+</form>
+{% endblock %}
