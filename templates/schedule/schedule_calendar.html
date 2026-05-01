@@ -40,7 +40,20 @@
           <tbody>
             {% for branch in branches %}
               <tr>
-                <td class="branch-name" data-branch-id="{{ branch.id }}">{{ branch.name }}</td>
+                <td class="branch-name" data-branch-id="{{ branch.id }}">
+                  {{ branch.name }}
+                  {% with stats=branch_stats|get_item:branch.id %}
+                    {% if stats %}
+                      <br><small class="text-muted">
+                        Смен: {{ stats.schedule_count }},
+                        Учеников: {{ stats.total_students }}
+                        {% if stats.total_payments %}
+                          <br>Платежи: {{ stats.total_payments }} ₽
+                        {% endif %}
+                      </small>
+                    {% endif %}
+                  {% endwith %}
+                </td>
                 {% for week_start, week_end in weeks %}
                   {% with cell=matrix|get_item:branch.id|get_item:week_start %}
                     <td class="calendar-cell" data-branch="{{ branch.id }}" data-week-start="{{ week_start|date:'Y-m-d' }}" data-week-end="{{ week_end|date:'Y-m-d' }}">

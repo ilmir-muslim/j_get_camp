@@ -10,7 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 
@@ -111,6 +111,36 @@ def schedule_calendar(request):
     else:
         branches = Branch.objects.all()
 
+    # ===== НОВОЕ: статистика по филиалам за текущий месяц =====
+    branch_stats = {}
+    for branch in branches:
+        # Все смены филиала, пересекающиеся с календарным месяцем
+        month_schedules = Schedule.objects.filter(
+            branch=branch, start_date__lte=last_day, end_date__gte=first_day
+        )
+        schedule_count = month_schedules.count()
+        # Суммарное (не уникальное) количество учеников во всех сменах месяца
+        total_students = (
+            month_schedules.annotate(num_students=Count("students")).aggregate(
+                total=Sum("num_students")
+            )["total"]
+            or 0
+        )
+        # Общая сумма платежей по этим сменам
+        total_payments = (
+            Payment.objects.filter(schedule__in=month_schedules).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+        branch_stats[branch.id] = {
+            "schedule_count": schedule_count,
+            "total_students": total_students,
+            "total_payments": total_payments,
+        }
+    # ===== КОНЕЦ НОВОГО БЛОКА =====
+
     matrix = {}
     for branch in branches:
         branch_schedules = {}
@@ -135,6 +165,7 @@ def schedule_calendar(request):
         "week_headers": week_headers,
         "branches": branches,
         "matrix": matrix,
+        "branch_stats": branch_stats,  # <-- передаём статистику в шаблон
         "color_choices": COLOR_CHOICES,
     }
     return render(request, "schedule/schedule_calendar.html", context)
@@ -474,7 +505,7 @@ def schedule_detail(request, pk):
         "available_schedules": available_schedules,
         "salary_category_id": salary_category.id,
         "squads_with_leaders": squads_with_leaders,
-        "student_schedule_map": student_schedule_map,  # <-- ключевая переменная
+        "student_schedule_map": student_schedule_map,
     }
     return render(request, "schedule/schedule_detail.html", context)
 
