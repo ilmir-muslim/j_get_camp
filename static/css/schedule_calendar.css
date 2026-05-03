@@ -51,3 +51,10 @@
   font-size: 0.8rem;
   padding: 4px 8px;
 }
+
+.schedule-stats {
+  line-height: 1.4;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #666;
+}

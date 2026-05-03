@@ -63,6 +63,27 @@
                             <h6>{{ sched.name }}</h6>
                             <div class="schedule-dates">
                               <div class="schedule-theme">{{ sched.theme }}</div>
+                              
+                              <!-- ===== ФИНАНСОВАЯ СТАТИСТИКА ПО СМЕНЕ ===== -->
+                              {% with stats=schedule_stats|get_item:sched.id %}
+                                {% if stats %}
+                                  <div class="schedule-stats mt-1 small text-muted">
+                                    👤 {{ stats.student_count }} уч.
+                                    {% if stats.student_count %}
+                                      ({{ stats.paid_count }} опл, {{ stats.unpaid_count }} неопл)
+                                    {% endif %}
+                                    {% if stats.total_payments %}
+                                      <br>💰 Доход: {{ stats.total_payments }} ₽
+                                    {% endif %}
+                                    {% if stats.total_expenses %}
+                                      <br>💸 Расход: {{ stats.total_expenses }} ₽
+                                    {% endif %}
+                                    <br>📊 Баланс: {{ stats.balance }} ₽
+                                  </div>
+                                {% endif %}
+                              {% endwith %}
+                              <!-- ===== КОНЕЦ СТАТИСТИКИ ===== -->
+                              
                               <button class="btn btn-sm btn-primary mt-2 edit-schedule-btn" 
                                       data-id="{{ sched.id }}">
                                 Детали
