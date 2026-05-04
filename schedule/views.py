@@ -1,3 +1,5 @@
+# schedule/views.py (полный файл)
+
 import io
 import json
 import openpyxl
@@ -149,7 +151,7 @@ def schedule_calendar(request):
             branch_schedules[week_start] = schedules
         matrix[branch.id] = branch_schedules
 
-    # ===== НОВОЕ: СТАТИСТИКА ПО КАЖДОЙ СМЕНЕ ДЛЯ КАРТОЧЕК =====
+    # ===== НОВАЯ ФИНАНСОВАЯ СТАТИСТИКА ПО СМЕНАМ =====
     schedule_ids = set()
     for branch_id, week_dict in matrix.items():
         for week_start, schedules in week_dict.items():
@@ -159,42 +161,48 @@ def schedule_calendar(request):
     schedule_stats = {}
     for sched_id in schedule_ids:
         sched = Schedule.objects.get(id=sched_id)
-        total_payments = Payment.objects.filter(schedule=sched).aggregate(
-            total=Sum("amount")
-        )["total"] or 0
-        total_expenses = Expense.objects.filter(schedule=sched).aggregate(
-            total=Sum("amount")
-        )["total"] or 0
-        total_salaries = Salary.objects.filter(schedule=sched, is_paid=True).aggregate(
-            total=Sum("total_payment")
-        )["total"] or 0
-        total_out = total_expenses + total_salaries
-        balance = total_payments - total_out
-
-        # Подсчёт оплативших / не оплативших (или оплативших не полностью)
         students = sched.students.all()
+        total_students = students.count()
+
+        expected_total = 0
+        actual_paid = (
+            Payment.objects.filter(schedule=sched).aggregate(total=Sum("amount"))[
+                "total"
+            ]
+            or 0
+        )
+
+        debt = 0
         paid_count = 0
         unpaid_count = 0
+
         for student in students:
             ss = student.studentschedule_set.filter(schedule=sched).first()
-            # Цена для студента: индивидуальная, если есть, иначе базовая
             price = (
-                ss.individual_price if ss and ss.individual_price
+                ss.individual_price
+                if ss and ss.individual_price
                 else (ss.default_price if ss else 0)
             )
-            total_paid_student = Payment.objects.filter(
-                student=student, schedule=sched
-            ).aggregate(Sum("amount"))["amount__sum"] or 0
-            if total_paid_student >= price:
-                paid_count += 1
-            else:
+            expected_total += price
+
+            student_paid = (
+                Payment.objects.filter(student=student, schedule=sched).aggregate(
+                    total=Sum("amount")
+                )["total"]
+                or 0
+            )
+
+            if price > student_paid:
+                debt += price - student_paid
                 unpaid_count += 1
+            else:
+                paid_count += 1
 
         schedule_stats[sched_id] = {
-            "student_count": students.count(),
-            "total_payments": total_payments,
-            "total_expenses": total_out,
-            "balance": balance,
+            "total_students": total_students,
+            "expected_total": expected_total,
+            "actual_paid": actual_paid,
+            "debt": debt,
             "paid_count": paid_count,
             "unpaid_count": unpaid_count,
         }
@@ -215,7 +223,7 @@ def schedule_calendar(request):
         "branches": branches,
         "matrix": matrix,
         "branch_stats": branch_stats,
-        "schedule_stats": schedule_stats,      # <-- добавлено
+        "schedule_stats": schedule_stats,
         "color_choices": COLOR_CHOICES,
     }
     return render(request, "schedule/schedule_calendar.html", context)

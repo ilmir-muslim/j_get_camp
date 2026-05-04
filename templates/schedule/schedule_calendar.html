@@ -64,21 +64,13 @@
                             <div class="schedule-dates">
                               <div class="schedule-theme">{{ sched.theme }}</div>
                               
-                              <!-- ===== ФИНАНСОВАЯ СТАТИСТИКА ПО СМЕНЕ ===== -->
+                              <!-- ===== ФИНАНСОВАЯ СТАТИСТИКА В НУЖНОМ ФОРМАТЕ ===== -->
                               {% with stats=schedule_stats|get_item:sched.id %}
                                 {% if stats %}
-                                  <div class="schedule-stats mt-1 small text-muted">
-                                    👤 {{ stats.student_count }} уч.
-                                    {% if stats.student_count %}
-                                      ({{ stats.paid_count }} опл, {{ stats.unpaid_count }} неопл)
-                                    {% endif %}
-                                    {% if stats.total_payments %}
-                                      <br>💰 Доход: {{ stats.total_payments }} ₽
-                                    {% endif %}
-                                    {% if stats.total_expenses %}
-                                      <br>💸 Расход: {{ stats.total_expenses }} ₽
-                                    {% endif %}
-                                    <br>📊 Баланс: {{ stats.balance }} ₽
+                                  <div class="schedule-stats mt-1 small">
+                                    👤 {{ stats.total_students }} уч 📋 Ожидается {{ stats.expected_total }} р<br>
+                                    👤 {{ stats.paid_count }}уч 💰 Оплачено {{ stats.actual_paid }} р<br>
+                                    👤 {{ stats.unpaid_count }} уч ⚠️ Долг {{ stats.debt }} р
                                   </div>
                                 {% endif %}
                               {% endwith %}
