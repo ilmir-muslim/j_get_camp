@@ -1,3 +1,4 @@
+import re
 from django.utils import timezone
 from django.db.models import Sum
 from django.db import models
@@ -134,6 +135,12 @@ class Student(models.Model):
 
     def can_make_payment(self, amount):
         return True
+    
+    def save(self, *args, **kwargs):
+        if self.phone:
+            # Оставляем только цифры и плюс в начале
+            self.phone = re.sub(r'[^\d+]', '', self.phone)
+        super().save(*args, **kwargs)
 
 
 class StudentSchedule(models.Model):

@@ -12,7 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 
@@ -1104,11 +1104,17 @@ def delete_squad(request, pk, squad_id):
 
 @login_required
 def schedule_search_students(request):
-    """Возвращает список студентов по подстроке в имени."""
+    """
+    Возвращает список студентов по подстроке в имени или номере телефона.
+    """
     query = request.GET.get("q", "").strip()
     if len(query) < 2:
         return JsonResponse({"students": []})
-    students = Student.objects.filter(full_name__icontains=query)[:10]
+
+    students = Student.objects.filter(
+        Q(full_name__icontains=query) | Q(phone__icontains=query)
+    )[:15]
+
     return JsonResponse(
         {"students": [{"id": s.id, "full_name": s.full_name} for s in students]}
     )

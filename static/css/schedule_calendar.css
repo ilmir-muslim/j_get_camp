@@ -99,7 +99,7 @@
 /* Обёртка поля ввода для позиционирования подсказок */
 .search-input-wrapper {
   position: relative;
-  width: 350px;
+  width: 400px;
 }
 
 #studentSearchInput {
