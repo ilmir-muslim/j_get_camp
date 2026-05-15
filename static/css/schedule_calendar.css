@@ -58,3 +58,94 @@
   font-size: 0.85rem;
   color: #333;
 }
+
+/* ===== НОВЫЙ КОНТЕЙНЕР ДЛЯ ТУЛБАРА ===== */
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  gap: 20px;
+}
+
+/* Навигация по месяцам */
+.month-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+/* Блок поиска (прижат к правому краю) */
+.student-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  /* прижимаем группу вправо */
+}
+
+/* Обёртка поля ввода для позиционирования подсказок */
+.search-input-wrapper {
+  position: relative;
+  width: 350px;
+}
+
+#studentSearchInput {
+  width: 100%;
+}
+
+/* Выпадающий список подсказок */
+#studentSuggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1060;
+  /* выше, чем у модального окна (1040) */
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 0.25rem;
+  display: none;
+}
+
+#create-student-btn {
+  white-space: nowrap;
+}
+
+/* Адаптивность: на узких экранах группа поиска переносится на новую строку */
+@media (max-width: 992px) {
+  .month-navigation {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .search-group {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .search-input-wrapper {
+    flex-grow: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-input-wrapper {
+    width: 100%;
+  }
+}

@@ -17,12 +17,15 @@
       <a href="?month={{ prev_month }}" class="nav-btn"><i class="bi bi-arrow-left-circle"></i> Предыдущий месяц</a>
       <div class="month-title">{{ current_date|date:'F Y' }}</div>
       <a href="?month={{ next_month }}" class="nav-btn">Следующий месяц <i class="bi bi-arrow-right-circle"></i></a>
-    </div>
 
-    <!-- Строка поиска студента с автоподстановкой -->
-    <div class="student-search my-3 position-relative">
-      <input type="text" id="studentSearchInput" class="form-control" placeholder="Поиск студента по фамилии..." autocomplete="off">
-      <div id="studentSuggestions" class="dropdown-menu w-100" style="display:none;"></div>
+      <!-- Группа поиска (прижата к правому краю) -->
+      <div class="search-group">
+        <div class="search-input-wrapper">
+          <input type="text" id="studentSearchInput" class="form-control" placeholder="Поиск студента по фамилии..." autocomplete="off">
+          <div id="studentSuggestions" class="dropdown-menu"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="create-student-btn">Создать</button>
+      </div>
     </div>
 
     <!-- Блок с календарём (скрывается при поиске) -->
@@ -64,7 +67,6 @@
                             <div class="schedule-dates">
                               <div class="schedule-theme">{{ sched.theme }}</div>
                               
-                              <!-- ===== ФИНАНСОВАЯ СТАТИСТИКА В НУЖНОМ ФОРМАТЕ ===== -->
                               {% with stats=schedule_stats|get_item:sched.id %}
                                 {% if stats %}
                                   <div class="schedule-stats mt-1 small">
@@ -74,7 +76,6 @@
                                   </div>
                                 {% endif %}
                               {% endwith %}
-                              <!-- ===== КОНЕЦ СТАТИСТИКИ ===== -->
                               
                               <button class="btn btn-sm btn-primary mt-2 edit-schedule-btn" 
                                       data-id="{{ sched.id }}">
@@ -101,23 +102,24 @@
       <h4>Смены с участием ученика</h4>
       <div id="searchResultsList" class="list-group"></div>
     </div>
-  </div>
 
-  <!-- Модальное окно для редактирования -->
-  <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content" id="modal-content">
-        <!-- Контент будет загружен через AJAX -->
+    <!-- Модальное окно для редактирования смены -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="modal-content"></div>
       </div>
     </div>
-  </div>
 
-  <div class="modal fade" id="branchModal" tabindex="-1" aria-labelledby="branchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content" id="branch-modal-content">
-        <!-- Контент будет загружен через AJAX -->
+    <!-- Модальное окно для просмотра филиала -->
+    <div class="modal fade" id="branchModal" tabindex="-1" aria-labelledby="branchModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content" id="branch-modal-content"></div>
       </div>
     </div>
+
+    <!-- Переиспользуемое модальное окно создания ученика -->
+    {% include "schedule/includes/create_student_modal.html" %}
+
   </div>
 {% endblock %}
 

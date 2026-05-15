@@ -491,50 +491,7 @@
     </div>
     
     <!-- Модальное окно для создания ученика -->
-    <div class="modal fade" id="createStudentModal" tabindex="-1" aria-labelledby="createStudentModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createStudentModalLabel">Создать нового ученика</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="create-student-form">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="full_name" class="form-label">ФИО *</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Телефон</label>
-                            <input type="tel" class="form-control" id="phone" name="phone">
-                        </div>
-                        <div class="mb-3">
-                            <label for="parent_name" class="form-label">Родитель</label>
-                            <input type="text" class="form-control" id="parent_name" name="parent_name">
-                        </div>
-                        <!-- Восстановленные поля -->
-                        <div class="mb-3">
-                            <label for="attendance_type" class="form-label">Тип посещения</label>
-                            <select class="form-select" id="attendance_type" name="attendance_type">
-                                <option value="full_day">Полный день</option>
-                                <option value="camp">Лагерь</option>
-                                <option value="lab">Лаборатория</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="default_price" class="form-label">Базовая цена</label>
-                            <input type="number" class="form-control" id="default_price" name="default_price" value="11400" step="0.01">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" id="save-student-btn">Сохранить</button>
-                </div>
-            </div>
-        </div>
-    </div>
+{% include "schedule/includes/create_student_modal.html" %}
 
     <!-- Модальное окно для создания сотрудника (без изменений) -->
     <div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-labelledby="createEmployeeModalLabel" aria-hidden="true">
